@@ -3,26 +3,41 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 
 	"github.com/bxrne/logmgr"
 )
 
-func fitness(i *Individual) int {
-	count := 0
-	for _, bit := range i.Genome {
-		if bit == '1' {
-			count++
+type Population []Individual
+
+func NewPopulation(size int, genomeSize int) Population {
+	pop := make(Population, size)
+	for i := range pop {
+		pop[i] = Individual{
+			Genome: fmt.Sprintf("%0*b", genomeSize, rand.Intn(1<<genomeSize)),
 		}
 	}
-	return count
+	return pop
 }
 
-func mutate(i *Individual, point int) {
-	if i.Genome[point] == '1' {
-		i.Genome = i.Genome[:point] + "0" + i.Genome[point+1:]
-	} else {
-		i.Genome = i.Genome[:point] + "1" + i.Genome[point+1:]
+func (p *Population) Sort() {
+	sort.SliceStable(*p, func(i, j int) bool {
+		return (*p)[i].Fitness > (*p)[j].Fitness
+	})
+}
+
+func (p *Population) Step(crossoverRate float64, mutationPoints []int, mutationRate float64) {
+	for i := range *p {
+		(*p)[i].CalculateFitness()
+		if rand.Float64() < mutationRate {
+			(*p)[i].Mutate(mutationPoints)
+		}
 	}
+
+	newPop := NewPopulation(len(*p), len((*p)[0].Genome))
+	p.Sort()
+	copy(newPop[:10], (*p)[:10])
+	*p = newPop
 }
 
 type Individual struct {
@@ -30,11 +45,24 @@ type Individual struct {
 	Fitness int
 }
 
-func (i *Individual) Max(in *Individual) *Individual {
-	if i.Fitness > i.Fitness {
-		return i
+func (i *Individual) CalculateFitness() {
+	count := 0
+	for _, gene := range i.Genome {
+		if gene == '1' {
+			count++
+		}
 	}
-	return i
+	i.Fitness = count
+}
+
+func (i *Individual) Mutate(points []int) {
+	for _, point := range points {
+		if i.Genome[point] == '1' {
+			i.Genome = i.Genome[:point] + "0" + i.Genome[point+1:]
+		} else {
+			i.Genome = i.Genome[:point] + "1" + i.Genome[point+1:]
+		}
+	}
 }
 
 func main() {
@@ -44,27 +72,16 @@ func main() {
 	populationSize := 500
 	maxGenerations := 50
 	crossoverRate := 0.9
+	mutationPoints := rand.Perm(12)[:2] // Mutate 2 random points
 	mutationRate := 0.05
 	genomeSize := 12
 
-	logmgr.Info("Starting...", logmgr.Field("population", populationSize), logmgr.Field("maxGenerations", maxGenerations), logmgr.Field("crossoverRate", crossoverRate), logmgr.Field("mutationRate", mutationRate))
+	logmgr.Info("Starting...", logmgr.Field("population", populationSize), logmgr.Field("max generations", maxGenerations), logmgr.Field("crossover rate", crossoverRate), logmgr.Field("mutation rate", mutationRate))
 
-	population := make([]Individual, populationSize)
-	for i := range population {
-		population[i] = Individual{
-			Genome: fmt.Sprintf("%0*b", genomeSize, rand.Intn(1<<genomeSize)),
-		}
-	}
+	population := NewPopulation(populationSize, genomeSize)
 
 	for range maxGenerations {
-		for i := range population {
-			population[i].Fitness = fitness(&population[i])
-
-			if rand.Float64() < mutationRate {
-				mutate(&population[i], rand.Intn(genomeSize-1))
-			}
-
-		}
+		population.Step(crossoverRate, mutationPoints, mutationRate)
 	}
 
 	maxFit, minFit := 0, genomeSize
@@ -77,5 +94,5 @@ func main() {
 		}
 	}
 
-	logmgr.Info("Generation complete", logmgr.Field("maxFitness", maxFit), logmgr.Field("minFitness", minFit))
+	logmgr.Info("Generation complete", logmgr.Field("max fitness", maxFit), logmgr.Field("min fitness", minFit))
 }
