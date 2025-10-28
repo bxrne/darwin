@@ -1,0 +1,39 @@
+name: Build and Test
+permissions:
+  contents: read
+  pull-requests: write
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest 
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.25
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build 
+        run: go build ./cmd/... 
+
+      - name: Run tests without coverage
+        run: go test ./...
+
+      - name: Run tests with coverage
+        run: go test -cover -coverprofile=coverage.out ./...
+      
