@@ -1,0 +1,7 @@
+[evolution]
+population_size = 500
+genome_size = 12
+crossover_rate = 0.9
+mutation_rate = 0.05
+mutation_points = [6]
+generations = 50
