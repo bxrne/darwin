@@ -1,7 +1,9 @@
 package garden
 
 import (
+	"fmt"
 	"math/rand"
+	"sort"
 )
 
 type Individual struct {
@@ -52,18 +54,30 @@ func (i *Individual) Mutate(points []int, mutatationRate float64) {
 	}
 }
 
-func (i *Individual) SinglePointCrossover(i2 Individual, crossoverRate float64) Individual {
-	if crossoverRate < rand.Float64() {
-		return *i
+func (i *Individual) MultiPointCrossover(i2 Individual, crossoverPoints int) (Individual, Individual) {
+	crossoverPointArray := make([]int, 0)
+	newI1 := Individual{Genome: ""}
+	newI2 := Individual{Genome: ""}
+	for range crossoverPoints {
+		crossoverPointArray = append(crossoverPointArray, rand.Intn(len(i.Genome)))
 	}
-	index := rand.Intn(len(i.Genome))
-	newI := Individual{Genome: ""}
+	sort.Ints(crossoverPointArray)
+	swap := true
+	currentPointIndex := 0
 	for j := range len(i.Genome) {
-		if j < index {
-			newI.Genome += string(i.Genome[j])
+		if currentPointIndex < len(crossoverPointArray) && j >= crossoverPointArray[currentPointIndex] {
+			swap = false
+			currentPointIndex += 1
+		}
+		if swap {
+			newI1.Genome += string(i.Genome[j])
+			newI2.Genome += string(i2.Genome[j])
 		} else {
-			newI.Genome += string(i2.Genome[j])
+			newI1.Genome += string(i2.Genome[j])
+			newI2.Genome += string(i.Genome[j])
 		}
 	}
-	return newI
+	newI1.CalculateFitness()
+	newI2.CalculateFitness()
+	return newI1, newI2
 }

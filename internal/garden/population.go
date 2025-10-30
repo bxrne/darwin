@@ -35,28 +35,39 @@ func (p *Population) Roulette(input_amount int) Individual {
 	return rouletteTable[len(rouletteTable)-1]
 }
 
+func (p *Population) Tournament(inputAmount int) Individual {
+	tournamentPop := make([]Individual, 0, inputAmount)
+	for range inputAmount {
+		randIndex := rand.Intn(len(*p))
+		tournamentPop = append(tournamentPop, (*p)[randIndex])
+	}
+	max := tournamentPop[0]
+	for _, ind := range tournamentPop[1:] {
+		max = ind.Max(max)
+	}
+	return max
+}
+
 func (p *Population) Sort() {
 	sort.SliceStable(*p, func(i, j int) bool {
 		return (*p)[i].Fitness > (*p)[j].Fitness
 	})
 }
 
-func (p *Population) Step(crossoverRate float64, mutationPoints []int, mutationRate float64) {
+func (p *Population) Step(crossoverPointCount int, mutationPoints []int, mutationRate float64, elistimPercentage float64) {
 	newPop := make(Population, 0, len(*p))
+	p.Sort()
+	elitismAmount := len(*p) - int(float64(len(*p))*elistimPercentage)
+	copy(newPop[:elitismAmount], (*p)[:elitismAmount])
 	for len(newPop) < cap(newPop) {
-		parent1 := p.Roulette(50)
-		parent2 := p.Roulette(50)
+		parent1 := p.Roulette(30)
+		parent2 := p.Roulette(30)
 
 		// Perform crossover and mutation
-		child1 := parent1.SinglePointCrossover(parent2, crossoverRate)
+		child1, child2 := parent1.MultiPointCrossover(parent2, crossoverPointCount)
 		child1.Mutate(mutationPoints, mutationRate)
-		child2 := parent2.SinglePointCrossover(parent1, crossoverRate)
 		child2.Mutate(mutationPoints, mutationRate)
-		child1.CalculateFitness()
-		child2.CalculateFitness()
-		// Add new child to population
 		newPop = append(newPop, child1.Max(child2))
-		newPop = append(newPop, parent1.Max(parent2))
 	}
 	*p = newPop
 }

@@ -22,7 +22,7 @@ func main() {
 	population := garden.NewPopulation(cfg.Evolution.PopulationSize, cfg.Evolution.GenomeSize)
 
 	for range cfg.Evolution.Generations {
-		population.Step(cfg.Evolution.CrossoverRate, cfg.Evolution.MutationPoints, cfg.Evolution.MutationRate)
+		population.Step(cfg.Evolution.CrossoverPointCount, cfg.Evolution.MutationPoints, cfg.Evolution.MutationRate, cfg.Evolution.ElitismPercentage)
 	}
 
 	logmgr.Info("Evolution complete", logmgr.Field("population_summary", population.Summary()))
