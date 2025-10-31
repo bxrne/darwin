@@ -6,10 +6,6 @@ import (
 	"time"
 
 	"github.com/bxrne/darwin/internal/cfg"
-	"github.com/bxrne/darwin/internal/evolution"
-	"github.com/bxrne/darwin/internal/metrics"
-	"github.com/bxrne/darwin/internal/rng"
-	"github.com/bxrne/darwin/internal/selection"
 )
 
 func BenchmarkEvolution(b *testing.B) {
@@ -41,56 +37,18 @@ func BenchmarkEvolution(b *testing.B) {
 	runtime.ReadMemStats(&memStatsBefore)
 
 	// Reset timer to exclude setup time
-	b.ResetTimer()
+
 	b.ReportAllocs()
 
 	startTime := time.Now()
 
 	// Run evolution b.N times
-	for i := 0; i < b.N; i++ {
-		// Seed RNG for each run
-		rng.Seed(config.Evolution.Seed)
-
-		// Setup components for each run
-		metricsChan := make(chan metrics.GenerationMetrics, 100)
-		cmdChan := make(chan evolution.EvolutionCommand, 10)
-
-		popBuilder := evolution.NewPopulationBuilder()
-		population := popBuilder.BuildBinaryPopulation(config.Evolution.PopulationSize, config.Evolution.GenomeSize)
-
-		selector := selection.NewRouletteSelector(30)
-
-		metricsStreamer := metrics.NewMetricsStreamer(metricsChan)
-		evolutionEngine := evolution.NewEvolutionEngine(population, selector, metricsChan, cmdChan)
-
-		// Start metrics and evolution
-		metricsStreamer.Start(b.Context())
-		evolutionEngine.Start(b.Context())
-
-		// Send evolution commands
-		for gen := 1; gen <= config.Evolution.Generations; gen++ {
-			cmd := evolution.EvolutionCommand{
-				Type:            evolution.CmdStartGeneration,
-				Generation:      gen,
-				CrossoverPoints: config.Evolution.CrossoverPointCount,
-				MutationPoints:  config.Evolution.MutationPoints,
-				MutationRate:    config.Evolution.MutationRate,
-				ElitismPct:      config.Evolution.ElitismPercentage,
-			}
-
-			select {
-			case cmdChan <- cmd:
-			case <-time.After(5 * time.Second):
-				b.Fatalf("Timeout sending evolution command generation %d", gen)
-			}
+	for i := 0; b.Loop(); i++ {
+		finalPop, err := runEvolution(b.Context(), config, nil)
+		if err != nil {
+			b.Fatalf("Evolution failed: %v", err)
 		}
 
-		close(cmdChan)
-		evolutionEngine.Wait()
-		metricsStreamer.Stop()
-
-		// Get final results
-		finalPop := evolutionEngine.GetPopulation()
 		if len(finalPop) > 0 {
 			bestFitness := 0.0
 			totalFitness := 0.0
@@ -171,55 +129,16 @@ func benchmarkWithConfig(b *testing.B, popSize, genomeSize, generations int) {
 	var memStatsBefore runtime.MemStats
 	runtime.ReadMemStats(&memStatsBefore)
 
-	b.ResetTimer()
 	b.ReportAllocs()
 
 	startTime := time.Now()
 
-	for i := 0; i < b.N; i++ {
-		// Seed RNG for each run to ensure reproducibility
-		rng.Seed(config.Evolution.Seed)
-
-		// Setup components for each run
-		metricsChan := make(chan metrics.GenerationMetrics, 100)
-		cmdChan := make(chan evolution.EvolutionCommand, 10)
-
-		popBuilder := evolution.NewPopulationBuilder()
-		population := popBuilder.BuildBinaryPopulation(config.Evolution.PopulationSize, config.Evolution.GenomeSize)
-
-		selector := selection.NewRouletteSelector(30)
-
-		metricsStreamer := metrics.NewMetricsStreamer(metricsChan)
-		evolutionEngine := evolution.NewEvolutionEngine(population, selector, metricsChan, cmdChan)
-
-		// Start
-		metricsStreamer.Start(b.Context())
-		evolutionEngine.Start(b.Context())
-
-		// Commands
-		for gen := 1; gen <= config.Evolution.Generations; gen++ {
-			cmd := evolution.EvolutionCommand{
-				Type:            evolution.CmdStartGeneration,
-				Generation:      gen,
-				CrossoverPoints: config.Evolution.CrossoverPointCount,
-				MutationPoints:  config.Evolution.MutationPoints,
-				MutationRate:    config.Evolution.MutationRate,
-				ElitismPct:      config.Evolution.ElitismPercentage,
-			}
-
-			select {
-			case cmdChan <- cmd:
-			case <-time.After(5 * time.Second):
-				b.Fatalf("Timeout in generation %d", gen)
-			}
+	for i := 0; b.Loop(); i++ {
+		finalPop, err := runEvolution(b.Context(), config, nil)
+		if err != nil {
+			b.Fatalf("Evolution failed: %v", err)
 		}
 
-		close(cmdChan)
-		evolutionEngine.Wait()
-		metricsStreamer.Stop()
-
-		// Results
-		finalPop := evolutionEngine.GetPopulation()
 		if len(finalPop) > 0 {
 			bestFitness := 0.0
 			totalFitness := 0.0
