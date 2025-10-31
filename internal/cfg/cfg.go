@@ -25,6 +25,7 @@ type EvolutionConfig struct {
 	MutationPoints      []int   `toml:"mutation_points"`
 	Generations         int     `toml:"generations"`
 	ElitismPercentage   float64 `toml:"elitism_percentage"`
+	Seed                int64   `toml:"seed"`
 }
 
 func (ec *EvolutionConfig) validate() error {
@@ -50,6 +51,10 @@ func (ec *EvolutionConfig) validate() error {
 		if point < 0 || point >= ec.GenomeSize {
 			return fmt.Errorf("mutation_points must be within the range of genome_size")
 		}
+	}
+	// Set default seed if not provided
+	if ec.Seed == 0 {
+		ec.Seed = 42
 	}
 	return nil
 }

@@ -1,8 +1,9 @@
 package individual
 
 import (
-	"math/rand"
 	"sort"
+
+	"github.com/bxrne/darwin/internal/rng"
 )
 
 // BinaryIndividual represents an individual with a binary genome
@@ -15,7 +16,7 @@ type BinaryIndividual struct {
 func NewBinaryIndividual(genomeSize int) *BinaryIndividual {
 	genome := make([]byte, genomeSize)
 	for i := range genome {
-		genome[i] = '0' + byte(rand.Intn(2))
+		genome[i] = '0' + byte(rng.Intn(2))
 	}
 
 	b := BinaryIndividual{Genome: genome}
@@ -53,7 +54,7 @@ func (i *BinaryIndividual) Max(i2 Evolvable) Evolvable {
 
 // Mutate performs mutation on the genome at specified points
 func (i *BinaryIndividual) Mutate(points []int, mutationRate float64) {
-	if mutationRate < rand.Float64() {
+	if mutationRate < rng.Float64() {
 		return
 	}
 	for _, point := range points {
@@ -73,7 +74,7 @@ func (i *BinaryIndividual) MultiPointCrossover(i2 Evolvable, crossoverPoints int
 	newI2Genome := make([]byte, 0, len(i.Genome))
 
 	for range crossoverPoints {
-		crossoverPointArray = append(crossoverPointArray, rand.Intn(len(i.Genome)))
+		crossoverPointArray = append(crossoverPointArray, rng.Intn(len(i.Genome)))
 	}
 	sort.Ints(crossoverPointArray)
 

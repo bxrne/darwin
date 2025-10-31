@@ -17,6 +17,7 @@ func TestEvolutionConfigValidate_GIVEN_valid_config_WHEN_validate_THEN_no_error(
 		MutationPoints:      []int{0, 2},
 		Generations:         100,
 		ElitismPercentage:   0.2,
+		Seed:                42,
 	}
 
 	err := config.validate()
@@ -33,6 +34,7 @@ func TestEvolutionConfigValidate_GIVEN_population_size_zero_WHEN_validate_THEN_e
 		MutationPoints:      []int{0, 2},
 		Generations:         100,
 		ElitismPercentage:   0.2,
+		Seed:                42,
 	}
 
 	err := config.validate()
@@ -50,6 +52,7 @@ func TestEvolutionConfigValidate_GIVEN_genome_size_zero_WHEN_validate_THEN_error
 		MutationPoints:      []int{0, 2},
 		Generations:         100,
 		ElitismPercentage:   0.2,
+		Seed:                42,
 	}
 
 	err := config.validate()
@@ -67,6 +70,7 @@ func TestEvolutionConfigValidate_GIVEN_crossover_point_count_zero_WHEN_validate_
 		MutationPoints:      []int{0, 2},
 		Generations:         100,
 		ElitismPercentage:   0.2,
+		Seed:                42,
 	}
 
 	err := config.validate()
@@ -84,6 +88,7 @@ func TestEvolutionConfigValidate_GIVEN_mutation_rate_negative_WHEN_validate_THEN
 		MutationPoints:      []int{0, 2},
 		Generations:         100,
 		ElitismPercentage:   0.2,
+		Seed:                42,
 	}
 
 	err := config.validate()
@@ -101,6 +106,7 @@ func TestEvolutionConfigValidate_GIVEN_mutation_rate_above_one_WHEN_validate_THE
 		MutationPoints:      []int{0, 2},
 		Generations:         100,
 		ElitismPercentage:   0.2,
+		Seed:                42,
 	}
 
 	err := config.validate()
@@ -118,6 +124,7 @@ func TestEvolutionConfigValidate_GIVEN_generations_zero_WHEN_validate_THEN_error
 		MutationPoints:      []int{0, 2},
 		Generations:         0,
 		ElitismPercentage:   0.2,
+		Seed:                42,
 	}
 
 	err := config.validate()
@@ -135,6 +142,7 @@ func TestEvolutionConfigValidate_GIVEN_elitism_percentage_zero_WHEN_validate_THE
 		MutationPoints:      []int{0, 2},
 		Generations:         100,
 		ElitismPercentage:   0.0,
+		Seed:                42,
 	}
 
 	err := config.validate()
@@ -152,6 +160,7 @@ func TestEvolutionConfigValidate_GIVEN_elitism_percentage_above_one_WHEN_validat
 		MutationPoints:      []int{0, 2},
 		Generations:         100,
 		ElitismPercentage:   1.5,
+		Seed:                42,
 	}
 
 	err := config.validate()
@@ -169,6 +178,7 @@ func TestEvolutionConfigValidate_GIVEN_mutation_points_out_of_range_WHEN_validat
 		MutationPoints:      []int{0, 5}, // 5 is out of range for genome size 5
 		Generations:         100,
 		ElitismPercentage:   0.2,
+		Seed:                42,
 	}
 
 	err := config.validate()
@@ -187,6 +197,7 @@ func TestConfigValidate_GIVEN_valid_evolution_config_WHEN_validate_THEN_no_error
 			MutationPoints:      []int{0, 2},
 			Generations:         100,
 			ElitismPercentage:   0.2,
+			Seed:                42,
 		},
 	}
 
@@ -205,6 +216,7 @@ func TestConfigValidate_GIVEN_invalid_evolution_config_WHEN_validate_THEN_error(
 			MutationPoints:      []int{0, 2},
 			Generations:         100,
 			ElitismPercentage:   0.2,
+			Seed:                42,
 		},
 	}
 
@@ -223,6 +235,7 @@ mutation_rate = 0.1
 mutation_points = [0, 2]
 generations = 100
 elitism_percentage = 0.2
+seed = 42
 `
 
 	// Create temp file
@@ -236,6 +249,7 @@ elitism_percentage = 0.2
 	assert.NoError(t, err)
 	assert.NotNil(t, config)
 	assert.Equal(t, 10, config.Evolution.PopulationSize)
+	assert.Equal(t, int64(42), config.Evolution.Seed)
 }
 
 func TestLoadConfig_GIVEN_invalid_toml_file_WHEN_load_THEN_error(t *testing.T) {
@@ -265,6 +279,7 @@ mutation_rate = 0.1
 mutation_points = [0, 2]
 generations = 100
 elitism_percentage = 0.2
+seed = 42
 `
 
 	tmpDir := t.TempDir()
