@@ -4,9 +4,25 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
+	"time"
 )
 
+type GenerationMetrics struct {
+	Generation     int
+	Duration       time.Duration
+	BestFitness    float64
+	AvgFitness     float64
+	MinFitness     float64
+	MaxFitness     float64
+	PopulationSize int
+}
+
 type Population []Evolvable
+
+type PopulationManager struct {
+	Population Population
+	Metrics    []GenerationMetrics
+}
 
 func NewPopulation(size int, genomeSize int) Population {
 	pop := make(Population, size)
@@ -16,13 +32,20 @@ func NewPopulation(size int, genomeSize int) Population {
 	return pop
 }
 
-func (p *Population) Roulette(input_amount int) Evolvable {
+func NewPopulationManager(size int, genomeSize int) *PopulationManager {
+	return &PopulationManager{
+		Population: NewPopulation(size, genomeSize),
+		Metrics:    make([]GenerationMetrics, 0),
+	}
+}
+
+func (pm *PopulationManager) Roulette(input_amount int) Evolvable {
 	rouletteTable := make([]Evolvable, 0, input_amount)
 	total := 0.0
 	for range input_amount {
-		randIndex := rand.Intn(len(*p))
-		rouletteTable = append(rouletteTable, (*p)[randIndex])
-		total = total + (*p)[randIndex].GetFitness()
+		randIndex := rand.Intn(len(pm.Population))
+		rouletteTable = append(rouletteTable, pm.Population[randIndex])
+		total = total + pm.Population[randIndex].GetFitness()
 	}
 	runningTotal := 0.0
 	randomValue := rand.Float64() * total
@@ -35,11 +58,11 @@ func (p *Population) Roulette(input_amount int) Evolvable {
 	return rouletteTable[len(rouletteTable)-1]
 }
 
-func (p *Population) Tournament(inputAmount int) Evolvable {
+func (pm *PopulationManager) Tournament(inputAmount int) Evolvable {
 	tournamentPop := make([]Evolvable, 0, inputAmount)
 	for range inputAmount {
-		randIndex := rand.Intn(len(*p))
-		tournamentPop = append(tournamentPop, (*p)[randIndex])
+		randIndex := rand.Intn(len(pm.Population))
+		tournamentPop = append(tournamentPop, pm.Population[randIndex])
 	}
 	max := tournamentPop[0]
 	for _, ind := range tournamentPop[1:] {
@@ -48,20 +71,22 @@ func (p *Population) Tournament(inputAmount int) Evolvable {
 	return max
 }
 
-func (p *Population) Sort() {
-	sort.SliceStable(*p, func(i, j int) bool {
-		return (*p)[i].GetFitness() > (*p)[j].GetFitness()
+func (pm *PopulationManager) Sort() {
+	sort.SliceStable(pm.Population, func(i, j int) bool {
+		return pm.Population[i].GetFitness() > pm.Population[j].GetFitness()
 	})
 }
 
-func (p *Population) Step(crossoverPointCount int, mutationPoints []int, mutationRate float64, elistimPercentage float64) {
-	newPop := make(Population, 0, len(*p))
-	p.Sort()
-	elitismAmount := len(*p) - int(float64(len(*p))*elistimPercentage)
-	copy(newPop[:elitismAmount], (*p)[:elitismAmount])
+func (pm *PopulationManager) Step(generation int, crossoverPointCount int, mutationPoints []int, mutationRate float64, elistimPercentage float64) {
+	start := time.Now()
+
+	newPop := make(Population, 0, len(pm.Population))
+	pm.Sort()
+	elitismAmount := len(pm.Population) - int(float64(len(pm.Population))*elistimPercentage)
+	copy(newPop[:elitismAmount], pm.Population[:elitismAmount])
 	for len(newPop) < cap(newPop) {
-		parent1 := p.Roulette(30)
-		parent2 := p.Roulette(30)
+		parent1 := pm.Roulette(30)
+		parent2 := pm.Roulette(30)
 
 		// Perform crossover and mutation
 		child1, child2 := parent1.MultiPointCrossover(parent2, crossoverPointCount)
@@ -69,27 +94,60 @@ func (p *Population) Step(crossoverPointCount int, mutationPoints []int, mutatio
 		child2.Mutate(mutationPoints, mutationRate)
 		newPop = append(newPop, child1.Max(child2))
 	}
-	*p = newPop
+	pm.Population = newPop
+
+	duration := time.Since(start)
+
+	// Collect metrics
+	metrics := pm.calculateMetrics(generation, duration)
+	pm.Metrics = append(pm.Metrics, metrics)
 }
 
-func (p *Population) Summary() string {
+func (pm *PopulationManager) calculateMetrics(generation int, duration time.Duration) GenerationMetrics {
 	totalFitness := 0.0
-	for _, individual := range *p {
-		totalFitness += individual.GetFitness()
-	}
-	avgFitness := float64(totalFitness) / float64(len(*p))
 	maxFitness := 0.0
-	for _, individual := range *p {
-		if individual.GetFitness() > maxFitness {
-			maxFitness = individual.GetFitness()
-		}
-	}
-	minFitness := maxFitness
-	for _, individual := range *p {
-		if individual.GetFitness() < minFitness {
-			minFitness = individual.GetFitness()
-		}
-	}
-	return fmt.Sprintf("Population Summary: Size=%d, Avg Fitness=%.2f, Max Fitness=%.2f, Min Fitness=%.2f", len(*p), avgFitness, maxFitness, minFitness)
+	minFitness := pm.Population[0].GetFitness()
 
+	for _, individual := range pm.Population {
+		fitness := individual.GetFitness()
+		totalFitness += fitness
+		if fitness > maxFitness {
+			maxFitness = fitness
+		}
+		if fitness < minFitness {
+			minFitness = fitness
+		}
+	}
+
+	avgFitness := totalFitness / float64(len(pm.Population))
+
+	return GenerationMetrics{
+		Generation:     generation,
+		Duration:       duration,
+		BestFitness:    maxFitness,
+		AvgFitness:     avgFitness,
+		MinFitness:     minFitness,
+		MaxFitness:     maxFitness,
+		PopulationSize: len(pm.Population),
+	}
+}
+
+func (pm *PopulationManager) Summary() string {
+	if len(pm.Metrics) == 0 {
+		return "No metrics available"
+	}
+	latest := pm.Metrics[len(pm.Metrics)-1]
+	return fmt.Sprintf("Population Summary: Size=%d, Avg Fitness=%.2f, Max Fitness=%.2f, Min Fitness=%.2f",
+		latest.PopulationSize, latest.AvgFitness, latest.MaxFitness, latest.MinFitness)
+}
+
+func (pm *PopulationManager) GetLatestMetrics() *GenerationMetrics {
+	if len(pm.Metrics) == 0 {
+		return nil
+	}
+	return &pm.Metrics[len(pm.Metrics)-1]
+}
+
+func (pm *PopulationManager) GetAllMetrics() []GenerationMetrics {
+	return pm.Metrics
 }

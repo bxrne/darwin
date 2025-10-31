@@ -9,8 +9,8 @@ type Config struct {
 	Evolution EvolutionConfig `toml:"evolution"`
 }
 
-func (c *Config) Validate() error {
-	if err := c.Evolution.Validate(); err != nil {
+func (c *Config) validate() error {
+	if err := c.Evolution.validate(); err != nil {
 		return fmt.Errorf("evolution config validation failed: %w", err)
 	}
 
@@ -27,7 +27,7 @@ type EvolutionConfig struct {
 	ElitismPercentage   float64 `toml:"elitism_percentage"`
 }
 
-func (ec *EvolutionConfig) Validate() error {
+func (ec *EvolutionConfig) validate() error {
 	if ec.PopulationSize <= 0 {
 		return fmt.Errorf("population_size must be greater than 0")
 	}
@@ -59,5 +59,10 @@ func LoadConfig(path string) (*Config, error) {
 	if _, err := toml.DecodeFile(path, &config); err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
+
+	if err := config.validate(); err != nil {
+		return nil, fmt.Errorf("config validation failed: %w", err)
+	}
+
 	return &config, nil
 }
