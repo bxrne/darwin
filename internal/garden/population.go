@@ -6,28 +6,28 @@ import (
 	"sort"
 )
 
-type Population []Individual
+type Population []Evolvable
 
 func NewPopulation(size int, genomeSize int) Population {
 	pop := make(Population, size)
 	for i := range pop {
-		pop[i] = makeIndividual(genomeSize)
+		pop[i] = newBinaryIndividual(genomeSize)
 	}
 	return pop
 }
 
-func (p *Population) Roulette(input_amount int) Individual {
-	rouletteTable := make([]Individual, 0, input_amount)
-	total := 0
+func (p *Population) Roulette(input_amount int) Evolvable {
+	rouletteTable := make([]Evolvable, 0, input_amount)
+	total := 0.0
 	for range input_amount {
 		randIndex := rand.Intn(len(*p))
 		rouletteTable = append(rouletteTable, (*p)[randIndex])
-		total = total + (*p)[randIndex].Fitness
+		total = total + (*p)[randIndex].GetFitness()
 	}
-	runningTotal := 0
-	randomValue := rand.Intn(total)
+	runningTotal := 0.0
+	randomValue := rand.Float64() * total
 	for i := range input_amount {
-		runningTotal = rouletteTable[i].Fitness
+		runningTotal = rouletteTable[i].GetFitness()
 		if runningTotal > randomValue {
 			return rouletteTable[i]
 		}
@@ -35,8 +35,8 @@ func (p *Population) Roulette(input_amount int) Individual {
 	return rouletteTable[len(rouletteTable)-1]
 }
 
-func (p *Population) Tournament(inputAmount int) Individual {
-	tournamentPop := make([]Individual, 0, inputAmount)
+func (p *Population) Tournament(inputAmount int) Evolvable {
+	tournamentPop := make([]Evolvable, 0, inputAmount)
 	for range inputAmount {
 		randIndex := rand.Intn(len(*p))
 		tournamentPop = append(tournamentPop, (*p)[randIndex])
@@ -50,7 +50,7 @@ func (p *Population) Tournament(inputAmount int) Individual {
 
 func (p *Population) Sort() {
 	sort.SliceStable(*p, func(i, j int) bool {
-		return (*p)[i].Fitness > (*p)[j].Fitness
+		return (*p)[i].GetFitness() > (*p)[j].GetFitness()
 	})
 }
 
@@ -73,23 +73,23 @@ func (p *Population) Step(crossoverPointCount int, mutationPoints []int, mutatio
 }
 
 func (p *Population) Summary() string {
-	totalFitness := 0
+	totalFitness := 0.0
 	for _, individual := range *p {
-		totalFitness += individual.Fitness
+		totalFitness += individual.GetFitness()
 	}
 	avgFitness := float64(totalFitness) / float64(len(*p))
-	maxFitness := 0
+	maxFitness := 0.0
 	for _, individual := range *p {
-		if individual.Fitness > maxFitness {
-			maxFitness = individual.Fitness
+		if individual.GetFitness() > maxFitness {
+			maxFitness = individual.GetFitness()
 		}
 	}
 	minFitness := maxFitness
 	for _, individual := range *p {
-		if individual.Fitness < minFitness {
-			minFitness = individual.Fitness
+		if individual.GetFitness() < minFitness {
+			minFitness = individual.GetFitness()
 		}
 	}
-	return fmt.Sprintf("Population Summary: Size=%d, Avg Fitness=%.2f, Max Fitness=%d, Min Fitness=%d", len(*p), avgFitness, maxFitness, minFitness)
+	return fmt.Sprintf("Population Summary: Size=%d, Avg Fitness=%.2f, Max Fitness=%.2f, Min Fitness=%.2f", len(*p), avgFitness, maxFitness, minFitness)
 
 }
