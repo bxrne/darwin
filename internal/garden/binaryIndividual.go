@@ -6,7 +6,7 @@ import (
 )
 
 type BinaryIndividual struct {
-	Genome  string
+	Genome  []byte
 	Fitness float64
 }
 
@@ -16,7 +16,7 @@ func newBinaryIndividual(genomeSize int) *BinaryIndividual {
 		genome[i] = '0' + byte(rand.Intn(2))
 	}
 
-	b := BinaryIndividual{Genome: string(genome)}
+	b := BinaryIndividual{Genome: genome}
 	b.CalculateFitness()
 	return &b
 }
@@ -50,11 +50,7 @@ func (i *BinaryIndividual) Mutate(points []int, mutatationRate float64) {
 		return
 	}
 	for _, point := range points {
-		if i.Genome[point] == '1' {
-			i.Genome = i.Genome[:point] + "0" + i.Genome[point+1:]
-		} else {
-			i.Genome = i.Genome[:point] + "1" + i.Genome[point+1:]
-		}
+		i.Genome[point] ^= 1 // Flip '0' <-> '1'
 	}
 }
 
@@ -64,8 +60,8 @@ func (i *BinaryIndividual) MultiPointCrossover(i2 Evolvable, crossoverPoints int
 		panic("MultiPointCrossover requires BinaryIndividual")
 	}
 	crossoverPointArray := make([]int, 0)
-	newI1 := BinaryIndividual{Genome: ""}
-	newI2 := BinaryIndividual{Genome: ""}
+	newI1Genome := make([]byte, 0, len(i.Genome))
+	newI2Genome := make([]byte, 0, len(i.Genome))
 	for range crossoverPoints {
 		crossoverPointArray = append(crossoverPointArray, rand.Intn(len(i.Genome)))
 	}
@@ -74,17 +70,19 @@ func (i *BinaryIndividual) MultiPointCrossover(i2 Evolvable, crossoverPoints int
 	currentPointIndex := 0
 	for j := range len(i.Genome) {
 		if currentPointIndex < len(crossoverPointArray) && j >= crossoverPointArray[currentPointIndex] {
-			swap = false
+			swap = !swap
 			currentPointIndex += 1
 		}
 		if swap {
-			newI1.Genome += string(i.Genome[j])
-			newI2.Genome += string(o.Genome[j])
+			newI1Genome = append(newI1Genome, i.Genome[j])
+			newI2Genome = append(newI2Genome, o.Genome[j])
 		} else {
-			newI1.Genome += string(o.Genome[j])
-			newI2.Genome += string(i.Genome[j])
+			newI1Genome = append(newI1Genome, o.Genome[j])
+			newI2Genome = append(newI2Genome, i.Genome[j])
 		}
 	}
+	newI1 := BinaryIndividual{Genome: newI1Genome}
+	newI2 := BinaryIndividual{Genome: newI2Genome}
 	newI1.CalculateFitness()
 	newI2.CalculateFitness()
 	return &newI1, &newI2
