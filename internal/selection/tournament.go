@@ -1,9 +1,8 @@
 package selection
 
 import (
-	"math/rand"
-
 	"github.com/bxrne/darwin/internal/individual"
+	"github.com/bxrne/darwin/internal/rng"
 )
 
 // TournamentSelector implements tournament selection
@@ -20,7 +19,7 @@ func NewTournamentSelector(tournamentSize int) *TournamentSelector {
 func (ts *TournamentSelector) Select(population []individual.Evolvable) individual.Evolvable {
 	tournamentPop := make([]individual.Evolvable, 0, ts.TournamentSize)
 	for range ts.TournamentSize {
-		randIndex := rand.Intn(len(population))
+		randIndex := rng.Intn(len(population))
 		tournamentPop = append(tournamentPop, population[randIndex])
 	}
 

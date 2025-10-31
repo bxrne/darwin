@@ -1,9 +1,8 @@
 package selection
 
 import (
-	"math/rand"
-
 	"github.com/bxrne/darwin/internal/individual"
+	"github.com/bxrne/darwin/internal/rng"
 )
 
 // Selector defines the interface for selection strategies
@@ -27,13 +26,13 @@ func (rs *RouletteSelector) Select(population []individual.Evolvable) individual
 	total := 0.0
 
 	for range rs.SampleSize {
-		randIndex := rand.Intn(len(population))
+		randIndex := rng.Intn(len(population))
 		rouletteTable = append(rouletteTable, population[randIndex])
 		total += population[randIndex].GetFitness()
 	}
 
 	runningTotal := 0.0
-	randomValue := rand.Float64() * total
+	randomValue := rng.Float64() * total
 	for i := range rs.SampleSize {
 		runningTotal += rouletteTable[i].GetFitness()
 		if runningTotal > randomValue {

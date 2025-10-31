@@ -9,6 +9,7 @@ import (
 	"github.com/bxrne/darwin/internal/cfg"
 	"github.com/bxrne/darwin/internal/evolution"
 	"github.com/bxrne/darwin/internal/metrics"
+	"github.com/bxrne/darwin/internal/rng"
 	"github.com/bxrne/darwin/internal/selection"
 	"github.com/bxrne/logmgr"
 )
@@ -22,6 +23,9 @@ func main() {
 	if err != nil {
 		logmgr.Fatal("Failed to load config", logmgr.Field("error", err))
 	}
+
+	// Seed the RNG for reproducible results
+	rng.Seed(cfg.Evolution.Seed)
 
 	metricsChan := make(chan metrics.GenerationMetrics, 100)
 	cmdChan := make(chan evolution.EvolutionCommand, 10)
