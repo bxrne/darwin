@@ -1,5 +1,6 @@
-package garden
+package individual
 
+// Evolvable represents an individual that can evolve through genetic operations
 type Evolvable interface {
 	CalculateFitness()
 	Mutate(points []int, rate float64)
