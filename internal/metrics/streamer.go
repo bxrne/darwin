@@ -51,7 +51,12 @@ func (ms *MetricsStreamer) Start(ctx context.Context) {
 
 // Stop stops the streamer and closes all subscriber channels
 func (ms *MetricsStreamer) Stop() {
-	close(ms.done)
+	select {
+	case <-ms.done:
+		// already closed
+	default:
+		close(ms.done)
+	}
 	ms.wg.Wait()
 }
 
