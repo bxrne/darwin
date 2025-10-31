@@ -1,0 +1,9 @@
+[evolution]
+population_size = 1000
+genome_size = 500
+crossover_point_count = 1
+mutation_rate = 0.05
+mutation_points = [50]
+generations = 100
+elitism_percentage = 0.1
+seed = 42
