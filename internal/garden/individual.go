@@ -1,7 +1,6 @@
 package garden
 
 import (
-	"fmt"
 	"math/rand"
 	"sort"
 )
