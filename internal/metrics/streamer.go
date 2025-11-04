@@ -3,6 +3,7 @@ package metrics
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 )
 
 // MetricsStreamer handles async streaming of generation metrics
@@ -10,7 +11,9 @@ type MetricsStreamer struct {
 	metricsChan <-chan GenerationMetrics
 	subscribers []chan GenerationMetrics
 	done        chan struct{}
-	wg          sync.WaitGroup
+	running     chan struct{} // signals when Start goroutine is done
+	mu          sync.Mutex
+	stopped     int32 // atomic flag
 }
 
 // NewMetricsStreamer creates a new metrics streamer
@@ -19,19 +22,24 @@ func NewMetricsStreamer(metricsChan <-chan GenerationMetrics) *MetricsStreamer {
 		metricsChan: metricsChan,
 		subscribers: make([]chan GenerationMetrics, 0),
 		done:        make(chan struct{}),
+		running:     make(chan struct{}),
+		stopped:     0,
 	}
 }
 
 // Subscribe returns a channel that will receive metrics
 func (ms *MetricsStreamer) Subscribe() <-chan GenerationMetrics {
 	subscriber := make(chan GenerationMetrics, 10) // buffered channel
+	ms.mu.Lock()
 	ms.subscribers = append(ms.subscribers, subscriber)
+	ms.mu.Unlock()
 	return subscriber
 }
 
 // Start begins streaming metrics to all subscribers
 func (ms *MetricsStreamer) Start(ctx context.Context) {
-	ms.wg.Go(func() {
+	go func() {
+		defer close(ms.running)
 		defer ms.closeSubscribers()
 		for {
 			select {
@@ -46,23 +54,27 @@ func (ms *MetricsStreamer) Start(ctx context.Context) {
 				ms.broadcast(metrics)
 			}
 		}
-	})
+	}()
 }
 
 // Stop stops the streamer and closes all subscriber channels
 func (ms *MetricsStreamer) Stop() {
-	select {
-	case <-ms.done:
-		// already closed
-	default:
+	ms.mu.Lock()
+	if atomic.CompareAndSwapInt32(&ms.stopped, 0, 1) {
 		close(ms.done)
 	}
-	ms.wg.Wait()
+	ms.mu.Unlock()
+	<-ms.running // wait for the Start goroutine to finish
 }
 
 // broadcast sends metrics to all subscribers
 func (ms *MetricsStreamer) broadcast(metrics GenerationMetrics) {
-	for _, subscriber := range ms.subscribers {
+	ms.mu.Lock()
+	subscribers := make([]chan GenerationMetrics, len(ms.subscribers))
+	copy(subscribers, ms.subscribers)
+	ms.mu.Unlock()
+
+	for _, subscriber := range subscribers {
 		select {
 		case subscriber <- metrics:
 		default:
@@ -73,8 +85,12 @@ func (ms *MetricsStreamer) broadcast(metrics GenerationMetrics) {
 
 // closeSubscribers closes all subscriber channels
 func (ms *MetricsStreamer) closeSubscribers() {
-	for _, subscriber := range ms.subscribers {
+	ms.mu.Lock()
+	subscribers := ms.subscribers
+	ms.subscribers = nil
+	ms.mu.Unlock()
+
+	for _, subscriber := range subscribers {
 		close(subscriber)
 	}
-	ms.subscribers = nil
 }

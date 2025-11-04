@@ -101,6 +101,10 @@ func BenchmarkEvolution_Large(b *testing.B) {
 	benchmarkWithConfig(b, 1000, 500, 100)
 }
 
+func BenchmarkEvolution_Huge(b *testing.B) {
+	benchmarkWithConfig(b, 500, 5000, 10) // pop=500, genome=5000, gens=10
+}
+
 func benchmarkWithConfig(b *testing.B, popSize, genomeSize, generations int) {
 	// Create config programmatically
 	config := &cfg.Config{

@@ -26,7 +26,9 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	cmdChan := make(chan evolution.EvolutionCommand, 10)
 
 	popBuilder := evolution.NewPopulationBuilder()
-	population := popBuilder.BuildBinaryPopulation(config.Evolution.PopulationSize, config.Evolution.GenomeSize)
+	population := popBuilder.BuildPopulation(config.Evolution.PopulationSize, func() individual.Evolvable {
+		return individual.NewBinaryIndividual(config.Evolution.GenomeSize)
+	})
 
 	selector := selection.NewRouletteSelector(30)
 

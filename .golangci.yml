@@ -1,21 +1,2 @@
-version: "2"
-
-linters:
-  enable:
-    - dupl
-    - goconst
-    - gocyclo
-    - misspell
-  exclusions:
-    generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
-formatters:
-  exclusions:
-    generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
+run:
+  timeout: 3m

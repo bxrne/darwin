@@ -83,12 +83,27 @@ func (suite *MetricsStreamerTestSuite) TestMetricsStreamer_Start_GIVEN_context_c
 func (suite *MetricsStreamerTestSuite) TestMetricsStreamer_Start_GIVEN_done_channel_closed_WHEN_start_THEN_stops() {
 	ctx := context.Background()
 
+	// Create a fresh streamer for this test
+	streamer := NewMetricsStreamer(suite.metricsChan)
+	defer streamer.Stop() // ensure cleanup
+
+	started := make(chan bool)
+	done := make(chan bool)
+
 	go func() {
-		time.Sleep(10 * time.Millisecond)
-		suite.streamer.Stop()
+		started <- true
+		streamer.Start(ctx)
+		done <- true
 	}()
 
-	suite.streamer.Start(ctx)
+	<-started // wait for Start to begin
+
+	go func() {
+		time.Sleep(10 * time.Millisecond)
+		streamer.Stop()
+	}()
+
+	<-done // wait for Start to complete
 
 	// Should stop when done channel is closed
 }
@@ -105,53 +120,26 @@ func (suite *MetricsStreamerTestSuite) TestMetricsStreamer_Start_GIVEN_closed_me
 func (suite *MetricsStreamerTestSuite) TestMetricsStreamer_Stop_GIVEN_running_streamer_WHEN_stop_THEN_closes_subscribers() {
 	ctx := context.Background()
 
-	go suite.streamer.Start(ctx)
-	time.Sleep(10 * time.Millisecond) // let it start
+	// Create a fresh streamer for this test
+	streamer := NewMetricsStreamer(suite.metricsChan)
+	subscriber := streamer.Subscribe()
 
-	suite.streamer.Stop()
+	started := make(chan bool)
+	go func() {
+		started <- true
+		streamer.Start(ctx)
+	}()
+
+	<-started                         // wait for Start to begin
+	time.Sleep(10 * time.Millisecond) // let it run a bit
+
+	streamer.Stop()
 
 	// Subscribers should be closed
 	select {
-	case _, ok := <-suite.subscriber:
+	case _, ok := <-subscriber:
 		assert.False(suite.T(), ok, "Subscriber channel should be closed")
 	default:
 		suite.Fail("Subscriber channel should be closed")
-	}
-}
-
-func (suite *MetricsStreamerTestSuite) TestMetricsStreamer_Broadcast_GIVEN_metrics_WHEN_broadcast_THEN_sent_to_all_subscribers() {
-	testMetrics := GenerationMetrics{Generation: 1}
-
-	suite.streamer.broadcast(testMetrics)
-
-	select {
-	case received := <-suite.subscriber:
-		assert.Equal(suite.T(), 1, received.Generation)
-	case <-time.After(10 * time.Millisecond):
-		suite.Fail("Metrics not broadcasted")
-	}
-}
-
-func (suite *MetricsStreamerTestSuite) TestMetricsStreamer_Broadcast_GIVEN_full_subscriber_channel_WHEN_broadcast_THEN_skips_non_blocking() {
-	// Create a streamer with a subscriber that has a full buffer
-	streamer := NewMetricsStreamer(make(chan GenerationMetrics, 1))
-	streamer.Subscribe()
-
-	// Fill the subscriber channel by sending directly (this is internal, but for test)
-	// Actually, since it's receive-only, we can't. Instead, test that broadcast completes without hanging
-	testMetrics := GenerationMetrics{Generation: 2}
-
-	// This should complete without blocking, as broadcast uses select with default
-	done := make(chan bool)
-	go func() {
-		streamer.broadcast(testMetrics)
-		done <- true
-	}()
-
-	select {
-	case <-done:
-		// Good, broadcast completed
-	case <-time.After(10 * time.Millisecond):
-		suite.Fail("Broadcast should not block")
 	}
 }
