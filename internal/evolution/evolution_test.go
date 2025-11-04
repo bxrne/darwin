@@ -125,9 +125,11 @@ func (suite *EvolutionEngineTestSuite) TestEvolutionEngine_GetPopulation_GIVEN_p
 	assert.Equal(suite.T(), suite.population, pop)
 }
 
-func (suite *EvolutionEngineTestSuite) TestPopulationBuilder_BuildBinaryPopulation_GIVEN_size_genome_size_WHEN_build_THEN_population_created() {
+func (suite *EvolutionEngineTestSuite) TestPopulationBuilder_BuildPopulation_GIVEN_size_genome_size_WHEN_build_THEN_population_created() {
 	builder := NewPopulationBuilder()
-	population := builder.BuildBinaryPopulation(3, 5)
+	population := builder.BuildPopulation(3, func() individual.Evolvable {
+		return individual.NewBinaryIndividual(5)
+	})
 
 	assert.Len(suite.T(), population, 3)
 	for _, ind := range population {
