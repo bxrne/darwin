@@ -1,20 +1,14 @@
 package rng
 
 import (
+	"math/rand/v2"
 	"sync"
-	"time"
-
-	"golang.org/x/exp/rand"
 )
 
 var (
 	mu   sync.Mutex
+	rng  *rand.Rand
 	seed int64 = 42 // Default seed for reproducibility
-	pool       = sync.Pool{
-		New: func() any {
-			return rand.New(rand.NewSource(uint64(time.Now().UnixNano())))
-		},
-	}
 )
 
 func init() {
@@ -27,24 +21,19 @@ func Seed(s int64) {
 	mu.Lock()
 	defer mu.Unlock()
 	seed = s
-	// Reset pool to get new RNGs with the new seed
-	pool = sync.Pool{
-		New: func() any {
-			return rand.New(rand.NewSource(uint64(seed)))
-		},
-	}
+	rng = rand.New(rand.NewPCG(uint64(seed), uint64(seed)))
 }
 
 // Intn returns a random int in [0,n)
 func Intn(n int) int {
-	rng := pool.Get().(*rand.Rand)
-	defer pool.Put(rng)
-	return rng.Intn(n)
+	mu.Lock()
+	defer mu.Unlock()
+	return rng.IntN(n)
 }
 
 // Float64 returns a random float64 in [0.0,1.0)
 func Float64() float64 {
-	rng := pool.Get().(*rand.Rand)
-	defer pool.Put(rng)
+	mu.Lock()
+	defer mu.Unlock()
 	return rng.Float64()
 }
