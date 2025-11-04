@@ -47,18 +47,30 @@ func NewRandomTree(depth int) *Tree {
 }
 
 // Max returns the tree with the higher fitness
-func (t *Tree) Max(t2 *Tree) *Tree {
-	if t.Fitness >= t2.Fitness {
+func (t *Tree) Max(t2 Evolvable) Evolvable {
+	o, ok := t2.(*Tree)
+	if !ok {
+		panic("Max requires Tree")
+	}
+	if t.Fitness > o.Fitness {
 		return t
 	}
 	return t2
 }
 
-// MultiPointCrossover performs multi-point crossover between two trees
-func (t *Tree) MultiPointCrossover(t2 *Tree, crossoverPointCount int) (*Tree, *Tree) {
-	// Placeholder for actual crossover logic
-	// For simplicity, we return copies of the original trees
-	return t, t2
+// MultiPointCrossover performs multi-point crossover between two Evolvables
+func (t *Tree) MultiPointCrossover(partner Evolvable, points int) (Evolvable, Evolvable) {
+	o, ok := partner.(*Tree)
+	if !ok {
+		panic("MultiPointCrossover requires Tree")
+	}
+
+	for i := 0; i < points; i++ {
+		// For simplicity, we swap the root nodes
+		t.Root, o.Root = o.Root, t.Root
+	}
+
+	return t, o
 }
 
 // Mutate mutates the tree based on the given mutation rate

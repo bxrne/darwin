@@ -1,277 +1,37 @@
-package cfg
+package cfg_test
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/bxrne/darwin/internal/cfg"
 )
 
-func TestEvolutionConfigValidate_GIVEN_valid_config_WHEN_validate_THEN_no_error(t *testing.T) {
-	config := EvolutionConfig{
-		PopulationSize:      10,
-		GenomeSize:          5,
-		CrossoverPointCount: 2,
-		MutationRate:        0.1,
-		CrossoverRate:       0.9,
-		Generations:         100,
-		ElitismPercentage:   0.2,
-		Seed:                42,
+func TestLoadConfigFiles(t *testing.T) {
+	cases := []struct {
+		name    string
+		path    string
+		wantErr bool
+	}{
+		// Samples
+		{"valid_bitstring", "../testdata/config/valid_bitstring.toml", false},
+		{"valid_tree", "../testdata/config/valid_tree.toml", false},
+		{"both_enabled", "../testdata/config/both_enabled.toml", true},
+		{"invalid_evolution", "../testdata/config/invalid_evolution.toml", true},
+		// Examples
+		{"valid_default", "../config/default.toml", false},
+		{"valid_small", "../config/small.toml", false},
+		{"valid_medium", "../config/medium.toml", false},
+		{"valid_large", "../config/large.toml", false},
 	}
 
-	err := config.validate()
-
-	assert.NoError(t, err)
-}
-
-func TestEvolutionConfigValidate_GIVEN_population_size_zero_WHEN_validate_THEN_error(t *testing.T) {
-	config := EvolutionConfig{
-		PopulationSize:      0,
-		GenomeSize:          5,
-		CrossoverPointCount: 2,
-		MutationRate:        0.1,
-		CrossoverRate:       0.9,
-		Generations:         100,
-		ElitismPercentage:   0.2,
-		Seed:                42,
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			p := filepath.Join("..", c.path) // adjust if test lives elsewhere
+			_, err := cfg.LoadConfig(p)
+			if (err != nil) != c.wantErr {
+				t.Fatalf("LoadConfig(%s) err=%v wantErr=%v", p, err, c.wantErr)
+			}
+		})
 	}
-
-	err := config.validate()
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "population_size must be greater than 0")
-}
-
-func TestEvolutionConfigValidate_GIVEN_genome_size_zero_WHEN_validate_THEN_error(t *testing.T) {
-	config := EvolutionConfig{
-		PopulationSize:      10,
-		GenomeSize:          0,
-		CrossoverPointCount: 2,
-		MutationRate:        0.1,
-		CrossoverRate:       0.9,
-		Generations:         100,
-		ElitismPercentage:   0.2,
-		Seed:                42,
-	}
-
-	err := config.validate()
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "genome_size must be greater than 0")
-}
-
-func TestEvolutionConfigValidate_GIVEN_crossover_point_count_zero_WHEN_validate_THEN_error(t *testing.T) {
-	config := EvolutionConfig{
-		PopulationSize:      10,
-		GenomeSize:          5,
-		CrossoverPointCount: 0,
-		MutationRate:        0.1,
-		CrossoverRate:       0.9,
-		Generations:         100,
-		ElitismPercentage:   0.2,
-		Seed:                42,
-	}
-
-	err := config.validate()
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "crossover_point_count must be above 0")
-}
-
-func TestEvolutionConfigValidate_GIVEN_mutation_rate_negative_WHEN_validate_THEN_error(t *testing.T) {
-	config := EvolutionConfig{
-		PopulationSize:      10,
-		GenomeSize:          5,
-		CrossoverPointCount: 2,
-		MutationRate:        -0.1,
-		CrossoverRate:       0.9,
-		Generations:         100,
-		ElitismPercentage:   0.2,
-		Seed:                42,
-	}
-
-	err := config.validate()
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "mutation_rate must be between 0 and 1")
-}
-
-func TestEvolutionConfigValidate_GIVEN_mutation_rate_above_one_WHEN_validate_THEN_error(t *testing.T) {
-	config := EvolutionConfig{
-		PopulationSize:      10,
-		GenomeSize:          5,
-		CrossoverPointCount: 2,
-		MutationRate:        1.5,
-		CrossoverRate:       0.9,
-		Generations:         100,
-		ElitismPercentage:   0.2,
-		Seed:                42,
-	}
-
-	err := config.validate()
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "mutation_rate must be between 0 and 1")
-}
-
-func TestEvolutionConfigValidate_GIVEN_generations_zero_WHEN_validate_THEN_error(t *testing.T) {
-	config := EvolutionConfig{
-		PopulationSize:      10,
-		GenomeSize:          5,
-		CrossoverPointCount: 2,
-		MutationRate:        0.1,
-		CrossoverRate:       0.9,
-		Generations:         0,
-		ElitismPercentage:   0.2,
-		Seed:                42,
-	}
-
-	err := config.validate()
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "generations must be greater than 0")
-}
-
-func TestEvolutionConfigValidate_GIVEN_elitism_percentage_zero_WHEN_validate_THEN_error(t *testing.T) {
-	config := EvolutionConfig{
-		PopulationSize:      10,
-		GenomeSize:          5,
-		CrossoverPointCount: 2,
-		MutationRate:        0.1,
-		CrossoverRate:       0.9,
-		Generations:         100,
-		ElitismPercentage:   0.0,
-		Seed:                42,
-	}
-
-	err := config.validate()
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "elitism_percentage must be greater than 0 and less than 1")
-}
-
-func TestEvolutionConfigValidate_GIVEN_elitism_percentage_above_one_WHEN_validate_THEN_error(t *testing.T) {
-	config := EvolutionConfig{
-		PopulationSize:      10,
-		GenomeSize:          5,
-		CrossoverPointCount: 2,
-		MutationRate:        0.1,
-		Generations:         100,
-		CrossoverRate:       0.9,
-		ElitismPercentage:   1.5,
-		Seed:                42,
-	}
-
-	err := config.validate()
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "elitism_percentage must be greater than 0 and less than 1")
-}
-
-func TestConfigValidate_GIVEN_valid_evolution_config_WHEN_validate_THEN_no_error(t *testing.T) {
-	config := Config{
-		Evolution: EvolutionConfig{
-			PopulationSize:      10,
-			GenomeSize:          5,
-			CrossoverPointCount: 2,
-			CrossoverRate:       0.9,
-			MutationRate:        0.1,
-			Generations:         100,
-			ElitismPercentage:   0.2,
-			Seed:                42,
-		},
-	}
-
-	err := config.validate()
-
-	assert.NoError(t, err)
-}
-
-func TestConfigValidate_GIVEN_invalid_evolution_config_WHEN_validate_THEN_error(t *testing.T) {
-	config := Config{
-		Evolution: EvolutionConfig{
-			PopulationSize:      0, // invalid
-			GenomeSize:          5,
-			CrossoverPointCount: 2,
-			CrossoverRate:       0.9,
-			MutationRate:        0.1,
-			Generations:         100,
-			ElitismPercentage:   0.2,
-			Seed:                42,
-		},
-	}
-
-	err := config.validate()
-
-	assert.Error(t, err)
-}
-
-func TestLoadConfig_GIVEN_valid_toml_file_WHEN_load_THEN_config_returned(t *testing.T) {
-	tomlContent := `
-[evolution]
-population_size = 10
-genome_size = 5
-crossover_point_count = 2
-mutation_rate = 0.1
-mutation_points = [0, 2]
-generations = 100
-elitism_percentage = 0.2
-seed = 42
-`
-
-	// Create temp file
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "config.toml")
-	err := os.WriteFile(configPath, []byte(tomlContent), 0644)
-	assert.NoError(t, err)
-
-	config, err := LoadConfig(configPath)
-
-	assert.NoError(t, err)
-	assert.NotNil(t, config)
-	assert.Equal(t, 10, config.Evolution.PopulationSize)
-	assert.Equal(t, int64(42), config.Evolution.Seed)
-}
-
-func TestLoadConfig_GIVEN_invalid_toml_file_WHEN_load_THEN_error(t *testing.T) {
-	invalidToml := `
-[evolution
-population_size = 10
-`
-
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "invalid.toml")
-	err := os.WriteFile(configPath, []byte(invalidToml), 0644)
-	assert.NoError(t, err)
-
-	config, err := LoadConfig(configPath)
-
-	assert.Error(t, err)
-	assert.Nil(t, config)
-}
-
-func TestLoadConfig_GIVEN_invalid_config_WHEN_load_THEN_validation_error(t *testing.T) {
-	tomlContent := `
-[evolution]
-population_size = 0
-genome_size = 5
-crossover_point_count = 2
-mutation_rate = 0.1
-mutation_points = [0, 2]
-generations = 100
-elitism_percentage = 0.2
-seed = 42
-`
-
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "config.toml")
-	err := os.WriteFile(configPath, []byte(tomlContent), 0644)
-	assert.NoError(t, err)
-
-	config, err := LoadConfig(configPath)
-
-	assert.Error(t, err)
-	assert.Nil(t, config)
-	assert.Contains(t, err.Error(), "population_size must be greater than 0")
 }

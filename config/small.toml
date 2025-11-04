@@ -1,9 +1,19 @@
 [evolution]
 population_size = 100
-genome_size = 50
 crossover_point_count = 1
 crossover_rate = 0.9
 mutation_rate = 0.05
 generations = 10
 elitism_percentage = 0.1
 seed = 42
+
+[bitstring_individual]
+enabled = true
+genome_size = 64
+
+[tree_individual]
+enabled = false
+max_depth = 1
+min_depth = 0
+function_set = ["add"]
+terminal_set = ["x"]
