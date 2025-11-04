@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/bxrne/darwin/compare/v1.0.0...v1.0.1) (2025-11-04)
+
+
+### Bug Fixes
+
+* **rng:** fix rng to use a pool of a safe RNG ([101b2b9](https://github.com/bxrne/darwin/commit/101b2b9bc62fef7c51eef0c621ed8685c49e0f48))
+
 ## 1.0.0 (2025-11-04)
 
 
