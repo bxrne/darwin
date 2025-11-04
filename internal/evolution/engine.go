@@ -95,8 +95,8 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 
 		// Perform crossover and mutation
 		child1, child2 := parent1.MultiPointCrossover(parent2, cmd.CrossoverPoints)
-		child1.Mutate(cmd.MutationPoints, cmd.MutationRate)
-		child2.Mutate(cmd.MutationPoints, cmd.MutationRate)
+		child1.Mutate(cmd.MutationRate)
+		child2.Mutate(cmd.MutationRate)
 
 		// Select the better child
 		betterChild := child1.Max(child2)
