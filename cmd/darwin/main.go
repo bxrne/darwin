@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"time"
 
 	"github.com/bxrne/darwin/internal/cfg"
 	"github.com/bxrne/darwin/internal/metrics"
@@ -71,5 +72,7 @@ func main() {
 		)
 	}
 
+	// Small delay to ensure all async generation logs are processed
+	time.Sleep(10 * time.Millisecond)
 	logmgr.Info("Evolution finished successfully")
 }
