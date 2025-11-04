@@ -2,7 +2,6 @@ package individual
 
 import (
 	"github.com/bxrne/darwin/internal/rng"
-	"math/rand"
 	"sort"
 )
 
@@ -58,7 +57,7 @@ func (i *BinaryIndividual) Mutate(mutationRate float64) {
 		return
 	}
 	for j := range len(i.Genome) {
-		if mutationRate > rand.Float64() {
+		if mutationRate > rng.Float64() {
 			i.Genome[j] ^= 1 // Flip '0' <-> '1'
 		}
 	}
