@@ -88,9 +88,10 @@ func TestBinaryIndividual_Mutate_GIVEN_mutation_rate_one_WHEN_mutate_THEN_points
 		Genome: []byte{'0', '1', '0'},
 	}
 
-	ind.Mutate([]int{1}, 1.0) // Always mutate
+	ind.Mutate(1.0) // Always mutate
 
-	assert.Equal(t, byte('0'), ind.Genome[1]) // Flipped from '1' to '0'
+	mutated_array := []byte{'1', '0', '1'}
+	assert.Equal(t, ind.Genome, mutated_array) // Flipped from '1' to '0'
 }
 
 func TestBinaryIndividual_Mutate_GIVEN_mutation_rate_zero_WHEN_mutate_THEN_no_change(t *testing.T) {
@@ -101,7 +102,7 @@ func TestBinaryIndividual_Mutate_GIVEN_mutation_rate_zero_WHEN_mutate_THEN_no_ch
 	original := make([]byte, len(ind.Genome))
 	copy(original, ind.Genome)
 
-	ind.Mutate([]int{1}, 0.0) // Never mutate
+	ind.Mutate(0.0) // Never mutate
 
 	assert.Equal(t, original, ind.Genome)
 }
