@@ -74,7 +74,7 @@ func (suite *EvolutionEngineTestSuite) TestEvolutionEngine_Start_GIVEN_running_e
 		Type:            CmdStartGeneration,
 		Generation:      1,
 		CrossoverPoints: 1,
-		MutationPoints:  []int{0},
+		CrossoverRate:   0.9,
 		MutationRate:    1.0, // ensure mutation happens
 		ElitismPct:      0.0,
 	}
@@ -136,7 +136,7 @@ func (suite *EvolutionEngineTestSuite) TestEvolutionEngine_ProcessGeneration_GIV
 		Type:            CmdStartGeneration,
 		Generation:      1,
 		CrossoverPoints: 1,
-		MutationPoints:  []int{0},
+		CrossoverRate:   0.9,
 		MutationRate:    1.0,
 		ElitismPct:      0.0,
 	}
@@ -161,7 +161,7 @@ func (suite *EvolutionEngineTestSuite) TestEvolutionEngine_ProcessGeneration_GIV
 		Type:            CmdStartGeneration,
 		Generation:      1,
 		CrossoverPoints: 1,
-		MutationPoints:  []int{0},
+		CrossoverRate:   0.9,
 		MutationRate:    1.0,
 		ElitismPct:      0.5, // 50% elitism
 	}
@@ -182,7 +182,7 @@ func (suite *EvolutionEngineTestSuite) TestEvolutionEngine_ProcessGeneration_GIV
 		Type:            CmdStartGeneration,
 		Generation:      1,
 		CrossoverPoints: 1,
-		MutationPoints:  []int{0},
+		CrossoverRate:   0.9,
 		MutationRate:    1.0,
 		ElitismPct:      0.0,
 	}
@@ -202,7 +202,7 @@ func (suite *EvolutionEngineTestSuite) TestEvolutionEngine_ProcessGeneration_GIV
 		Type:            CmdStartGeneration,
 		Generation:      1,
 		CrossoverPoints: 1,
-		MutationPoints:  []int{0},
+		CrossoverRate:   0.9,
 		MutationRate:    1.0,
 		ElitismPct:      0.0,
 	}
@@ -235,7 +235,7 @@ func (suite *EvolutionEngineTestSuite) TestEvolutionEngine_ProcessGeneration_GIV
 		Type:            CmdStartGeneration,
 		Generation:      1,
 		CrossoverPoints: 1,
-		MutationPoints:  []int{0},
+		CrossoverRate:   0.9,
 		MutationRate:    1.0,
 		ElitismPct:      0.0,
 	}

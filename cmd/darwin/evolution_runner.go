@@ -64,7 +64,7 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 			Type:            evolution.CmdStartGeneration,
 			Generation:      gen,
 			CrossoverPoints: config.Evolution.CrossoverPointCount,
-			MutationPoints:  config.Evolution.MutationPoints,
+			CrossoverRate:   config.Evolution.CrossoverRate,
 			MutationRate:    config.Evolution.MutationRate,
 			ElitismPct:      config.Evolution.ElitismPercentage,
 		}
