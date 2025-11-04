@@ -16,7 +16,7 @@ func BenchmarkEvolution(b *testing.B) {
 			GenomeSize:          200,
 			CrossoverPointCount: 1,
 			MutationRate:        0.05,
-			MutationPoints:      []int{6},
+			CrossoverRate:       0.9,
 			Generations:         50,
 			ElitismPercentage:   0.1,
 			Seed:                42,
@@ -112,8 +112,8 @@ func benchmarkWithConfig(b *testing.B, popSize, genomeSize, generations int) {
 			PopulationSize:      popSize,
 			GenomeSize:          genomeSize,
 			CrossoverPointCount: 1,
+			CrossoverRate:       0.9,
 			MutationRate:        0.05,
-			MutationPoints:      []int{genomeSize / 10}, // 10% of genome
 			Generations:         generations,
 			ElitismPercentage:   0.1,
 			Seed:                42,

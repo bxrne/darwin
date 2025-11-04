@@ -2,7 +2,9 @@ package evolution
 
 import (
 	"context"
+	"math/rand"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/bxrne/darwin/internal/individual"
@@ -72,6 +74,21 @@ func (ee *EvolutionEngine) GetPopulation() []individual.Evolvable {
 	return ee.population
 }
 
+func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- individual.Evolvable) {
+	parent1 := ee.selector.Select(ee.population)
+	parent2 := ee.selector.Select(ee.population)
+	// Perform crossover and mutation
+	if cmd.CrossoverRate > rand.Float64() {
+		child1, child2 := parent1.MultiPointCrossover(parent2, cmd.CrossoverPoints)
+		out <- child1.Max(child2)
+		return
+	}
+
+	parent1.Mutate(cmd.MutationRate)
+	parent2.Mutate(cmd.MutationRate)
+	out <- parent1.Max(parent2)
+}
+
 // processGeneration performs one generation of evolution
 func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	start := time.Now()
@@ -81,28 +98,29 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 
 	// Create new population
 	newPop := make([]individual.Evolvable, 0, len(ee.population))
-
 	// Elitism: keep best individuals
 	elitismCount := int(float64(len(ee.population)) * cmd.ElitismPct)
 	for i := 0; i < elitismCount && i < len(ee.population); i++ {
 		newPop = append(newPop, ee.population[i])
 	}
-
+	offspringNeeded := len(ee.population) - len(newPop)
+	offspringChan := make(chan individual.Evolvable, len(ee.population)-elitismCount+1)
+	var wg sync.WaitGroup
 	// Generate offspring
-	for len(newPop) < cap(newPop) {
-		parent1 := ee.selector.Select(ee.population)
-		parent2 := ee.selector.Select(ee.population)
-
-		// Perform crossover and mutation
-		child1, child2 := parent1.MultiPointCrossover(parent2, cmd.CrossoverPoints)
-		child1.Mutate(cmd.MutationRate)
-		child2.Mutate(cmd.MutationRate)
-
-		// Select the better child
-		betterChild := child1.Max(child2)
-		newPop = append(newPop, betterChild)
+	for i := 0; i < offspringNeeded; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ee.generateOffspring(cmd, offspringChan)
+		}()
 	}
-
+	go func() {
+		wg.Wait()
+		close(offspringChan)
+	}()
+	for ind := range offspringChan {
+		newPop = append(newPop, ind)
+	}
 	ee.population = newPop
 	duration := time.Since(start)
 

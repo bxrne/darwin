@@ -21,8 +21,8 @@ type EvolutionConfig struct {
 	PopulationSize      int     `toml:"population_size"`
 	GenomeSize          int     `toml:"genome_size"`
 	CrossoverPointCount int     `toml:"crossover_point_count"`
+	CrossoverRate       float64 `toml:"crossover_rate"`
 	MutationRate        float64 `toml:"mutation_rate"`
-	MutationPoints      []int   `toml:"mutation_points"`
 	Generations         int     `toml:"generations"`
 	ElitismPercentage   float64 `toml:"elitism_percentage"`
 	Seed                int64   `toml:"seed"`
@@ -38,6 +38,9 @@ func (ec *EvolutionConfig) validate() error {
 	if ec.CrossoverPointCount <= 0 {
 		return fmt.Errorf("crossover_point_count must be above 0")
 	}
+	if ec.CrossoverRate < 0 || ec.CrossoverRate > 1 {
+		return fmt.Errorf("crossover_rate must be above 0")
+	}
 	if ec.MutationRate < 0 || ec.MutationRate > 1 {
 		return fmt.Errorf("mutation_rate must be between 0 and 1")
 	}
@@ -46,15 +49,10 @@ func (ec *EvolutionConfig) validate() error {
 	}
 	if ec.ElitismPercentage <= 0 || ec.ElitismPercentage > 1 {
 		return fmt.Errorf("elitism_percentage must be greater than 0 and less than 1")
-	}
-	for _, point := range ec.MutationPoints {
-		if point < 0 || point >= ec.GenomeSize {
-			return fmt.Errorf("mutation_points must be within the range of genome_size")
+		// Set default seed if not provided
+		if ec.Seed == 0 {
+			ec.Seed = 42
 		}
-	}
-	// Set default seed if not provided
-	if ec.Seed == 0 {
-		ec.Seed = 42
 	}
 	return nil
 }

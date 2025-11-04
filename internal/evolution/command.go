@@ -5,7 +5,7 @@ type EvolutionCommand struct {
 	Type            CommandType
 	Generation      int
 	CrossoverPoints int
-	MutationPoints  []int
+	CrossoverRate   float64
 	MutationRate    float64
 	ElitismPct      float64
 }

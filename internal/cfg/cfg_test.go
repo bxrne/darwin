@@ -14,7 +14,7 @@ func TestEvolutionConfigValidate_GIVEN_valid_config_WHEN_validate_THEN_no_error(
 		GenomeSize:          5,
 		CrossoverPointCount: 2,
 		MutationRate:        0.1,
-		MutationPoints:      []int{0, 2},
+		CrossoverRate:       0.9,
 		Generations:         100,
 		ElitismPercentage:   0.2,
 		Seed:                42,
@@ -31,7 +31,7 @@ func TestEvolutionConfigValidate_GIVEN_population_size_zero_WHEN_validate_THEN_e
 		GenomeSize:          5,
 		CrossoverPointCount: 2,
 		MutationRate:        0.1,
-		MutationPoints:      []int{0, 2},
+		CrossoverRate:       0.9,
 		Generations:         100,
 		ElitismPercentage:   0.2,
 		Seed:                42,
@@ -49,7 +49,7 @@ func TestEvolutionConfigValidate_GIVEN_genome_size_zero_WHEN_validate_THEN_error
 		GenomeSize:          0,
 		CrossoverPointCount: 2,
 		MutationRate:        0.1,
-		MutationPoints:      []int{0, 2},
+		CrossoverRate:       0.9,
 		Generations:         100,
 		ElitismPercentage:   0.2,
 		Seed:                42,
@@ -67,7 +67,7 @@ func TestEvolutionConfigValidate_GIVEN_crossover_point_count_zero_WHEN_validate_
 		GenomeSize:          5,
 		CrossoverPointCount: 0,
 		MutationRate:        0.1,
-		MutationPoints:      []int{0, 2},
+		CrossoverRate:       0.9,
 		Generations:         100,
 		ElitismPercentage:   0.2,
 		Seed:                42,
@@ -85,7 +85,7 @@ func TestEvolutionConfigValidate_GIVEN_mutation_rate_negative_WHEN_validate_THEN
 		GenomeSize:          5,
 		CrossoverPointCount: 2,
 		MutationRate:        -0.1,
-		MutationPoints:      []int{0, 2},
+		CrossoverRate:       0.9,
 		Generations:         100,
 		ElitismPercentage:   0.2,
 		Seed:                42,
@@ -103,7 +103,7 @@ func TestEvolutionConfigValidate_GIVEN_mutation_rate_above_one_WHEN_validate_THE
 		GenomeSize:          5,
 		CrossoverPointCount: 2,
 		MutationRate:        1.5,
-		MutationPoints:      []int{0, 2},
+		CrossoverRate:       0.9,
 		Generations:         100,
 		ElitismPercentage:   0.2,
 		Seed:                42,
@@ -121,7 +121,7 @@ func TestEvolutionConfigValidate_GIVEN_generations_zero_WHEN_validate_THEN_error
 		GenomeSize:          5,
 		CrossoverPointCount: 2,
 		MutationRate:        0.1,
-		MutationPoints:      []int{0, 2},
+		CrossoverRate:       0.9,
 		Generations:         0,
 		ElitismPercentage:   0.2,
 		Seed:                42,
@@ -139,7 +139,7 @@ func TestEvolutionConfigValidate_GIVEN_elitism_percentage_zero_WHEN_validate_THE
 		GenomeSize:          5,
 		CrossoverPointCount: 2,
 		MutationRate:        0.1,
-		MutationPoints:      []int{0, 2},
+		CrossoverRate:       0.9,
 		Generations:         100,
 		ElitismPercentage:   0.0,
 		Seed:                42,
@@ -157,8 +157,8 @@ func TestEvolutionConfigValidate_GIVEN_elitism_percentage_above_one_WHEN_validat
 		GenomeSize:          5,
 		CrossoverPointCount: 2,
 		MutationRate:        0.1,
-		MutationPoints:      []int{0, 2},
 		Generations:         100,
+		CrossoverRate:       0.9,
 		ElitismPercentage:   1.5,
 		Seed:                42,
 	}
@@ -169,32 +169,14 @@ func TestEvolutionConfigValidate_GIVEN_elitism_percentage_above_one_WHEN_validat
 	assert.Contains(t, err.Error(), "elitism_percentage must be greater than 0 and less than 1")
 }
 
-func TestEvolutionConfigValidate_GIVEN_mutation_points_out_of_range_WHEN_validate_THEN_error(t *testing.T) {
-	config := EvolutionConfig{
-		PopulationSize:      10,
-		GenomeSize:          5,
-		CrossoverPointCount: 2,
-		MutationRate:        0.1,
-		MutationPoints:      []int{0, 5}, // 5 is out of range for genome size 5
-		Generations:         100,
-		ElitismPercentage:   0.2,
-		Seed:                42,
-	}
-
-	err := config.validate()
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "mutation_points must be within the range of genome_size")
-}
-
 func TestConfigValidate_GIVEN_valid_evolution_config_WHEN_validate_THEN_no_error(t *testing.T) {
 	config := Config{
 		Evolution: EvolutionConfig{
 			PopulationSize:      10,
 			GenomeSize:          5,
 			CrossoverPointCount: 2,
+			CrossoverRate:       0.9,
 			MutationRate:        0.1,
-			MutationPoints:      []int{0, 2},
 			Generations:         100,
 			ElitismPercentage:   0.2,
 			Seed:                42,
@@ -212,8 +194,8 @@ func TestConfigValidate_GIVEN_invalid_evolution_config_WHEN_validate_THEN_error(
 			PopulationSize:      0, // invalid
 			GenomeSize:          5,
 			CrossoverPointCount: 2,
+			CrossoverRate:       0.9,
 			MutationRate:        0.1,
-			MutationPoints:      []int{0, 2},
 			Generations:         100,
 			ElitismPercentage:   0.2,
 			Seed:                42,
