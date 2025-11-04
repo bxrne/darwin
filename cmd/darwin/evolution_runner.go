@@ -27,7 +27,12 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 
 	popBuilder := evolution.NewPopulationBuilder()
 	population := popBuilder.BuildPopulation(config.Evolution.PopulationSize, func() individual.Evolvable {
-		return individual.NewBinaryIndividual(config.Evolution.GenomeSize)
+		if config.BitString.Enabled {
+			return individual.NewBinaryIndividual(config.BitString.GenomeSize)
+		} else if config.Tree.Enabled {
+			return individual.NewRandomTree(config.Tree.MaxDepth)
+		}
+		return nil
 	})
 
 	selector := selection.NewRouletteSelector(30)

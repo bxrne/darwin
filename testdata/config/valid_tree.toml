@@ -1,0 +1,19 @@
+[evolution]
+population_size = 50
+crossover_point_count = 2
+mutation_rate = 0.2
+mutation_points = [1]
+generations = 20
+elitism_percentage = 0.2
+seed = 1234
+
+[bitstring_individual]
+enabled = false
+genome_size = 4
+
+[tree_individual]
+enabled = true
+max_depth = 5
+min_depth = 1
+function_set = ["add", "mul"]
+terminal_set = ["x", "y"]
