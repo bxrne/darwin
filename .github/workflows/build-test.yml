@@ -4,9 +4,6 @@ permissions:
   pull-requests: write
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
@@ -32,8 +29,4 @@ jobs:
         run: go build ./cmd/... 
 
       - name: Run tests without coverage
-        run: go test ./...
-
-      - name: Run tests with coverage
-        run: go test -cover -coverprofile=coverage.out ./...
-      
+        run: go test -v -race ./...
