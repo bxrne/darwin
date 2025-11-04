@@ -1,3 +1,24 @@
+## [1.1.0](https://github.com/bxrne/darwin/compare/v1.0.1...v1.1.0) (2025-11-04)
+
+
+### Features
+
+* **cfg:** cfg can choose individual, cfg tests reduced in size based on testdata, table driven benchmark for each type ([50665b5](https://github.com/bxrne/darwin/commit/50665b5e1e3b30501d8586efeefd345dc4fb16eb))
+
+
+### Bug Fixes
+
+* **file:** Fix merge conflicts ([cc6f727](https://github.com/bxrne/darwin/commit/cc6f727125ce414d6fea993feff455e32a44fa61))
+* **individual, README:** Tidy readme remove old rand lib usage ([325be84](https://github.com/bxrne/darwin/commit/325be84bfa47b6de70fd32453bfa2b0d46d367bf))
+* **rng:** proper rng with new dep ([735992d](https://github.com/bxrne/darwin/commit/735992d0db45cae02aef0e6f499bce3ff1decbbd))
+
+
+### Miscellaneous Chores
+
+* **binary_individual:** better file name ([e8ca407](https://github.com/bxrne/darwin/commit/e8ca4075e725a13c5d5bc72913d9ff1180a8ea09))
+* **ci:** move all tests to one place and only run on PR/Push ([764c705](https://github.com/bxrne/darwin/commit/764c705f5d8c2e12fb0a3d35732e6f0be270cdfa))
+* **deps:** update ([694bd7f](https://github.com/bxrne/darwin/commit/694bd7fae40f2f2ca72614c1e202bfb98b3baf11))
+
 ## [1.0.1](https://github.com/bxrne/darwin/compare/v1.0.0...v1.0.1) (2025-11-04)
 
 
