@@ -1,9 +1,9 @@
 package individual
 
 import (
-	"sort"
-
 	"github.com/bxrne/darwin/internal/rng"
+	"math/rand"
+	"sort"
 )
 
 // BinaryIndividual represents an individual with a binary genome
@@ -53,12 +53,14 @@ func (i *BinaryIndividual) Max(i2 Evolvable) Evolvable {
 }
 
 // Mutate performs mutation on the genome at specified points
-func (i *BinaryIndividual) Mutate(points []int, mutationRate float64) {
+func (i *BinaryIndividual) Mutate(mutationRate float64) {
 	if mutationRate < rng.Float64() {
 		return
 	}
-	for _, point := range points {
-		i.Genome[point] ^= 1 // Flip '0' <-> '1'
+	for j := range len(i.Genome) {
+		if mutationRate > rand.Float64() {
+			i.Genome[j] ^= 1 // Flip '0' <-> '1'
+		}
 	}
 }
 
