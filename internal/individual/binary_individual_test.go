@@ -1,13 +1,14 @@
-package individual
+package individual_test
 
 import (
 	"testing"
 
+	"github.com/bxrne/darwin/internal/individual"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewBinaryIndividual_GIVEN_genome_size_WHEN_create_THEN_random_genome_and_fitness_calculated(t *testing.T) {
-	ind := NewBinaryIndividual(5)
+	ind := individual.NewBinaryIndividual(5)
 
 	assert.NotNil(t, ind)
 	assert.Len(t, ind.Genome, 5)
@@ -16,7 +17,7 @@ func TestNewBinaryIndividual_GIVEN_genome_size_WHEN_create_THEN_random_genome_an
 }
 
 func TestBinaryIndividual_GetFitness_GIVEN_calculated_fitness_WHEN_get_THEN_returns_fitness(t *testing.T) {
-	ind := &BinaryIndividual{
+	ind := &individual.BinaryIndividual{
 		Genome:  []byte{'1', '0', '1'},
 		Fitness: 0.5,
 	}
@@ -27,7 +28,7 @@ func TestBinaryIndividual_GetFitness_GIVEN_calculated_fitness_WHEN_get_THEN_retu
 }
 
 func TestBinaryIndividual_CalculateFitness_GIVEN_genome_WHEN_calculate_THEN_fitness_is_ratio_of_ones(t *testing.T) {
-	ind := &BinaryIndividual{
+	ind := &individual.BinaryIndividual{
 		Genome: []byte{'1', '0', '1', '1'},
 	}
 
@@ -37,7 +38,7 @@ func TestBinaryIndividual_CalculateFitness_GIVEN_genome_WHEN_calculate_THEN_fitn
 }
 
 func TestBinaryIndividual_CalculateFitness_GIVEN_all_zeros_WHEN_calculate_THEN_fitness_zero(t *testing.T) {
-	ind := &BinaryIndividual{
+	ind := &individual.BinaryIndividual{
 		Genome: []byte{'0', '0', '0'},
 	}
 
@@ -47,7 +48,7 @@ func TestBinaryIndividual_CalculateFitness_GIVEN_all_zeros_WHEN_calculate_THEN_f
 }
 
 func TestBinaryIndividual_CalculateFitness_GIVEN_all_ones_WHEN_calculate_THEN_fitness_one(t *testing.T) {
-	ind := &BinaryIndividual{
+	ind := &individual.BinaryIndividual{
 		Genome: []byte{'1', '1', '1'},
 	}
 
@@ -57,8 +58,8 @@ func TestBinaryIndividual_CalculateFitness_GIVEN_all_ones_WHEN_calculate_THEN_fi
 }
 
 func TestBinaryIndividual_Max_GIVEN_higher_fitness_WHEN_max_THEN_returns_higher(t *testing.T) {
-	ind1 := &BinaryIndividual{Fitness: 0.5}
-	ind2 := &BinaryIndividual{Fitness: 0.8}
+	ind1 := &individual.BinaryIndividual{Fitness: 0.5}
+	ind2 := &individual.BinaryIndividual{Fitness: 0.8}
 
 	result := ind1.Max(ind2)
 
@@ -66,8 +67,8 @@ func TestBinaryIndividual_Max_GIVEN_higher_fitness_WHEN_max_THEN_returns_higher(
 }
 
 func TestBinaryIndividual_Max_GIVEN_lower_fitness_WHEN_max_THEN_returns_self(t *testing.T) {
-	ind1 := &BinaryIndividual{Fitness: 0.8}
-	ind2 := &BinaryIndividual{Fitness: 0.5}
+	ind1 := &individual.BinaryIndividual{Fitness: 0.8}
+	ind2 := &individual.BinaryIndividual{Fitness: 0.5}
 
 	result := ind1.Max(ind2)
 
@@ -75,8 +76,8 @@ func TestBinaryIndividual_Max_GIVEN_lower_fitness_WHEN_max_THEN_returns_self(t *
 }
 
 func TestBinaryIndividual_Max_GIVEN_equal_fitness_WHEN_max_THEN_returns_other(t *testing.T) {
-	ind1 := &BinaryIndividual{Fitness: 0.5}
-	ind2 := &BinaryIndividual{Fitness: 0.5}
+	ind1 := &individual.BinaryIndividual{Fitness: 0.5}
+	ind2 := &individual.BinaryIndividual{Fitness: 0.5}
 
 	result := ind1.Max(ind2)
 
@@ -84,7 +85,7 @@ func TestBinaryIndividual_Max_GIVEN_equal_fitness_WHEN_max_THEN_returns_other(t 
 }
 
 func TestBinaryIndividual_Mutate_GIVEN_mutation_rate_one_WHEN_mutate_THEN_points_flipped(t *testing.T) {
-	ind := &BinaryIndividual{
+	ind := &individual.BinaryIndividual{
 		Genome: []byte{'0', '1', '0'},
 	}
 
@@ -95,7 +96,7 @@ func TestBinaryIndividual_Mutate_GIVEN_mutation_rate_one_WHEN_mutate_THEN_points
 }
 
 func TestBinaryIndividual_Mutate_GIVEN_mutation_rate_zero_WHEN_mutate_THEN_no_change(t *testing.T) {
-	ind := &BinaryIndividual{
+	ind := &individual.BinaryIndividual{
 		Genome: []byte{'0', '1', '0'},
 	}
 
@@ -108,10 +109,10 @@ func TestBinaryIndividual_Mutate_GIVEN_mutation_rate_zero_WHEN_mutate_THEN_no_ch
 }
 
 func TestBinaryIndividual_MultiPointCrossover_GIVEN_two_individuals_WHEN_crossover_THEN_offspring_created(t *testing.T) {
-	ind1 := &BinaryIndividual{
+	ind1 := &individual.BinaryIndividual{
 		Genome: []byte{'0', '1', '0', '1'},
 	}
-	ind2 := &BinaryIndividual{
+	ind2 := &individual.BinaryIndividual{
 		Genome: []byte{'1', '0', '1', '0'},
 	}
 
@@ -119,8 +120,8 @@ func TestBinaryIndividual_MultiPointCrossover_GIVEN_two_individuals_WHEN_crossov
 
 	assert.NotNil(t, child1)
 	assert.NotNil(t, child2)
-	c1, ok1 := child1.(*BinaryIndividual)
-	c2, ok2 := child2.(*BinaryIndividual)
+	c1, ok1 := child1.(*individual.BinaryIndividual)
+	c2, ok2 := child2.(*individual.BinaryIndividual)
 	assert.True(t, ok1)
 	assert.True(t, ok2)
 	assert.Len(t, c1.Genome, 4)
@@ -132,10 +133,10 @@ func TestBinaryIndividual_MultiPointCrossover_GIVEN_two_individuals_WHEN_crossov
 }
 
 func TestBinaryIndividual_MultiPointCrossover_GIVEN_zero_crossover_points_WHEN_crossover_THEN_no_crossover(t *testing.T) {
-	ind1 := &BinaryIndividual{
+	ind1 := &individual.BinaryIndividual{
 		Genome: []byte{'0', '1'},
 	}
-	ind2 := &BinaryIndividual{
+	ind2 := &individual.BinaryIndividual{
 		Genome: []byte{'1', '0'},
 	}
 
@@ -148,10 +149,10 @@ func TestBinaryIndividual_MultiPointCrossover_GIVEN_zero_crossover_points_WHEN_c
 
 func TestBinaryIndividual_MultiPointCrossover_GIVEN_multiple_points_WHEN_crossover_THEN_correct_segments_swapped(t *testing.T) {
 	// This is hard to test deterministically due to randomness, but we can test that it doesn't panic and produces valid offspring
-	ind1 := &BinaryIndividual{
+	ind1 := &individual.BinaryIndividual{
 		Genome: []byte{'0', '1', '0', '1', '0'},
 	}
-	ind2 := &BinaryIndividual{
+	ind2 := &individual.BinaryIndividual{
 		Genome: []byte{'1', '0', '1', '0', '1'},
 	}
 
@@ -159,8 +160,8 @@ func TestBinaryIndividual_MultiPointCrossover_GIVEN_multiple_points_WHEN_crossov
 
 	assert.NotNil(t, child1)
 	assert.NotNil(t, child2)
-	c1, ok1 := child1.(*BinaryIndividual)
-	c2, ok2 := child2.(*BinaryIndividual)
+	c1, ok1 := child1.(*individual.BinaryIndividual)
+	c2, ok2 := child2.(*individual.BinaryIndividual)
 	assert.True(t, ok1)
 	assert.True(t, ok2)
 	assert.Len(t, c1.Genome, 5)

@@ -1,9 +1,10 @@
-package selection
+package selection_test
 
 import (
 	"testing"
 
 	"github.com/bxrne/darwin/internal/individual"
+	"github.com/bxrne/darwin/internal/selection"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,7 +15,7 @@ func TestRouletteSelector_Select_GIVEN_population_WHEN_select_THEN_returns_indiv
 		&individual.BinaryIndividual{Fitness: 0.9},
 	}
 
-	selector := NewRouletteSelector(2)
+	selector := selection.NewRouletteSelector(2)
 
 	selected := selector.Select(pop)
 
@@ -28,7 +29,7 @@ func TestRouletteSelector_Select_GIVEN_sample_size_WHEN_select_THEN_uses_sample_
 		&individual.BinaryIndividual{Fitness: 0.5},
 	}
 
-	selector := NewRouletteSelector(1) // Sample size 1
+	selector := selection.NewRouletteSelector(1) // Sample size 1
 
 	selected := selector.Select(pop)
 
@@ -42,7 +43,7 @@ func TestTournamentSelector_Select_GIVEN_population_WHEN_select_THEN_returns_bes
 		&individual.BinaryIndividual{Fitness: 0.9},
 	}
 
-	selector := NewTournamentSelector(2)
+	selector := selection.NewTournamentSelector(2)
 
 	selected := selector.Select(pop)
 
@@ -57,7 +58,7 @@ func TestTournamentSelector_Select_GIVEN_tournament_size_WHEN_select_THEN_uses_t
 		&individual.BinaryIndividual{Fitness: 0.5},
 	}
 
-	selector := NewTournamentSelector(1) // Tournament size 1
+	selector := selection.NewTournamentSelector(1) // Tournament size 1
 
 	selected := selector.Select(pop)
 
@@ -70,7 +71,7 @@ func TestTournamentSelector_Select_GIVEN_tournament_size_one_WHEN_select_THEN_re
 		&individual.BinaryIndividual{Fitness: 0.9},
 	}
 
-	selector := NewTournamentSelector(1)
+	selector := selection.NewTournamentSelector(1)
 
 	selected := selector.Select(pop)
 
