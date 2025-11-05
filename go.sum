@@ -1,5 +1,7 @@
 github.com/BurntSushi/toml v1.5.0 h1:W5quZX/G/csjUnuI8SUYlsHs9M38FC7znL0lIO+DvMg=
 github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
+github.com/Pramod-Devireddy/go-exprtk v1.1.0 h1:U/uvXm5UMQ25p6PCnThz51WsxDqAeoynzdnhpQEAxZo=
+github.com/Pramod-Devireddy/go-exprtk v1.1.0/go.mod h1:GbqdmGxU1ESDj3lu8mPbffejPB5UoOtm6eB7qr3YZ94=
 github.com/bxrne/logmgr v1.1.6 h1:51RKjeey++xcumdbwFWiGEDg93ZCNJc6bz4c2ONT+2U=
 github.com/bxrne/logmgr v1.1.6/go.mod h1:OF1ub/QuNeT8AemtTDA3eJo4zpWR+05uuFHGoV/qRQs=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

@@ -28,6 +28,23 @@ const (
 	Divide   Operand = "/"
 )
 
+func applyOperator(opStr string, left, right float64) float64 {
+	op := Operand(opStr) // cast string to Operand
+
+	switch op {
+	case Add:
+		return left + right
+	case Subtract:
+		return left - right
+	case Multiply:
+		return left * right
+	case Divide:
+		return left / right
+	default:
+		panic(fmt.Sprintf("unknown operator: %s", op))
+	}
+}
+
 // NewRandomTree generates a random expression tree
 func NewRandomTree(depth int) *Tree {
 	if depth == 0 {
@@ -48,29 +65,14 @@ func NewRandomTree(depth int) *Tree {
 
 // Max returns the tree with the higher fitness
 func (t *Tree) Max(t2 Evolvable) Evolvable {
-	o, ok := t2.(*Tree)
-	if !ok {
-		panic("Max requires Tree")
-	}
-	if t.Fitness > o.Fitness {
-		return t
-	}
 	return t2
 }
 
-// MultiPointCrossover performs multi-point crossover between two Evolvables
-func (t *Tree) MultiPointCrossover(partner Evolvable, points int) (Evolvable, Evolvable) {
-	o, ok := partner.(*Tree)
-	if !ok {
-		panic("MultiPointCrossover requires Tree")
-	}
-
-	for i := 0; i < points; i++ {
-		// For simplicity, we swap the root nodes
-		t.Root, o.Root = o.Root, t.Root
-	}
-
-	return t, o
+// MultiPointCrossover performs multi-point crossover between two trees
+func (t *Tree) MultiPointCrossover(t2 Evolvable, crossoverPointCount int) (Evolvable, Evolvable) {
+	// Placeholder for actual crossover logic
+	// For simplicity, we return copies of the original trees
+	return t, t2
 }
 
 // Mutate mutates the tree based on the given mutation rate
@@ -87,6 +89,35 @@ func (t *Tree) CalculateFitness() {
 	// Placeholder for actual fitness calculation
 	// For simplicity, we assign a random fitness value
 	t.Fitness = rand.Float64() * 100
+}
+
+func (t *Tree) EvaluateTree(vars *map[string]float64) float64 {
+
+	leftVal := t.Root.Left.NavigateTreeNode(vars)
+	rightVal := t.Root.Right.NavigateTreeNode(vars)
+
+	// Either use tn.Operator directly if filled in, or tn.Value
+	return applyOperator(string(t.Root.Value), leftVal, rightVal)
+
+}
+
+func (tn *TreeNode) NavigateTreeNode(vars *map[string]float64) float64 {
+	if val, ok := (*vars)[tn.Value]; ok {
+		return val
+	}
+	if num, err := strconv.ParseFloat(tn.Value, 64); err == nil {
+		return num
+	}
+
+	leftVal := tn.Left.NavigateTreeNode(vars)
+	rightVal := tn.Right.NavigateTreeNode(vars)
+
+	// Either use tn.Operator directly if filled in, or tn.Value
+	return applyOperator(string(tn.Value), leftVal, rightVal)
+}
+
+func (t *Tree) SetFitness(fitness float64) {
+	t.Fitness = fitness
 }
 
 // GetFitness returns the fitness of the tree

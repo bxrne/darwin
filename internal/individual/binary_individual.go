@@ -101,3 +101,7 @@ func (i *BinaryIndividual) MultiPointCrossover(i2 Evolvable, crossoverPoints int
 	newI2.CalculateFitness()
 	return &newI1, &newI2
 }
+
+func (i *BinaryIndividual) SetFitness(fitness float64) {
+	i.Fitness = fitness
+}
