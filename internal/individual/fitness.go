@@ -17,6 +17,23 @@ type FitnessSetupInformation struct {
 	parameterCount int
 }
 
+type BinaryFitnessCalculator struct{}
+
+func (binaryFitness *BinaryFitnessCalculator) CalculateFitness(evolvable *Evolvable) {
+	binaryIndividual, ok := (*evolvable).(*BinaryIndividual)
+	if !ok {
+		panic("Binary Indiviual Fitness Needs Binary INdividual")
+	}
+	count := 0
+	for _, gene := range binaryIndividual.Genome {
+		if gene == '1' {
+			count++
+		}
+	}
+	binaryIndividual.Fitness = float64(count) / float64(len(binaryIndividual.Genome))
+
+}
+
 type TreeFitnessCalculator struct {
 	EvalFunction   exprtk.GoExprtk
 	ParameterCount int
@@ -25,10 +42,12 @@ type TreeFitnessCalculator struct {
 
 func fitnessCalculatorFactory(evolvable Evolvable, info FitnessSetupInformation) FitnessCalculator {
 	switch evolvable.(type) {
-	case *BinaryIndividual:
+	case *Tree:
 		calc := &TreeFitnessCalculator{}
 		calc.setupEvalFunction(info.evalFunction, info.parameterCount)
 		return calc
+	case *BinaryIndividual:
+		return &BinaryFitnessCalculator{}
 	default:
 		return nil
 	}

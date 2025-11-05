@@ -19,24 +19,12 @@ func NewBinaryIndividual(genomeSize int) *BinaryIndividual {
 	}
 
 	b := BinaryIndividual{Genome: genome}
-	b.CalculateFitness()
 	return &b
 }
 
 // GetFitness returns the fitness value
 func (i *BinaryIndividual) GetFitness() float64 {
 	return i.Fitness
-}
-
-// CalculateFitness calculates the fitness as the ratio of 1s to total genome length
-func (i *BinaryIndividual) CalculateFitness() {
-	count := 0
-	for _, gene := range i.Genome {
-		if gene == '1' {
-			count++
-		}
-	}
-	i.Fitness = float64(count) / float64(len(i.Genome))
 }
 
 // Max returns the individual with higher fitness
@@ -97,8 +85,6 @@ func (i *BinaryIndividual) MultiPointCrossover(i2 Evolvable, crossoverPoints int
 
 	newI1 := BinaryIndividual{Genome: newI1Genome}
 	newI2 := BinaryIndividual{Genome: newI2Genome}
-	newI1.CalculateFitness()
-	newI2.CalculateFitness()
 	return &newI1, &newI2
 }
 
