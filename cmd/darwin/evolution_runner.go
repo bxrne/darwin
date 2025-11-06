@@ -35,7 +35,7 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	cmdChan := make(chan evolution.EvolutionCommand, 10)
 
 	populationType := getGenomeType(config)
-	fitnessCalculator := individual.FitnessCalculatorFactory(individual.FitnessSetupInformation{GenomeType: populationType})
+	fitnessCalculator := individual.FitnessCalculatorFactory(individual.FitnessSetupInformation{GenomeType: populationType, EvalFunction: config.Tree.TargetFunction, ParameterCount: config.Tree.ParameterCount})
 
 	popBuilder := evolution.NewPopulationBuilder()
 	population := popBuilder.BuildPopulation(config.Evolution.PopulationSize, func() individual.Evolvable {
@@ -43,7 +43,7 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 		case individual.BitStringGenome:
 			return individual.NewBinaryIndividual(config.BitString.GenomeSize)
 		case individual.TreeGenome:
-			return individual.NewRandomTree(config.Tree.MaxDepth)
+			return individual.NewRandomTree(config.Tree.MaxDepth, config.Tree.ParameterCount)
 		default:
 			return nil
 		}
