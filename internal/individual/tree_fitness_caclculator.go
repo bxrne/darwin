@@ -12,7 +12,7 @@ type TreeFitnessCalculator struct {
 	TestCases      []map[string]float64
 }
 
-func (fitnessCalc *TreeFitnessCalculator) setupEvalFunction(evalFunction string, parameterCount int) {
+func (fitnessCalc *TreeFitnessCalculator) SetupEvalFunction(evalFunction string, parameterCount int) {
 	exprtkObj := exprtk.NewExprtk()
 	exprtkObj.SetExpression(evalFunction)
 
