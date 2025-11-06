@@ -14,7 +14,7 @@ func FitnessCalculatorFactory(info FitnessSetupInformation) FitnessCalculator {
 	switch info.GenomeType {
 	case TreeGenome:
 		calc := &TreeFitnessCalculator{}
-		calc.setupEvalFunction(info.EvalFunction, info.ParameterCount)
+		calc.SetupEvalFunction(info.EvalFunction, info.ParameterCount)
 		return calc
 	case BitStringGenome:
 		return &BinaryFitnessCalculator{}
