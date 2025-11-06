@@ -16,7 +16,7 @@ func NewPopulationBuilder() *PopulationBuilder {
 
 // BuildPopulation creates a population of binary individuals
 // func (pb *PopulationBuilder) BuildPopulation(size, genomeSize int) []individual.Evolvable {
-func (pb *PopulationBuilder) BuildPopulation(size int, creator func() individual.Evolvable) []individual.Evolvable {
+func (pb *PopulationBuilder) BuildPopulation(size int, creator func() individual.Evolvable, fitnessCalc individual.FitnessCalculator) []individual.Evolvable {
 	population := make([]individual.Evolvable, size)
 	var wg sync.WaitGroup
 	numWorkers := runtime.NumCPU()
@@ -32,6 +32,7 @@ func (pb *PopulationBuilder) BuildPopulation(size int, creator func() individual
 			defer wg.Done()
 			for j := start; j < end; j++ {
 				population[j] = creator()
+				fitnessCalc.CalculateFitness(&population[j])
 			}
 		}(start, end) // chunk to use
 	}

@@ -13,8 +13,9 @@ type FitnessCalculator interface {
 }
 
 type FitnessSetupInformation struct {
-	evalFunction   string
-	parameterCount int
+	EvalFunction   string
+	ParameterCount int
+	GenomeType     GenomeType
 }
 
 type BinaryFitnessCalculator struct{}
@@ -30,7 +31,7 @@ func (binaryFitness *BinaryFitnessCalculator) CalculateFitness(evolvable *Evolva
 			count++
 		}
 	}
-	binaryIndividual.Fitness = float64(count) / float64(len(binaryIndividual.Genome))
+	binaryIndividual.SetFitness(float64(count) / float64(len(binaryIndividual.Genome)))
 
 }
 
@@ -40,13 +41,13 @@ type TreeFitnessCalculator struct {
 	TestCases      []map[string]float64
 }
 
-func fitnessCalculatorFactory(evolvable Evolvable, info FitnessSetupInformation) FitnessCalculator {
-	switch evolvable.(type) {
-	case *Tree:
+func FitnessCalculatorFactory(info FitnessSetupInformation) FitnessCalculator {
+	switch info.GenomeType {
+	case TreeGenome:
 		calc := &TreeFitnessCalculator{}
-		calc.setupEvalFunction(info.evalFunction, info.parameterCount)
+		calc.setupEvalFunction(info.EvalFunction, info.ParameterCount)
 		return calc
-	case *BinaryIndividual:
+	case BitStringGenome:
 		return &BinaryFitnessCalculator{}
 	default:
 		return nil

@@ -7,7 +7,6 @@ require (
 	github.com/Pramod-Devireddy/go-exprtk v1.1.0
 	github.com/bxrne/logmgr v1.1.6
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546
 )
 
 require (

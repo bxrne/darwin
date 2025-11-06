@@ -14,12 +14,13 @@ import (
 
 // EvolutionEngine manages the evolution process using channels
 type EvolutionEngine struct {
-	population  []individual.Evolvable
-	selector    selection.Selector
-	metricsChan chan<- metrics.GenerationMetrics
-	cmdChan     <-chan EvolutionCommand
-	done        chan struct{}
-	currentGen  int
+	population        []individual.Evolvable
+	selector          selection.Selector
+	metricsChan       chan<- metrics.GenerationMetrics
+	cmdChan           <-chan EvolutionCommand
+	done              chan struct{}
+	currentGen        int
+	fitnessCalculator individual.FitnessCalculator
 }
 
 // NewEvolutionEngine creates a new evolution engine
@@ -28,14 +29,16 @@ func NewEvolutionEngine(
 	selector selection.Selector,
 	metricsChan chan<- metrics.GenerationMetrics,
 	cmdChan <-chan EvolutionCommand,
+	fitnessCalculator individual.FitnessCalculator,
 ) *EvolutionEngine {
 	return &EvolutionEngine{
-		population:  population,
-		selector:    selector,
-		metricsChan: metricsChan,
-		cmdChan:     cmdChan,
-		done:        make(chan struct{}),
-		currentGen:  0,
+		population:        population,
+		selector:          selector,
+		metricsChan:       metricsChan,
+		cmdChan:           cmdChan,
+		done:              make(chan struct{}),
+		currentGen:        0,
+		fitnessCalculator: fitnessCalculator,
 	}
 }
 
@@ -80,12 +83,16 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 	// Perform crossover and mutation
 	if cmd.CrossoverRate > rand.Float64() {
 		child1, child2 := parent1.MultiPointCrossover(parent2, cmd.CrossoverPoints)
+		ee.fitnessCalculator.CalculateFitness(&child1)
+		ee.fitnessCalculator.CalculateFitness(&child2)
 		out <- child1.Max(child2)
 		return
 	}
 
 	parent1.Mutate(cmd.MutationRate)
+	ee.fitnessCalculator.CalculateFitness(&parent1)
 	parent2.Mutate(cmd.MutationRate)
+	ee.fitnessCalculator.CalculateFitness(&parent2)
 	out <- parent1.Max(parent2)
 }
 

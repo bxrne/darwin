@@ -15,6 +15,15 @@ import (
 
 type MetricsHandler func(metrics.GenerationMetrics)
 
+func getGenomeType(config *cfg.Config) individual.GenomeType {
+	if config.BitString.Enabled {
+		return individual.BitStringGenome
+	} else if config.Tree.Enabled {
+		return individual.TreeGenome
+	}
+	return -1 // or panic/error
+}
+
 // runEvolution encapsulates the shared evolution logic.
 // It takes a context, config, and optional metrics handler.
 // Returns the final population or an error.
@@ -25,25 +34,29 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	metricsChan := make(chan metrics.GenerationMetrics, 100)
 	cmdChan := make(chan evolution.EvolutionCommand, 10)
 
+	populationType := getGenomeType(config)
+	fitnessCalculator := individual.FitnessCalculatorFactory(individual.FitnessSetupInformation{GenomeType: populationType})
+
 	popBuilder := evolution.NewPopulationBuilder()
 	population := popBuilder.BuildPopulation(config.Evolution.PopulationSize, func() individual.Evolvable {
-		if config.BitString.Enabled {
+		switch populationType {
+		case individual.BitStringGenome:
 			return individual.NewBinaryIndividual(config.BitString.GenomeSize)
-		} else if config.Tree.Enabled {
+		case individual.TreeGenome:
 			return individual.NewRandomTree(config.Tree.MaxDepth)
+		default:
+			return nil
 		}
-		return nil
-	})
+	}, fitnessCalculator)
 
 	selector := selection.NewRouletteSelector(30)
-
 	metricsStreamer := metrics.NewMetricsStreamer(metricsChan)
 	var metricsSubscriber <-chan metrics.GenerationMetrics
 	if handler != nil {
 		metricsSubscriber = metricsStreamer.Subscribe()
 	}
 
-	evolutionEngine := evolution.NewEvolutionEngine(population, selector, metricsChan, cmdChan)
+	evolutionEngine := evolution.NewEvolutionEngine(population, selector, metricsChan, cmdChan, fitnessCalculator)
 
 	metricsStreamer.Start(ctx)
 	evolutionEngine.Start(ctx)
