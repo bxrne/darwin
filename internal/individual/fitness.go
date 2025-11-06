@@ -69,7 +69,6 @@ func (fitnessCalc *TreeFitnessCalculator) setupEvalFunction(evalFunction string,
 		fmt.Println(err.Error())
 	}
 
-	fmt.Println(exprtkObj.GetEvaluatedValue())
 	fitnessCalc.EvalFunction = exprtkObj
 	fitnessCalc.ParameterCount = parameterCount
 
@@ -86,6 +85,7 @@ func (fitnessCalc *TreeFitnessCalculator) setupEvalFunction(evalFunction string,
 		}
 		testCases[i] = caseVars
 	}
+	fitnessCalc.TestCases = testCases
 
 }
 
@@ -98,6 +98,7 @@ func (fitnessCalc *TreeFitnessCalculator) CalculateFitness(evolvable *Evolvable)
 	actualResults := make([]float64, 0, 10)
 	error := 0.0
 	for index, vars := range fitnessCalc.TestCases {
+
 		for name, val := range vars {
 			fitnessCalc.EvalFunction.SetDoubleVariableValue(name, val)
 		}
@@ -106,5 +107,5 @@ func (fitnessCalc *TreeFitnessCalculator) CalculateFitness(evolvable *Evolvable)
 		error += math.Pow(actualResults[index]-targetResults[index], 2)
 	}
 	//root mean sqr error
-	tree.SetFitness(math.Sqrt(error / float64(len(actualResults))))
+	tree.SetFitness(math.Sqrt(error/float64(len(actualResults))) * -1)
 }

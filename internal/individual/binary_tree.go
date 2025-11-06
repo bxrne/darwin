@@ -1,6 +1,7 @@
 package individual
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -44,24 +45,49 @@ func applyOperator(opStr string, left, right float64) float64 {
 	default:
 		panic(fmt.Sprintf("unknown operator: %s", op))
 	}
-	return 0.0
 }
 
 // NewRandomTree generates a random expression tree
-func NewRandomTree(depth int) *Tree {
+func NewRandomTree(depth int, parameterCount int) *Tree {
 	if depth == 0 {
 		return &Tree{Root: &TreeNode{Value: strconv.Itoa(rand.Intn(10))}}
 	}
 
-	ops := []Operand{Add, Subtract, Multiply, Divide}
-	op := ops[rand.Intn(len(ops))]
+	runes := []rune("xyzabcdefghijklmnopqrstuvw")
+	primitiveSet := make([]string, 0)
+	for param := range parameterCount {
+		primitiveSet = append(primitiveSet, string(runes[param]))
+	}
+
+	primitiveSet = append(primitiveSet, "1.0")
+	primitiveSet = append(primitiveSet, "2.0")
+	primitiveSet = append(primitiveSet, "3.0")
+	primitiveSet = append(primitiveSet, "4.0")
+	primitiveSet = append(primitiveSet, "5.0")
+	functionSet := []Operand{Add, Subtract, Multiply, Divide}
+	op := functionSet[rand.Intn(len(functionSet))]
 
 	return &Tree{
 		Root: &TreeNode{
 			Value: string(op),
-			Left:  NewRandomTree(depth - 1).Root,
-			Right: NewRandomTree(depth - 1).Root,
+			Left:  NewRandomTreeNode(depth-1, primitiveSet, functionSet),
+			Right: NewRandomTreeNode(depth-1, primitiveSet, functionSet),
 		},
+	}
+}
+
+// NewRandomTreeNode generates a random expression treenode
+func NewRandomTreeNode(depth int, primitiveSet []string, functionSet []Operand) *TreeNode {
+	if depth == 0 {
+		return &TreeNode{Value: primitiveSet[rand.Intn(len(primitiveSet))]}
+	}
+
+	op := functionSet[rand.Intn(len(functionSet))]
+
+	return &TreeNode{
+		Value: string(op),
+		Left:  NewRandomTreeNode(depth-1, primitiveSet, functionSet),
+		Right: NewRandomTreeNode(depth-1, primitiveSet, functionSet),
 	}
 }
 
@@ -81,9 +107,6 @@ func (t *Tree) MultiPointCrossover(t2 Evolvable, crossoverPointCount int) (Evolv
 func (t *Tree) Mutate(rate float64) {
 	// Placeholder for actual mutation logic
 	// For simplicity, we randomly change the value of the root node
-	if rand.Float64() < rate {
-		t.Root.Value = strconv.Itoa(rand.Intn(10))
-	}
 }
 
 // CalculateFitness calculates the fitness of the tree
@@ -110,7 +133,7 @@ func (tn *TreeNode) NavigateTreeNode(vars *map[string]float64) float64 {
 	if num, err := strconv.ParseFloat(tn.Value, 64); err == nil {
 		return num
 	}
-
+	fmt.Println("STARTING TWO THREADS WITH OPERAND", tn.Value)
 	leftVal := tn.Left.NavigateTreeNode(vars)
 	rightVal := tn.Right.NavigateTreeNode(vars)
 
@@ -125,4 +148,13 @@ func (t *Tree) SetFitness(fitness float64) {
 // GetFitness returns the fitness of the tree
 func (t *Tree) GetFitness() float64 {
 	return t.Fitness
+}
+
+func PrintTreeJSON(t *Tree) {
+	data, err := json.MarshalIndent(t, "", "  ")
+	if err != nil {
+		fmt.Println("error:", err)
+		return
+	}
+	fmt.Println(string(data))
 }

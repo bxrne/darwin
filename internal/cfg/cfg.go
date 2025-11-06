@@ -22,11 +22,13 @@ func (bic *BitStringIndividualConfig) validate() error {
 
 // TreeIndividualConfig holds configuration for tree individuals.
 type TreeIndividualConfig struct {
-	Enabled     bool     `toml:"enabled"`
-	MaxDepth    int      `toml:"max_depth"`
-	MinDepth    int      `toml:"min_depth"`
-	FunctionSet []string `toml:"function_set"`
-	TerminalSet []string `toml:"terminal_set"`
+	Enabled        bool     `toml:"enabled"`
+	MaxDepth       int      `toml:"max_depth"`
+	MinDepth       int      `toml:"min_depth"`
+	FunctionSet    []string `toml:"function_set"`
+	TerminalSet    []string `toml:"terminal_set"`
+	ParameterCount int      `toml:"parameter_count"`
+	TargetFunction string   `toml:"target_function"`
 }
 
 // validate validates the TreeIndividualConfig.
