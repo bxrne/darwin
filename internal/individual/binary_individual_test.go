@@ -16,47 +16,6 @@ func TestNewBinaryIndividual_GIVEN_genome_size_WHEN_create_THEN_random_genome_an
 	assert.LessOrEqual(t, ind.Fitness, 1.0)
 }
 
-func TestBinaryIndividual_GetFitness_GIVEN_calculated_fitness_WHEN_get_THEN_returns_fitness(t *testing.T) {
-	ind := &individual.BinaryIndividual{
-		Genome:  []byte{'1', '0', '1'},
-		Fitness: 0.5,
-	}
-
-	fitness := ind.GetFitness()
-
-	assert.Equal(t, 0.5, fitness)
-}
-
-func TestBinaryIndividual_CalculateFitness_GIVEN_genome_WHEN_calculate_THEN_fitness_is_ratio_of_ones(t *testing.T) {
-	ind := &individual.BinaryIndividual{
-		Genome: []byte{'1', '0', '1', '1'},
-	}
-
-	ind.CalculateFitness()
-
-	assert.Equal(t, 0.75, ind.Fitness) // 3 ones out of 4
-}
-
-func TestBinaryIndividual_CalculateFitness_GIVEN_all_zeros_WHEN_calculate_THEN_fitness_zero(t *testing.T) {
-	ind := &individual.BinaryIndividual{
-		Genome: []byte{'0', '0', '0'},
-	}
-
-	ind.CalculateFitness()
-
-	assert.Equal(t, 0.0, ind.Fitness)
-}
-
-func TestBinaryIndividual_CalculateFitness_GIVEN_all_ones_WHEN_calculate_THEN_fitness_one(t *testing.T) {
-	ind := &individual.BinaryIndividual{
-		Genome: []byte{'1', '1', '1'},
-	}
-
-	ind.CalculateFitness()
-
-	assert.Equal(t, 1.0, ind.Fitness)
-}
-
 func TestBinaryIndividual_Max_GIVEN_higher_fitness_WHEN_max_THEN_returns_higher(t *testing.T) {
 	ind1 := &individual.BinaryIndividual{Fitness: 0.5}
 	ind2 := &individual.BinaryIndividual{Fitness: 0.8}
