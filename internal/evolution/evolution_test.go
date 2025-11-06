@@ -24,11 +24,12 @@ func (m *MockSelector) Select(population []individual.Evolvable) individual.Evol
 
 type EvolutionEngineTestSuite struct {
 	suite.Suite
-	population  []individual.Evolvable
-	selector    *MockSelector
-	metricsChan chan metrics.GenerationMetrics
-	cmdChan     chan EvolutionCommand
-	engine      *EvolutionEngine
+	population        []individual.Evolvable
+	selector          *MockSelector
+	metricsChan       chan metrics.GenerationMetrics
+	cmdChan           chan EvolutionCommand
+	engine            *EvolutionEngine
+	fitnessCalculator individual.FitnessCalculator
 }
 
 func (suite *EvolutionEngineTestSuite) SetupTest() {
@@ -39,7 +40,8 @@ func (suite *EvolutionEngineTestSuite) SetupTest() {
 	suite.selector = &MockSelector{}
 	suite.metricsChan = make(chan metrics.GenerationMetrics, 10)
 	suite.cmdChan = make(chan EvolutionCommand, 10)
-	suite.engine = NewEvolutionEngine(suite.population, suite.selector, suite.metricsChan, suite.cmdChan)
+	suite.fitnessCalculator = individual.FitnessCalculatorFactory(individual.FitnessSetupInformation{GenomeType: individual.BitStringGenome})
+	suite.engine = NewEvolutionEngine(suite.population, suite.selector, suite.metricsChan, suite.cmdChan, suite.fitnessCalculator)
 }
 
 func (suite *EvolutionEngineTestSuite) TearDownTest() {
@@ -129,7 +131,7 @@ func (suite *EvolutionEngineTestSuite) TestPopulationBuilder_BuildPopulation_GIV
 	builder := NewPopulationBuilder()
 	population := builder.BuildPopulation(3, func() individual.Evolvable {
 		return individual.NewBinaryIndividual(5)
-	})
+	}, suite.fitnessCalculator)
 
 	assert.Len(suite.T(), population, 3)
 	for _, ind := range population {
