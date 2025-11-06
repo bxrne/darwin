@@ -8,3 +8,10 @@ type Evolvable interface {
 	GetFitness() float64
 	SetFitness(fitness float64)
 }
+
+type GenomeType int
+
+const (
+	BitStringGenome GenomeType = iota
+	TreeGenome
+)

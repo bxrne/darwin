@@ -1,6 +1,7 @@
 package individual
 
 import (
+	"fmt"
 	"math/rand"
 	"strconv"
 )
@@ -43,6 +44,7 @@ func applyOperator(opStr string, left, right float64) float64 {
 	default:
 		panic(fmt.Sprintf("unknown operator: %s", op))
 	}
+	return 0.0
 }
 
 // NewRandomTree generates a random expression tree

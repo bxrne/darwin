@@ -8,11 +8,11 @@ elitism_percentage = 0.1
 seed = 42
 
 [bitstring_individual]
-enabled = false
+enabled = true
 genome_size = 200
 
 [tree_individual]
-enabled = true
+enabled = false
 max_depth = 1
 min_depth = 0
 function_set = ["add"]
