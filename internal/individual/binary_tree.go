@@ -118,9 +118,109 @@ func (t *Tree) Max(t2 Evolvable) Evolvable {
 	return t2
 }
 
+func (t *TreeNode) CalculateMaxDepth() int {
+	leftDepth := -1
+	rightDepth := -1
+	if t.Left != nil {
+		leftDepth = t.Left.CalculateMaxDepth()
+	}
+	if t.Right != nil {
+		rightDepth = t.Right.CalculateMaxDepth()
+	}
+	return max(leftDepth, rightDepth) + 1
+
+}
+
 // MultiPointCrossover performs multi-point crossover between two trees
 func (t *Tree) MultiPointCrossover(t2 Evolvable, crossoverPointCount int) (Evolvable, Evolvable) {
-	return t, t2
+	tree2, ok := t2.(*Tree)
+	if !ok {
+		panic("Need Tree for Crossover")
+	}
+	firstTreeDepth := rand.Intn(t.depth)
+	secondTreeDepth := rand.Intn(tree2.depth)
+	firstTreeNode := &TreeNode{}
+	secondTreeNode := &TreeNode{}
+	leftFirstNodeSelected := true
+	leftSecondNodeSelected := true
+	if rand.Intn(2) == 1 {
+
+		firstTreeNode = t.Root.Left
+		leftSecondNodeSelected = false
+		secondTreeNode = tree2.Root.Right
+	} else {
+		leftFirstNodeSelected = true
+		firstTreeNode = t.Root.Right
+		secondTreeNode = tree2.Root.Left
+	}
+
+	firstTreeSet := false
+	secondTreeSet := false
+	newFirstTreeDepth := t.depth
+	newSecondTreeDepth := tree2.depth
+	var prevFirstTreeNode *TreeNode = nil
+	var prevSecondTreeNode *TreeNode = nil
+
+	for i := range max(firstTreeDepth, secondTreeDepth) {
+		if !firstTreeSet && i >= firstTreeDepth || (firstTreeNode.Left == nil && firstTreeNode.Right == nil) {
+			firstTreeSet = true
+			newFirstTreeDepth = max(newFirstTreeDepth, i+firstTreeNode.CalculateMaxDepth())
+		}
+		if !secondTreeSet && i >= secondTreeDepth || (secondTreeNode.Left == nil && secondTreeNode.Right == nil) {
+			secondTreeSet = true
+			newSecondTreeDepth = max(newSecondTreeDepth, i+secondTreeNode.CalculateMaxDepth())
+		}
+		if !firstTreeSet && rand.Intn(2) == 1 && firstTreeNode.Left != nil {
+			leftFirstNodeSelected = true
+			prevFirstTreeNode = firstTreeNode
+			firstTreeNode = firstTreeNode.Left
+
+		} else {
+			leftFirstNodeSelected = true
+			prevFirstTreeNode = firstTreeNode
+			firstTreeNode = firstTreeNode.Right
+		}
+
+		if secondTreeSet && rand.Intn(2) == 1 && secondTreeNode.Left != nil {
+			leftSecondNodeSelected = true
+			prevSecondTreeNode = secondTreeNode
+			secondTreeNode = secondTreeNode.Left
+		} else {
+			leftSecondNodeSelected = false
+			prevSecondTreeNode = secondTreeNode
+			secondTreeNode = secondTreeNode.Right
+		}
+	}
+	if prevFirstTreeNode == nil {
+		if leftFirstNodeSelected {
+			t.Root.Left = secondTreeNode
+		} else {
+			t.Root.Right = secondTreeNode
+		}
+	} else {
+		if leftFirstNodeSelected {
+			prevFirstTreeNode.Left = secondTreeNode
+		} else {
+			prevFirstTreeNode.Right = secondTreeNode
+		}
+	}
+	if prevSecondTreeNode == nil {
+		if leftSecondNodeSelected {
+			tree2.Root.Left = firstTreeNode
+		} else {
+			tree2.Root.Right = firstTreeNode
+		}
+	} else {
+		if leftSecondNodeSelected {
+			prevSecondTreeNode.Left = firstTreeNode
+		} else {
+			prevSecondTreeNode.Right = firstTreeNode
+		}
+	}
+	t.depth = newFirstTreeDepth
+	tree2.depth = newSecondTreeDepth
+
+	return t, tree2
 }
 
 // Mutate mutates the tree based on the given mutation rate (interface compatibility)
@@ -133,13 +233,6 @@ func (t *Tree) Mutate(rate float64) {
 // MutateWithSets mutates the tree using provided primitive and terminal sets
 func (t *Tree) MutateWithSets(rate float64, primitiveSet []string, terminalSet []string) {
 	t.Root = t.Root.mutateRecursive(rate, primitiveSet, terminalSet)
-}
-
-// CalculateFitness calculates the fitness of the tree
-func (t *Tree) CalculateFitness() {
-	// Placeholder for actual fitness calculation
-	// For simplicity, we assign a random fitness value
-	t.Fitness = rng.Float64() * 100
 }
 
 func (t *Tree) EvaluateTree(vars *map[string]float64) float64 {
