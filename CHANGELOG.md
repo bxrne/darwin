@@ -1,3 +1,22 @@
+## [1.2.0](https://github.com/bxrne/darwin/compare/v1.1.0...v1.2.0) (2025-11-07)
+
+
+### Features
+
+* **binaryInd:** Move binary individual fitness calculation to fitness.go ([cada853](https://github.com/bxrne/darwin/commit/cada853843062130018681e677b047aab0b09124))
+* **evolution, individual, cmd:** added node-wise mutation to tree individual ([d902bd6](https://github.com/bxrne/darwin/commit/d902bd6cc1bc7c122f622c04c39fa9338529c175))
+* **fitness:** Integrate new fitness func with bitgenome ([03037dd](https://github.com/bxrne/darwin/commit/03037dd3f3af607429ac34af7e7b3ee89d87b61c))
+* **tree:** Add tree fitness evaluation geneation ([902e272](https://github.com/bxrne/darwin/commit/902e27243bbf5ceca0a53da8335fb51f9aef83f8))
+
+
+### Bug Fixes
+
+* **cmd, cfg:** Use primtive set in config for better creation of tree ([464ae60](https://github.com/bxrne/darwin/commit/464ae603073a6a5f52a474a87f243fa0390a1d93))
+* **evolution, individual:** Use safe RNG, use clones of parents for modify safety ([fb99ca8](https://github.com/bxrne/darwin/commit/fb99ca8956b8983c7036f2b32e1ffafabb1cf86f))
+* **release-changes.yml:** Only release linux bin ([72632e2](https://github.com/bxrne/darwin/commit/72632e26794677233f269f763baceca63b1c57c6))
+* **test:** Remove unneeded tests and add binary fitness tests ([0743e09](https://github.com/bxrne/darwin/commit/0743e093234edbe5d71f1c76803dd1a6312bc831))
+* **tree:** resolve merge conflicts ([4c59c2d](https://github.com/bxrne/darwin/commit/4c59c2dbf650cc5710fac2a848fd05ef440b81e2))
+
 ## [1.1.0](https://github.com/bxrne/darwin/compare/v1.0.1...v1.1.0) (2025-11-04)
 
 
