@@ -56,7 +56,7 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 		metricsSubscriber = metricsStreamer.Subscribe()
 	}
 
-	evolutionEngine := evolution.NewEvolutionEngine(population, selector, metricsChan, cmdChan, fitnessCalculator)
+	evolutionEngine := evolution.NewEvolutionEngine(population, selector, metricsChan, cmdChan, fitnessCalculator, config.Tree.PrimitiveSet, config.Tree.TerminalSet)
 
 	metricsStreamer.Start(ctx)
 	evolutionEngine.Start(ctx)

@@ -41,7 +41,7 @@ func (suite *EvolutionEngineTestSuite) SetupTest() {
 	suite.metricsChan = make(chan metrics.GenerationMetrics, 10)
 	suite.cmdChan = make(chan EvolutionCommand, 10)
 	suite.fitnessCalculator = individual.FitnessCalculatorFactory(individual.FitnessSetupInformation{GenomeType: individual.BitStringGenome})
-	suite.engine = NewEvolutionEngine(suite.population, suite.selector, suite.metricsChan, suite.cmdChan, suite.fitnessCalculator)
+	suite.engine = NewEvolutionEngine(suite.population, suite.selector, suite.metricsChan, suite.cmdChan, suite.fitnessCalculator, []string{}, []string{})
 }
 
 func (suite *EvolutionEngineTestSuite) TearDownTest() {
