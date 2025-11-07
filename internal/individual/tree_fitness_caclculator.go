@@ -4,22 +4,22 @@ import (
 	"github.com/Pramod-Devireddy/go-exprtk"
 	"math"
 	"math/rand"
+	"strconv"
 )
 
 type TreeFitnessCalculator struct {
-	EvalFunction   exprtk.GoExprtk
-	ParameterCount int
-	TestCases      []map[string]float64
+	EvalFunction exprtk.GoExprtk
+	TerminalSet  []string
+	TestCases    []map[string]float64
 }
 
-func (fitnessCalc *TreeFitnessCalculator) SetupEvalFunction(evalFunction string, parameterCount int) {
+func (fitnessCalc *TreeFitnessCalculator) SetupEvalFunction(evalFunction string, terminalSet []string) {
 	exprtkObj := exprtk.NewExprtk()
 	exprtkObj.SetExpression(evalFunction)
 
-	runes := []rune("xyzabcdefghijklmnopqrstuvw")
-
-	for i := 0; i < parameterCount && i < len(runes); i++ {
-		varName := string(runes[i])
+	// Extract variables from terminal set (exclude numeric constants)
+	variables := extractVariables(terminalSet)
+	for _, varName := range variables {
 		exprtkObj.AddDoubleVariable(varName)
 	}
 
@@ -29,23 +29,38 @@ func (fitnessCalc *TreeFitnessCalculator) SetupEvalFunction(evalFunction string,
 	}
 
 	fitnessCalc.EvalFunction = exprtkObj
-	fitnessCalc.ParameterCount = parameterCount
+	fitnessCalc.TerminalSet = terminalSet
 
 	numCases := 10
-
 	minVal, maxVal := -5.0, 5.0
 
-	// Generate test cases
+	// Generate test cases using only variables from terminal set
 	testCases := make([]map[string]float64, numCases)
 	for i := range numCases {
 		caseVars := make(map[string]float64)
-		for i := 0; i < parameterCount && i < len(runes); i++ {
-			caseVars[string(runes[i])] = minVal + rand.Float64()*(maxVal-minVal)
+		for _, varName := range variables {
+			caseVars[varName] = minVal + rand.Float64()*(maxVal-minVal)
 		}
 		testCases[i] = caseVars
 	}
 	fitnessCalc.TestCases = testCases
+}
 
+// extractVariables filters terminal set to return only variable names (excluding numeric constants)
+func extractVariables(terminalSet []string) []string {
+	var variables []string
+	for _, terminal := range terminalSet {
+		if isVariable(terminal) {
+			variables = append(variables, terminal)
+		}
+	}
+	return variables
+}
+
+// isVariable checks if a string is a variable (not a numeric constant)
+func isVariable(s string) bool {
+	_, err := strconv.ParseFloat(s, 64)
+	return err != nil // If it can't be parsed as float, it's a variable
 }
 
 func (fitnessCalc *TreeFitnessCalculator) CalculateFitness(evolvable *Evolvable) {

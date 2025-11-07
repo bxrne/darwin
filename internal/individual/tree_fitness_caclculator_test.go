@@ -20,7 +20,8 @@ func TestCalculateTreeFitness_GIVEN_various_trees_WHEN_calculate_THEN_sets_expec
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fitnessCalc := &individual.TreeFitnessCalculator{}
-			fitnessCalc.SetupEvalFunction("x*2+3*2", 1)
+			terminalSet := []string{"x", "1.0", "2.0", "3.0"}
+			fitnessCalc.SetupEvalFunction("x*2+3*2", terminalSet)
 			vars := make([]map[string]float64, 1)
 			vars[0] = map[string]float64{"x": 1}
 			fitnessCalc.TestCases = vars
