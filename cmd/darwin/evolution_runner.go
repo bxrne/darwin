@@ -14,6 +14,7 @@ import (
 )
 
 type MetricsHandler func(metrics.GenerationMetrics)
+type MetricsComplete chan struct{}
 
 func getGenomeType(config *cfg.Config) individual.GenomeType {
 	if config.BitString.Enabled {
@@ -26,13 +27,14 @@ func getGenomeType(config *cfg.Config) individual.GenomeType {
 
 // runEvolution encapsulates the shared evolution logic.
 // It takes a context, config, and optional metrics handler.
-// Returns the final population or an error.
-func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandler) ([]individual.Evolvable, error) {
+// Returns the final population, a completion channel, and an error.
+func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandler) ([]individual.Evolvable, MetricsComplete, error) {
 	// Seed the RNG for reproducible results
 	rng.Seed(config.Evolution.Seed)
 
 	metricsChan := make(chan metrics.GenerationMetrics, 100)
 	cmdChan := make(chan evolution.EvolutionCommand, 10)
+	metricsComplete := make(chan struct{})
 
 	populationType := getGenomeType(config)
 	fitnessCalculator := individual.FitnessCalculatorFactory(individual.FitnessSetupInformation{GenomeType: populationType, EvalFunction: config.Tree.TargetFunction, TerminalSet: config.Tree.TerminalSet})
@@ -64,6 +66,7 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	// Handle metrics if handler provided
 	if handler != nil {
 		go func() {
+			defer close(metricsComplete)
 			for {
 				select {
 				case <-ctx.Done():
@@ -73,9 +76,15 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 						return
 					}
 					handler(m)
+					// Signal completion when we've processed the last generation
+					if m.Generation == config.Evolution.Generations {
+						return
+					}
 				}
 			}
 		}()
+	} else {
+		close(metricsComplete) // Close immediately if no handler
 	}
 
 	// Send evolution commands
@@ -92,7 +101,7 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 		select {
 		case cmdChan <- cmd:
 		case <-time.After(5 * time.Second):
-			return nil, fmt.Errorf("timeout sending evolution command for generation %d", gen)
+			return nil, metricsComplete, fmt.Errorf("timeout sending evolution command for generation %d", gen)
 		}
 	}
 
@@ -101,5 +110,5 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	metricsStreamer.Stop()
 
 	finalPop := evolutionEngine.GetPopulation()
-	return finalPop, nil
+	return finalPop, metricsComplete, nil
 }
