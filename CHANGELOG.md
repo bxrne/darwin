@@ -1,3 +1,15 @@
+## [1.2.1](https://github.com/bxrne/darwin/compare/v1.2.0...v1.2.1) (2025-11-07)
+
+
+### Bug Fixes
+
+* **cmd:** added metrics done channel and waits for it before stats ([2a31726](https://github.com/bxrne/darwin/commit/2a317269002fc8bc9afd2be70a58e82da97c23b9))
+
+
+### Tests
+
+* **cmd:** receive extra return value from runEvolution ([17f2742](https://github.com/bxrne/darwin/commit/17f2742a927bd623c2a1b49e92e2435163537b8f))
+
 ## [1.2.0](https://github.com/bxrne/darwin/compare/v1.1.0...v1.2.0) (2025-11-07)
 
 
