@@ -40,10 +40,13 @@ func main() {
 		}
 	}
 
-	finalPop, err := runEvolution(ctx, cfg, handler)
+	finalPop, metricsComplete, err := runEvolution(ctx, cfg, handler)
 	if err != nil {
 		logmgr.Fatal("Evolution failed", logmgr.Field("error", err))
 	}
+
+	// Wait for metrics to finish processing before calculating final stats
+	<-metricsComplete
 
 	if len(finalPop) > 0 {
 		bestFitness := 0.0
