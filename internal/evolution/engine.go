@@ -21,6 +21,8 @@ type EvolutionEngine struct {
 	done              chan struct{}
 	currentGen        int
 	fitnessCalculator individual.FitnessCalculator
+	primitiveSet      []string
+	terminalSet       []string
 }
 
 // NewEvolutionEngine creates a new evolution engine
@@ -30,6 +32,8 @@ func NewEvolutionEngine(
 	metricsChan chan<- metrics.GenerationMetrics,
 	cmdChan <-chan EvolutionCommand,
 	fitnessCalculator individual.FitnessCalculator,
+	primitiveSet []string,
+	terminalSet []string,
 ) *EvolutionEngine {
 	return &EvolutionEngine{
 		population:        population,
@@ -39,6 +43,8 @@ func NewEvolutionEngine(
 		done:              make(chan struct{}),
 		currentGen:        0,
 		fitnessCalculator: fitnessCalculator,
+		primitiveSet:      primitiveSet,
+		terminalSet:       terminalSet,
 	}
 }
 
@@ -89,9 +95,19 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 		return
 	}
 
-	parent1.Mutate(cmd.MutationRate)
+	// Handle mutation based on individual type
+	if tree1, ok := parent1.(*individual.Tree); ok {
+		tree1.MutateWithSets(cmd.MutationRate, ee.primitiveSet, ee.terminalSet)
+	} else {
+		parent1.Mutate(cmd.MutationRate)
+	}
 	ee.fitnessCalculator.CalculateFitness(&parent1)
-	parent2.Mutate(cmd.MutationRate)
+
+	if tree2, ok := parent2.(*individual.Tree); ok {
+		tree2.MutateWithSets(cmd.MutationRate, ee.primitiveSet, ee.terminalSet)
+	} else {
+		parent2.Mutate(cmd.MutationRate)
+	}
 	ee.fitnessCalculator.CalculateFitness(&parent2)
 	out <- parent1.Max(parent2)
 }
