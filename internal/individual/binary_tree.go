@@ -49,47 +49,41 @@ func applyOperator(opStr string, left, right float64) float64 {
 }
 
 // NewRandomTree generates a random expression tree
-func NewRandomTree(depth int, parameterCount int) *Tree {
+func NewRandomTree(depth int, primitiveSet []string, terminalSet []string) *Tree {
 	if depth == 0 {
-		return &Tree{Root: &TreeNode{Value: strconv.Itoa(rand.Intn(10))}}
+		return &Tree{Root: &TreeNode{Value: terminalSet[rand.Intn(len(terminalSet))]}}
 	}
 
-	runes := []rune("xyzabcdefghijklmnopqrstuvw")
-	primitiveSet := make([]string, 0)
-	for param := range parameterCount {
-		primitiveSet = append(primitiveSet, string(runes[param]))
+	// Convert primitive strings to Operand types
+	functionSet := make([]Operand, 0, len(primitiveSet))
+	for _, prim := range primitiveSet {
+		functionSet = append(functionSet, Operand(prim))
 	}
 
-	primitiveSet = append(primitiveSet, "1.0")
-	primitiveSet = append(primitiveSet, "2.0")
-	primitiveSet = append(primitiveSet, "3.0")
-	primitiveSet = append(primitiveSet, "4.0")
-	primitiveSet = append(primitiveSet, "5.0")
-	functionSet := []Operand{Add, Subtract, Multiply, Divide}
 	op := functionSet[rand.Intn(len(functionSet))]
 
 	return &Tree{
 		Root: &TreeNode{
 			Value: string(op),
-			Left:  NewRandomTreeNode(depth-1, primitiveSet, functionSet),
-			Right: NewRandomTreeNode(depth-1, primitiveSet, functionSet),
+			Left:  NewRandomTreeNode(depth-1, terminalSet, functionSet),
+			Right: NewRandomTreeNode(depth-1, terminalSet, functionSet),
 		},
 		depth: depth,
 	}
 }
 
 // NewRandomTreeNode generates a random expression treenode
-func NewRandomTreeNode(depth int, primitiveSet []string, functionSet []Operand) *TreeNode {
+func NewRandomTreeNode(depth int, terminalSet []string, functionSet []Operand) *TreeNode {
 	if depth == 0 {
-		return &TreeNode{Value: primitiveSet[rand.Intn(len(primitiveSet))]}
+		return &TreeNode{Value: terminalSet[rand.Intn(len(terminalSet))]}
 	}
 
 	op := functionSet[rand.Intn(len(functionSet))]
 
 	return &TreeNode{
 		Value: string(op),
-		Left:  NewRandomTreeNode(depth-1, primitiveSet, functionSet),
-		Right: NewRandomTreeNode(depth-1, primitiveSet, functionSet),
+		Left:  NewRandomTreeNode(depth-1, terminalSet, functionSet),
+		Right: NewRandomTreeNode(depth-1, terminalSet, functionSet),
 	}
 }
 

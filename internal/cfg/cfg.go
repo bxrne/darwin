@@ -2,6 +2,7 @@ package cfg
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/BurntSushi/toml"
 )
@@ -25,9 +26,8 @@ type TreeIndividualConfig struct {
 	Enabled        bool     `toml:"enabled"`
 	MaxDepth       int      `toml:"max_depth"`
 	MinDepth       int      `toml:"min_depth"`
-	FunctionSet    []string `toml:"function_set"`
+	PrimitiveSet   []string `toml:"primitive_set"`
 	TerminalSet    []string `toml:"terminal_set"`
-	ParameterCount int      `toml:"parameter_count"`
 	TargetFunction string   `toml:"target_function"`
 }
 
@@ -39,12 +39,23 @@ func (tic *TreeIndividualConfig) validate() error {
 	if tic.MinDepth < 0 || tic.MinDepth > tic.MaxDepth {
 		return fmt.Errorf("min_depth must be between 0 and max_depth")
 	}
-	if len(tic.FunctionSet) == 0 {
-		return fmt.Errorf("function_set must not be empty")
+	if len(tic.PrimitiveSet) == 0 {
+		return fmt.Errorf("primitive_set must not be empty")
 	}
 	if len(tic.TerminalSet) == 0 {
 		return fmt.Errorf("terminal_set must not be empty")
 	}
+
+	// Validate primitive set contains only valid operators
+	if err := validatePrimitiveSet(tic.PrimitiveSet); err != nil {
+		return fmt.Errorf("primitive_set validation failed: %w", err)
+	}
+
+	// Validate terminal set contains valid variables and constants
+	if err := validateTerminalSet(tic.TerminalSet); err != nil {
+		return fmt.Errorf("terminal_set validation failed: %w", err)
+	}
+
 	return nil
 }
 
@@ -122,6 +133,51 @@ func (c *Config) validate() error {
 
 	return nil
 }
+
+// validatePrimitiveSet checks that primitive set contains only valid operators
+func validatePrimitiveSet(primitiveSet []string) error {
+	validPrimitives := map[string]bool{
+		"+": true, "-": true, "*": true, "/": true,
+	}
+
+	for _, prim := range primitiveSet {
+		if !validPrimitives[prim] {
+			return fmt.Errorf("invalid primitive: %s", prim)
+		}
+	}
+	return nil
+}
+
+// validateTerminalSet checks that terminal set contains valid variables and numeric constants
+func validateTerminalSet(terminalSet []string) error {
+	for _, terminal := range terminalSet {
+		// Check if it's a valid variable name or numeric constant
+		if !isValidVariableName(terminal) && !isValidNumber(terminal) {
+			return fmt.Errorf("invalid terminal: %s (must be variable name or numeric constant)", terminal)
+		}
+	}
+	return nil
+}
+
+// isValidVariableName checks if string is a valid variable name (alphabetic)
+func isValidVariableName(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	for _, r := range s {
+		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')) {
+			return false
+		}
+	}
+	return true
+}
+
+// isValidNumber checks if string is a valid numeric constant
+func isValidNumber(s string) bool {
+	_, err := strconv.ParseFloat(s, 64)
+	return err == nil
+}
+
 func LoadConfig(path string) (*Config, error) {
 	var config Config
 	if _, err := toml.DecodeFile(path, &config); err != nil {

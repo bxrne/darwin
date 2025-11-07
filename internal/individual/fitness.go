@@ -5,16 +5,16 @@ type FitnessCalculator interface {
 }
 
 type FitnessSetupInformation struct {
-	EvalFunction   string
-	ParameterCount int
-	GenomeType     GenomeType
+	EvalFunction string
+	TerminalSet  []string
+	GenomeType   GenomeType
 }
 
 func FitnessCalculatorFactory(info FitnessSetupInformation) FitnessCalculator {
 	switch info.GenomeType {
 	case TreeGenome:
 		calc := &TreeFitnessCalculator{}
-		calc.SetupEvalFunction(info.EvalFunction, info.ParameterCount)
+		calc.SetupEvalFunction(info.EvalFunction, info.TerminalSet)
 		return calc
 	case BitStringGenome:
 		return &BinaryFitnessCalculator{}

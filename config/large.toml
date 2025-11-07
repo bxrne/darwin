@@ -15,5 +15,5 @@ genome_size = 512
 enabled = false
 max_depth = 1
 min_depth = 0
-function_set = ["add"]
-terminal_set = ["x"]
+primitive_set = ["+", "-", "*", "/"]
+terminal_set = ["x", "y", "1.0", "2.0"]
