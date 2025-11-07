@@ -18,6 +18,7 @@ type TreeNode struct {
 type Tree struct {
 	Root    *TreeNode
 	Fitness float64
+	depth   int
 }
 
 // Operand represents the type of operation in the tree nodes
@@ -73,6 +74,7 @@ func NewRandomTree(depth int, parameterCount int) *Tree {
 			Left:  NewRandomTreeNode(depth-1, primitiveSet, functionSet),
 			Right: NewRandomTreeNode(depth-1, primitiveSet, functionSet),
 		},
+		depth: depth,
 	}
 }
 
@@ -98,8 +100,6 @@ func (t *Tree) Max(t2 Evolvable) Evolvable {
 
 // MultiPointCrossover performs multi-point crossover between two trees
 func (t *Tree) MultiPointCrossover(t2 Evolvable, crossoverPointCount int) (Evolvable, Evolvable) {
-	// Placeholder for actual crossover logic
-	// For simplicity, we return copies of the original trees
 	return t, t2
 }
 
