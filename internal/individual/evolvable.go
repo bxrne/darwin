@@ -7,6 +7,7 @@ type Evolvable interface {
 	MultiPointCrossover(i2 Evolvable, crossoverPointCount int) (Evolvable, Evolvable)
 	GetFitness() float64
 	SetFitness(fitness float64)
+	Clone() Evolvable
 }
 
 type GenomeType int

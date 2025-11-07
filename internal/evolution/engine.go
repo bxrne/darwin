@@ -2,13 +2,13 @@ package evolution
 
 import (
 	"context"
-	"math/rand"
 	"sort"
 	"sync"
 	"time"
 
 	"github.com/bxrne/darwin/internal/individual"
 	"github.com/bxrne/darwin/internal/metrics"
+	"github.com/bxrne/darwin/internal/rng"
 	"github.com/bxrne/darwin/internal/selection"
 )
 
@@ -87,7 +87,7 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 	parent1 := ee.selector.Select(ee.population)
 	parent2 := ee.selector.Select(ee.population)
 	// Perform crossover and mutation
-	if cmd.CrossoverRate > rand.Float64() {
+	if cmd.CrossoverRate > rng.Float64() {
 		child1, child2 := parent1.MultiPointCrossover(parent2, cmd.CrossoverPoints)
 		ee.fitnessCalculator.CalculateFitness(&child1)
 		ee.fitnessCalculator.CalculateFitness(&child2)
@@ -95,21 +95,25 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 		return
 	}
 
+	// Create copies of parents to avoid mutating the original population
+	child1 := parent1.Clone()
+	child2 := parent2.Clone()
+
 	// Handle mutation based on individual type
-	if tree1, ok := parent1.(*individual.Tree); ok {
+	if tree1, ok := child1.(*individual.Tree); ok {
 		tree1.MutateWithSets(cmd.MutationRate, ee.primitiveSet, ee.terminalSet)
 	} else {
-		parent1.Mutate(cmd.MutationRate)
+		child1.Mutate(cmd.MutationRate)
 	}
-	ee.fitnessCalculator.CalculateFitness(&parent1)
+	ee.fitnessCalculator.CalculateFitness(&child1)
 
-	if tree2, ok := parent2.(*individual.Tree); ok {
+	if tree2, ok := child2.(*individual.Tree); ok {
 		tree2.MutateWithSets(cmd.MutationRate, ee.primitiveSet, ee.terminalSet)
 	} else {
-		parent2.Mutate(cmd.MutationRate)
+		child2.Mutate(cmd.MutationRate)
 	}
-	ee.fitnessCalculator.CalculateFitness(&parent2)
-	out <- parent1.Max(parent2)
+	ee.fitnessCalculator.CalculateFitness(&child2)
+	out <- child1.Max(child2)
 }
 
 // processGeneration performs one generation of evolution

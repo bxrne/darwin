@@ -3,8 +3,9 @@ package individual
 import (
 	"github.com/Pramod-Devireddy/go-exprtk"
 	"math"
-	"math/rand"
 	"strconv"
+
+	"github.com/bxrne/darwin/internal/rng"
 )
 
 type TreeFitnessCalculator struct {
@@ -39,7 +40,7 @@ func (fitnessCalc *TreeFitnessCalculator) SetupEvalFunction(evalFunction string,
 	for i := range numCases {
 		caseVars := make(map[string]float64)
 		for _, varName := range variables {
-			caseVars[varName] = minVal + rand.Float64()*(maxVal-minVal)
+			caseVars[varName] = minVal + rng.Float64()*(maxVal-minVal)
 		}
 		testCases[i] = caseVars
 	}

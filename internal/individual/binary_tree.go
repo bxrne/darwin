@@ -3,7 +3,6 @@ package individual
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"strconv"
 
 	"github.com/bxrne/darwin/internal/rng"
@@ -53,7 +52,7 @@ func applyOperator(opStr string, left, right float64) float64 {
 // NewRandomTree generates a random expression tree
 func NewRandomTree(depth int, primitiveSet []string, terminalSet []string) *Tree {
 	if depth == 0 {
-		return &Tree{Root: &TreeNode{Value: terminalSet[rand.Intn(len(terminalSet))]}}
+		return &Tree{Root: &TreeNode{Value: terminalSet[rng.Intn(len(terminalSet))]}}
 	}
 
 	// Convert primitive strings to Operand types
@@ -62,7 +61,7 @@ func NewRandomTree(depth int, primitiveSet []string, terminalSet []string) *Tree
 		functionSet = append(functionSet, Operand(prim))
 	}
 
-	op := functionSet[rand.Intn(len(functionSet))]
+	op := functionSet[rng.Intn(len(functionSet))]
 
 	return &Tree{
 		Root: &TreeNode{
@@ -77,10 +76,10 @@ func NewRandomTree(depth int, primitiveSet []string, terminalSet []string) *Tree
 // NewRandomTreeNode generates a random expression treenode
 func NewRandomTreeNode(depth int, terminalSet []string, functionSet []Operand) *TreeNode {
 	if depth == 0 {
-		return &TreeNode{Value: terminalSet[rand.Intn(len(terminalSet))]}
+		return &TreeNode{Value: terminalSet[rng.Intn(len(terminalSet))]}
 	}
 
-	op := functionSet[rand.Intn(len(functionSet))]
+	op := functionSet[rng.Intn(len(functionSet))]
 
 	return &TreeNode{
 		Value: string(op),
@@ -115,10 +114,14 @@ func (t *Tree) MutateWithSets(rate float64, primitiveSet []string, terminalSet [
 func (t *Tree) CalculateFitness() {
 	// Placeholder for actual fitness calculation
 	// For simplicity, we assign a random fitness value
-	t.Fitness = rand.Float64() * 100
+	t.Fitness = rng.Float64() * 100
 }
 
 func (t *Tree) EvaluateTree(vars *map[string]float64) float64 {
+	// If root is a leaf, just return its value
+	if t.Root.IsLeaf() {
+		return t.Root.NavigateTreeNode(vars)
+	}
 
 	leftVal := t.Root.Left.NavigateTreeNode(vars)
 	rightVal := t.Root.Right.NavigateTreeNode(vars)
@@ -135,7 +138,12 @@ func (tn *TreeNode) NavigateTreeNode(vars *map[string]float64) float64 {
 	if num, err := strconv.ParseFloat(tn.Value, 64); err == nil {
 		return num
 	}
-	fmt.Println("STARTING TWO THREADS WITH OPERAND", tn.Value)
+
+	// Check if this is a leaf node - if so, we shouldn't be here
+	if tn.IsLeaf() {
+		panic(fmt.Sprintf("attempted to navigate leaf node as operator: %s", tn.Value))
+	}
+
 	leftVal := tn.Left.NavigateTreeNode(vars)
 	rightVal := tn.Right.NavigateTreeNode(vars)
 
@@ -215,6 +223,33 @@ func (tn *TreeNode) mutateRecursive(rate float64, primitiveSet []string, termina
 	}
 
 	return tn
+}
+
+// Clone creates a deep copy of the tree
+func (t *Tree) Clone() Evolvable {
+	clonedRoot := t.Root.cloneNode()
+	return &Tree{
+		Root:    clonedRoot,
+		Fitness: t.Fitness,
+		depth:   t.depth,
+	}
+}
+
+// cloneNode creates a deep copy of a tree node
+func (tn *TreeNode) cloneNode() *TreeNode {
+	if tn.IsLeaf() {
+		return &TreeNode{
+			Value: tn.Value,
+			Left:  nil,
+			Right: nil,
+		}
+	}
+
+	return &TreeNode{
+		Value: tn.Value,
+		Left:  tn.Left.cloneNode(),
+		Right: tn.Right.cloneNode(),
+	}
 }
 
 func PrintTreeJSON(t *Tree) {
