@@ -91,3 +91,13 @@ func (i *BinaryIndividual) MultiPointCrossover(i2 Evolvable, crossoverPoints int
 func (i *BinaryIndividual) SetFitness(fitness float64) {
 	i.Fitness = fitness
 }
+
+// Clone creates a deep copy of the binary individual
+func (i *BinaryIndividual) Clone() Evolvable {
+	genomeCopy := make([]byte, len(i.Genome))
+	copy(genomeCopy, i.Genome)
+	return &BinaryIndividual{
+		Genome:  genomeCopy,
+		Fitness: i.Fitness,
+	}
+}
