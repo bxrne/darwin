@@ -1,17 +1,19 @@
 package individual
 
 import (
-	"github.com/Pramod-Devireddy/go-exprtk"
 	"math"
 	"strconv"
+
+	"github.com/Pramod-Devireddy/go-exprtk"
 
 	"github.com/bxrne/darwin/internal/rng"
 )
 
 type TreeFitnessCalculator struct {
-	EvalFunction exprtk.GoExprtk
-	TerminalSet  []string
-	TestCases    []map[string]float64
+	EvalFunction  exprtk.GoExprtk
+	TerminalSet   []string
+	TestCases     []map[string]float64
+	TargetResults []float64
 }
 
 func (fitnessCalc *TreeFitnessCalculator) SetupEvalFunction(evalFunction string, terminalSet []string) {
@@ -37,13 +39,20 @@ func (fitnessCalc *TreeFitnessCalculator) SetupEvalFunction(evalFunction string,
 
 	// Generate test cases using only variables from terminal set
 	testCases := make([]map[string]float64, numCases)
+	targetResults := make([]float64, 0)
 	for i := range numCases {
 		caseVars := make(map[string]float64)
 		for _, varName := range variables {
 			caseVars[varName] = minVal + rng.Float64()*(maxVal-minVal)
 		}
+		for name, val := range caseVars {
+			fitnessCalc.EvalFunction.SetDoubleVariableValue(name, val)
+		}
+		targetResults = append(targetResults, fitnessCalc.EvalFunction.GetEvaluatedValue())
 		testCases[i] = caseVars
+
 	}
+	fitnessCalc.TargetResults = targetResults
 	fitnessCalc.TestCases = testCases
 }
 
@@ -69,18 +78,20 @@ func (fitnessCalc *TreeFitnessCalculator) CalculateFitness(evolvable *Evolvable)
 	if !ok {
 		panic("Tree fitness Needs tree structure")
 	}
-	targetResults := make([]float64, 0, 10)
 	actualResults := make([]float64, 0, 10)
 	error := 0.0
+	dividedByZero := false
 	for index, vars := range fitnessCalc.TestCases {
 
-		for name, val := range vars {
-			fitnessCalc.EvalFunction.SetDoubleVariableValue(name, val)
-		}
-		targetResults = append(targetResults, fitnessCalc.EvalFunction.GetEvaluatedValue())
-		actualResults = append(actualResults, tree.EvaluateTree(&vars))
-		error += math.Pow(actualResults[index]-targetResults[index], 2)
+		actualResult, hasDividedByZero := tree.EvaluateTree(&vars)
+		dividedByZero = hasDividedByZero
+		actualResults = append(actualResults, actualResult)
+		error += math.Pow(actualResults[index]-(*fitnessCalc).TargetResults[index], 2)
 	}
 	//root mean sqr error
-	tree.SetFitness(math.Sqrt(error/float64(len(actualResults))) * -1)
+	if dividedByZero {
+		tree.SetFitness(math.Inf(-20))
+	} else {
+		tree.SetFitness(math.Sqrt(error/float64(len(actualResults))) * -1)
+	}
 }

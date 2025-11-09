@@ -3,9 +3,8 @@ package individual
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
-
 	"github.com/bxrne/darwin/internal/rng"
+	"strconv"
 )
 
 // TreeNode represents a node in the expression tree
@@ -32,7 +31,7 @@ const (
 	Divide   Operand = "/"
 )
 
-func applyOperator(opStr string, left, right float64) float64 {
+func applyOperator(opStr string, left, right float64, dividedByZero *bool) float64 {
 	op := Operand(opStr) // cast string to Operand
 
 	switch op {
@@ -43,6 +42,10 @@ func applyOperator(opStr string, left, right float64) float64 {
 	case Multiply:
 		return left * right
 	case Divide:
+		if right == 0 {
+			*dividedByZero = true
+			return 0
+		}
 		return left / right
 	default:
 		panic(fmt.Sprintf("unknown operator: %s", op))
@@ -113,9 +116,12 @@ func (tn *TreeNode) describeNode() string {
 	return fmt.Sprintf("(%s %s %s)", leftExpr, tn.Value, rightExpr)
 }
 
-// Max returns the tree with the higher fitness
-func (t *Tree) Max(t2 Evolvable) Evolvable {
-	return t2
+// Max returns the individual with higher fitness
+func (i *Tree) Max(i2 Evolvable) Evolvable {
+	if i.GetFitness() > i2.GetFitness() {
+		return i
+	}
+	return i2
 }
 
 func (t *TreeNode) CalculateMaxDepth() int {
@@ -137,51 +143,38 @@ func (t *Tree) MultiPointCrossover(t2 Evolvable, crossoverPointCount int) (Evolv
 	if !ok {
 		panic("Need Tree for Crossover")
 	}
-	firstTreeDepth := rand.Intn(t.depth)
-	secondTreeDepth := rand.Intn(tree2.depth)
-	firstTreeNode := &TreeNode{}
-	secondTreeNode := &TreeNode{}
+	firstTreeDepth := max(rng.Intn(t.depth), 1)
+	secondTreeDepth := max(rng.Intn(tree2.depth), 1)
 	leftFirstNodeSelected := true
 	leftSecondNodeSelected := true
-	if rand.Intn(2) == 1 {
 
-		firstTreeNode = t.Root.Left
-		leftSecondNodeSelected = false
-		secondTreeNode = tree2.Root.Right
-	} else {
-		leftFirstNodeSelected = true
-		firstTreeNode = t.Root.Right
-		secondTreeNode = tree2.Root.Left
-	}
+	firstTreeNode := t.Root
+	secondTreeNode := tree2.Root
 
 	firstTreeSet := false
 	secondTreeSet := false
-	newFirstTreeDepth := t.depth
-	newSecondTreeDepth := tree2.depth
-	var prevFirstTreeNode *TreeNode = nil
-	var prevSecondTreeNode *TreeNode = nil
+	prevFirstTreeNode := t.Root
+	prevSecondTreeNode := tree2.Root
 
 	for i := range max(firstTreeDepth, secondTreeDepth) {
 		if !firstTreeSet && i >= firstTreeDepth || (firstTreeNode.Left == nil && firstTreeNode.Right == nil) {
 			firstTreeSet = true
-			newFirstTreeDepth = max(newFirstTreeDepth, i+firstTreeNode.CalculateMaxDepth())
 		}
 		if !secondTreeSet && i >= secondTreeDepth || (secondTreeNode.Left == nil && secondTreeNode.Right == nil) {
 			secondTreeSet = true
-			newSecondTreeDepth = max(newSecondTreeDepth, i+secondTreeNode.CalculateMaxDepth())
 		}
-		if !firstTreeSet && rand.Intn(2) == 1 && firstTreeNode.Left != nil {
+		if !firstTreeSet && rng.Intn(2) == 1 && firstTreeNode.Left != nil {
 			leftFirstNodeSelected = true
 			prevFirstTreeNode = firstTreeNode
 			firstTreeNode = firstTreeNode.Left
 
 		} else {
-			leftFirstNodeSelected = true
+			leftFirstNodeSelected = false
 			prevFirstTreeNode = firstTreeNode
 			firstTreeNode = firstTreeNode.Right
 		}
 
-		if secondTreeSet && rand.Intn(2) == 1 && secondTreeNode.Left != nil {
+		if secondTreeSet && rng.Intn(2) == 1 && secondTreeNode.Left != nil {
 			leftSecondNodeSelected = true
 			prevSecondTreeNode = secondTreeNode
 			secondTreeNode = secondTreeNode.Left
@@ -191,34 +184,18 @@ func (t *Tree) MultiPointCrossover(t2 Evolvable, crossoverPointCount int) (Evolv
 			secondTreeNode = secondTreeNode.Right
 		}
 	}
-	if prevFirstTreeNode == nil {
-		if leftFirstNodeSelected {
-			t.Root.Left = secondTreeNode
-		} else {
-			t.Root.Right = secondTreeNode
-		}
+	if leftFirstNodeSelected {
+		prevFirstTreeNode.Left = secondTreeNode
 	} else {
-		if leftFirstNodeSelected {
-			prevFirstTreeNode.Left = secondTreeNode
-		} else {
-			prevFirstTreeNode.Right = secondTreeNode
-		}
+		prevFirstTreeNode.Right = secondTreeNode
 	}
-	if prevSecondTreeNode == nil {
-		if leftSecondNodeSelected {
-			tree2.Root.Left = firstTreeNode
-		} else {
-			tree2.Root.Right = firstTreeNode
-		}
+	if leftSecondNodeSelected {
+		prevSecondTreeNode.Left = firstTreeNode
 	} else {
-		if leftSecondNodeSelected {
-			prevSecondTreeNode.Left = firstTreeNode
-		} else {
-			prevSecondTreeNode.Right = firstTreeNode
-		}
+		prevSecondTreeNode.Right = firstTreeNode
 	}
-	t.depth = newFirstTreeDepth
-	tree2.depth = newSecondTreeDepth
+	t.depth = t.Root.CalculateMaxDepth()
+	tree2.depth = tree2.Root.CalculateMaxDepth()
 
 	return t, tree2
 }
@@ -235,21 +212,16 @@ func (t *Tree) MutateWithSets(rate float64, primitiveSet []string, terminalSet [
 	t.Root = t.Root.mutateRecursive(rate, primitiveSet, terminalSet)
 }
 
-func (t *Tree) EvaluateTree(vars *map[string]float64) float64 {
-	// If root is a leaf, just return its value
-	if t.Root.IsLeaf() {
-		return t.Root.NavigateTreeNode(vars)
-	}
-
-	leftVal := t.Root.Left.NavigateTreeNode(vars)
-	rightVal := t.Root.Right.NavigateTreeNode(vars)
+func (t *Tree) EvaluateTree(vars *map[string]float64) (float64, bool) {
+	dividedByZero := false
+	leftVal := t.Root.Left.NavigateTreeNode(vars, &dividedByZero)
+	rightVal := t.Root.Right.NavigateTreeNode(vars, &dividedByZero)
 
 	// Either use tn.Operator directly if filled in, or tn.Value
-	return applyOperator(string(t.Root.Value), leftVal, rightVal)
-
+	return applyOperator(string(t.Root.Value), leftVal, rightVal, &dividedByZero), dividedByZero
 }
 
-func (tn *TreeNode) NavigateTreeNode(vars *map[string]float64) float64 {
+func (tn *TreeNode) NavigateTreeNode(vars *map[string]float64, dividedByZero *bool) float64 {
 	if val, ok := (*vars)[tn.Value]; ok {
 		return val
 	}
@@ -262,11 +234,11 @@ func (tn *TreeNode) NavigateTreeNode(vars *map[string]float64) float64 {
 		panic(fmt.Sprintf("attempted to navigate leaf node as operator: %s", tn.Value))
 	}
 
-	leftVal := tn.Left.NavigateTreeNode(vars)
-	rightVal := tn.Right.NavigateTreeNode(vars)
+	leftVal := tn.Left.NavigateTreeNode(vars, dividedByZero)
+	rightVal := tn.Right.NavigateTreeNode(vars, dividedByZero)
 
 	// Either use tn.Operator directly if filled in, or tn.Value
-	return applyOperator(string(tn.Value), leftVal, rightVal)
+	return applyOperator(string(tn.Value), leftVal, rightVal, dividedByZero)
 }
 
 func (t *Tree) SetFitness(fitness float64) {

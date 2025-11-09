@@ -87,33 +87,33 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 	parent1 := ee.selector.Select(ee.population)
 	parent2 := ee.selector.Select(ee.population)
 	// Perform crossover and mutation
-	if cmd.CrossoverRate > rng.Float64() {
-		child1, child2 := parent1.MultiPointCrossover(parent2, cmd.CrossoverPoints)
+
+	// Create copies of parents to avoid mutating the original population
+	parentCopy1 := parent1.Clone()
+	parentCopy2 := parent2.Clone()
+	if 1 > rng.Float64() {
+		child1, child2 := parentCopy1.MultiPointCrossover(parentCopy2, cmd.CrossoverPoints)
 		ee.fitnessCalculator.CalculateFitness(&child1)
 		ee.fitnessCalculator.CalculateFitness(&child2)
 		out <- child1.Max(child2)
 		return
 	}
 
-	// Create copies of parents to avoid mutating the original population
-	child1 := parent1.Clone()
-	child2 := parent2.Clone()
-
 	// Handle mutation based on individual type
-	if tree1, ok := child1.(*individual.Tree); ok {
+	if tree1, ok := parentCopy1.(*individual.Tree); ok {
 		tree1.MutateWithSets(cmd.MutationRate, ee.primitiveSet, ee.terminalSet)
 	} else {
-		child1.Mutate(cmd.MutationRate)
+		parentCopy1.Mutate(cmd.MutationRate)
 	}
-	ee.fitnessCalculator.CalculateFitness(&child1)
+	ee.fitnessCalculator.CalculateFitness(&parentCopy1)
 
-	if tree2, ok := child2.(*individual.Tree); ok {
+	if tree2, ok := parentCopy2.(*individual.Tree); ok {
 		tree2.MutateWithSets(cmd.MutationRate, ee.primitiveSet, ee.terminalSet)
 	} else {
-		child2.Mutate(cmd.MutationRate)
+		parentCopy2.Mutate(cmd.MutationRate)
 	}
-	ee.fitnessCalculator.CalculateFitness(&child2)
-	out <- child1.Max(child2)
+	ee.fitnessCalculator.CalculateFitness(&parentCopy2)
+	out <- parentCopy1.Max(parentCopy2)
 }
 
 // processGeneration performs one generation of evolution
@@ -122,7 +122,11 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 
 	// Sort population by fitness (descending)
 	ee.sortPopulation()
-
+	//o, ok := ee.population[0].(*individual.Tree)
+	//if ok {
+	//
+	//	individual.PrintTreeJSON(o)
+	//}
 	// Create new population
 	newPop := make([]individual.Evolvable, 0, len(ee.population))
 	// Elitism: keep best individuals
