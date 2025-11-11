@@ -1,6 +1,8 @@
 package selection
 
 import (
+	"math"
+
 	"github.com/bxrne/darwin/internal/individual"
 	"github.com/bxrne/darwin/internal/rng"
 )
@@ -28,13 +30,13 @@ func (rs *RouletteSelector) Select(population []individual.Evolvable) individual
 	for range rs.SampleSize {
 		randIndex := rng.Intn(len(population))
 		rouletteTable = append(rouletteTable, population[randIndex])
-		total += population[randIndex].GetFitness()
+		total += math.Abs(population[randIndex].GetFitness())
 	}
 
 	runningTotal := 0.0
 	randomValue := rng.Float64() * total
 	for i := range rs.SampleSize {
-		runningTotal += rouletteTable[i].GetFitness()
+		runningTotal += math.Abs(rouletteTable[i].GetFitness())
 		if runningTotal > randomValue {
 			return rouletteTable[i]
 		}
