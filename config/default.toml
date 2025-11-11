@@ -18,14 +18,8 @@ genome_size = 200
 
 [tree_individual]
 enabled = true
-<<<<<<< HEAD
-max_depth = 5
-min_depth = 1
-target_function = "sin(x)"
-=======
 max_depth = 7
 initial_depth = 3
->>>>>>> e94954d (feat(btree): Add max depth constraint)
 primitive_set = ["+", "-", "*", "/"]
 terminal_set = ["x", "y", "1.0", "2.0", "3.0"]
 

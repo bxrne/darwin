@@ -6,6 +6,10 @@ generations = 20
 elitism_percentage = 0.2
 seed = 1234
 
+[fitness]
+target_function=""
+test_case_count=20
+
 [bitstring_individual]
 enabled = false
 genome_size = 4
