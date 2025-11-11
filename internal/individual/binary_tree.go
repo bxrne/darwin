@@ -88,6 +88,20 @@ func NewRandomTreeNode(depth int, terminalSet []string, functionSet []Operand) *
 	}
 }
 
+// GetDepth returns the depth of the tree
+func (t *Tree) GetDepth() int {
+	return t.depth
+}
+
+// Describe returns a string representation of the tree
+func (t *Tree) Describe() string {
+	data, err := json.MarshalIndent(t, "", "  ")
+	if err != nil {
+		return fmt.Sprintf("error: %v", err)
+	}
+	return string(data)
+}
+
 // Max returns the tree with the higher fitness
 func (t *Tree) Max(t2 Evolvable) Evolvable {
 	return t2

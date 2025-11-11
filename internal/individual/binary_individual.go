@@ -27,6 +27,11 @@ func (i *BinaryIndividual) GetFitness() float64 {
 	return i.Fitness
 }
 
+// Describe returns a string representation of the genome
+func (i *BinaryIndividual) Describe() string {
+	return string(i.Genome)
+}
+
 // Max returns the individual with higher fitness
 func (i *BinaryIndividual) Max(i2 Evolvable) Evolvable {
 	o, ok := i2.(*BinaryIndividual)
