@@ -16,6 +16,7 @@ func main() {
 	logmgr.SetLevel(logmgr.DebugLevel)
 
 	configPath := flag.String("config", "config/default.toml", "Path to config file")
+	csvOutput := flag.String("csv-output", "", "Path to CSV file for metrics output")
 	flag.Parse()
 
 	cfg, err := cfg.LoadConfig(*configPath)
@@ -28,8 +29,11 @@ func main() {
 
 	logmgr.Info("Starting evolution", logmgr.Field("config", cfg.Evolution))
 
-	// Define metrics handler for logging
-	handler := func(m metrics.GenerationMetrics) {
+	// Create composite metrics handler
+	var handler MetricsHandler
+
+	// Always add logging handler
+	logHandler := func(m metrics.GenerationMetrics) {
 		if m.Generation%10 == 0 || m.Generation == cfg.Evolution.Generations {
 			logmgr.Debug("",
 				logmgr.Field("gen", m.Generation),
@@ -45,6 +49,30 @@ func main() {
 				logmgr.Field("avg_depth", fmt.Sprintf("%.2f", m.AvgDepth)),
 			)
 		}
+	}
+
+	// Determine CSV output file (flag takes precedence over config)
+	csvFile := *csvOutput
+	if csvFile == "" && cfg.Metrics.CSVEnabled {
+		csvFile = cfg.Metrics.CSVFile
+	}
+
+	// Add CSV handler if CSV output is enabled
+	if csvFile != "" {
+		csvHandler, err := metrics.CreateCSVHandler(csvFile)
+		if err != nil {
+			logmgr.Fatal("Failed to create CSV handler", logmgr.Field("error", err))
+		}
+
+		// Combine both handlers
+		handler = func(m metrics.GenerationMetrics) {
+			logHandler(m)
+			csvHandler(m)
+		}
+
+		logmgr.Info("CSV output enabled", logmgr.Field("file", csvFile))
+	} else {
+		handler = logHandler
 	}
 
 	finalPop, metricsComplete, err := runEvolution(ctx, cfg, handler)

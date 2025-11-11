@@ -59,6 +59,20 @@ func (tic *TreeIndividualConfig) validate() error {
 	return nil
 }
 
+// MetricsConfig holds configuration for metrics output.
+type MetricsConfig struct {
+	CSVEnabled bool   `toml:"csv_enabled"`
+	CSVFile    string `toml:"csv_file"`
+}
+
+// validate validates the MetricsConfig.
+func (mc *MetricsConfig) validate() error {
+	if mc.CSVEnabled && mc.CSVFile == "" {
+		return fmt.Errorf("csv_file must be specified when csv_enabled is true")
+	}
+	return nil
+}
+
 // EvolutionConfig holds configuration for the evolutionary algorithm.
 type EvolutionConfig struct {
 	PopulationSize      int     `toml:"population_size"`
@@ -109,6 +123,7 @@ type Config struct {
 	Evolution EvolutionConfig           `toml:"evolution"`
 	BitString BitStringIndividualConfig `toml:"bitstring_individual"`
 	Tree      TreeIndividualConfig      `toml:"tree_individual"`
+	Metrics   MetricsConfig             `toml:"metrics"`
 }
 
 // validate validates the entire Config.
@@ -124,6 +139,10 @@ func (c *Config) validate() error {
 
 	if err := c.Tree.validate(); err != nil {
 		return fmt.Errorf("tree individual config validation failed: %w", err)
+	}
+
+	if err := c.Metrics.validate(); err != nil {
+		return fmt.Errorf("metrics config validation failed: %w", err)
 	}
 
 	// Mutual exclusivity
