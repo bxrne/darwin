@@ -8,6 +8,8 @@
 *.so
 *.dylib
 .venv
+output/
+*.csv
 
 # Test binary, built with `go test -c`
 *.test
