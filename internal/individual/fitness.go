@@ -5,9 +5,10 @@ type FitnessCalculator interface {
 }
 
 type FitnessSetupInformation struct {
-	EvalFunction string
-	TerminalSet  []string
-	GenomeType   GenomeType
+	EvalFunction  string
+	TerminalSet   []string
+	GenomeType    GenomeType
+	TestCaseCount int
 }
 
 func FitnessCalculatorFactory(info FitnessSetupInformation) FitnessCalculator {

@@ -137,17 +137,17 @@ func (t *TreeNode) CalculateMaxDepth() int {
 
 }
 
-func (t *Tree) CalculateCrossoverPoint() (*TreeNode, *TreeNode, bool) {
+func (t *Tree) CalculateCrossoverPoint(otherTreeDepth int, maxDepth int) (*TreeNode, *TreeNode, bool) {
 	treeDepth := max(rng.Intn(t.depth), 1)
 	leftNodeSelected := true
 
 	treeNode := t.Root
 
 	prevTreeNode := t.Root
+	maxTreeDepth := t.Root.CalculateMaxDepth()
+	for i := range maxTreeDepth {
 
-	for i := range treeDepth {
-
-		if i >= treeDepth || (treeNode.Left == nil && treeNode.Right == nil) {
+		if ((otherTreeDepth+treeNode.CalculateMaxDepth()) <= maxDepth+1 && i >= treeDepth) || (treeNode.Left == nil && treeNode.Right == nil) {
 			break
 		}
 		if rng.Intn(2) == 1 && treeNode.Left != nil {
@@ -166,13 +166,14 @@ func (t *Tree) CalculateCrossoverPoint() (*TreeNode, *TreeNode, bool) {
 }
 
 // MultiPointCrossover performs multi-point crossover between two trees
-func (t *Tree) MultiPointCrossover(t2 Evolvable, crossoverPointCount int) (Evolvable, Evolvable) {
+func (t *Tree) MultiPointCrossover(t2 Evolvable, crossoverInformation *CrossoverInformation) (Evolvable, Evolvable) {
 	tree2, ok := t2.(*Tree)
 	if !ok {
 		panic("Need Tree for Crossover")
 	}
-	prevFirstTreeNode, firstTreeNode, leftFirstNodeSelected := t.CalculateCrossoverPoint()
-	prevSecondTreeNode, secondTreeNode, leftSecondNodeSelected := tree2.CalculateCrossoverPoint()
+
+	prevFirstTreeNode, firstTreeNode, leftFirstNodeSelected := t.CalculateCrossoverPoint(tree2.depth, crossoverInformation.MaxDepth)
+	prevSecondTreeNode, secondTreeNode, leftSecondNodeSelected := tree2.CalculateCrossoverPoint(t.depth, crossoverInformation.MaxDepth)
 	if leftFirstNodeSelected {
 		prevFirstTreeNode.Left = secondTreeNode.cloneNode()
 	} else {
@@ -191,15 +192,8 @@ func (t *Tree) MultiPointCrossover(t2 Evolvable, crossoverPointCount int) (Evolv
 }
 
 // Mutate mutates the tree based on the given mutation rate (interface compatibility)
-func (t *Tree) Mutate(rate float64) {
-	// This method maintains interface compatibility
-	// The actual mutation logic should be called via MutateWithSets
-	// This is a fallback that does nothing
-}
-
-// MutateWithSets mutates the tree using provided primitive and terminal sets
-func (t *Tree) MutateWithSets(rate float64, primitiveSet []string, terminalSet []string) {
-	t.Root = t.Root.mutateRecursive(rate, primitiveSet, terminalSet)
+func (t *Tree) Mutate(rate float64, mutateInformation *MutateInformation) {
+	t.Root = t.Root.mutateRecursive(rate, mutateInformation.PrimitiveSet, mutateInformation.TerminalSet)
 }
 
 func (t *Tree) EvaluateTree(vars *map[string]float64) (float64, bool) {

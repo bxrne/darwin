@@ -23,12 +23,11 @@ func (bic *BitStringIndividualConfig) validate() error {
 
 // TreeIndividualConfig holds configuration for tree individuals.
 type TreeIndividualConfig struct {
-	Enabled        bool     `toml:"enabled"`
-	MaxDepth       int      `toml:"max_depth"`
-	MinDepth       int      `toml:"min_depth"`
-	PrimitiveSet   []string `toml:"primitive_set"`
-	TerminalSet    []string `toml:"terminal_set"`
-	TargetFunction string   `toml:"target_function"`
+	Enabled      bool     `toml:"enabled"`
+	MaxDepth     int      `toml:"max_depth"`
+	InitalDepth  int      `toml:"initial_depth"`
+	PrimitiveSet []string `toml:"primitive_set"`
+	TerminalSet  []string `toml:"terminal_set"`
 }
 
 // validate validates the TreeIndividualConfig.
@@ -36,8 +35,8 @@ func (tic *TreeIndividualConfig) validate() error {
 	if tic.MaxDepth <= 0 {
 		return fmt.Errorf("max_depth must be greater than 0")
 	}
-	if tic.MinDepth < 0 || tic.MinDepth > tic.MaxDepth {
-		return fmt.Errorf("min_depth must be between 0 and max_depth")
+	if tic.InitalDepth < 0 || tic.InitalDepth > tic.MaxDepth {
+		return fmt.Errorf("initial_depth must be between 0 and max_depth")
 	}
 	if len(tic.PrimitiveSet) == 0 {
 		return fmt.Errorf("primitive_set must not be empty")
@@ -69,6 +68,18 @@ type MetricsConfig struct {
 func (mc *MetricsConfig) validate() error {
 	if mc.CSVEnabled && mc.CSVFile == "" {
 		return fmt.Errorf("csv_file must be specified when csv_enabled is true")
+	}
+	return nil
+}
+
+type FitnessConfig struct {
+	TestCaseCount  int    `toml:"test_case_count"`
+	TargetFunction string `toml:"target_function"`
+}
+
+func (fc *FitnessConfig) validate() error {
+	if fc.TestCaseCount <= 0 {
+		return fmt.Errorf("test_case_count must be positive greater than 0")
 	}
 	return nil
 }
@@ -124,6 +135,7 @@ type Config struct {
 	BitString BitStringIndividualConfig `toml:"bitstring_individual"`
 	Tree      TreeIndividualConfig      `toml:"tree_individual"`
 	Metrics   MetricsConfig             `toml:"metrics"`
+	Fitness   FitnessConfig             `toml:"fitness"`
 }
 
 // validate validates the entire Config.
@@ -143,6 +155,10 @@ func (c *Config) validate() error {
 
 	if err := c.Metrics.validate(); err != nil {
 		return fmt.Errorf("metrics config validation failed: %w", err)
+	}
+
+	if err := c.Fitness.validate(); err != nil {
+		return fmt.Errorf("fitness config validation failed: %w", err)
 	}
 
 	// Mutual exclusivity

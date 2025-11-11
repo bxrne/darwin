@@ -37,7 +37,7 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	metricsComplete := make(chan struct{})
 
 	populationType := getGenomeType(config)
-	fitnessCalculator := individual.FitnessCalculatorFactory(individual.FitnessSetupInformation{GenomeType: populationType, EvalFunction: config.Tree.TargetFunction, TerminalSet: config.Tree.TerminalSet})
+	fitnessCalculator := individual.FitnessCalculatorFactory(individual.FitnessSetupInformation{GenomeType: populationType, EvalFunction: config.Fitness.TargetFunction, TerminalSet: config.Tree.TerminalSet})
 
 	popBuilder := evolution.NewPopulationBuilder()
 	population := popBuilder.BuildPopulation(config.Evolution.PopulationSize, func() individual.Evolvable {
@@ -45,7 +45,7 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 		case individual.BitStringGenome:
 			return individual.NewBinaryIndividual(config.BitString.GenomeSize)
 		case individual.TreeGenome:
-			return individual.NewRandomTree(config.Tree.MaxDepth, config.Tree.PrimitiveSet, config.Tree.TerminalSet)
+			return individual.NewRandomTree(config.Tree.InitalDepth, config.Tree.PrimitiveSet, config.Tree.TerminalSet)
 		default:
 			return nil
 		}
@@ -57,8 +57,9 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	if handler != nil {
 		metricsSubscriber = metricsStreamer.Subscribe()
 	}
-
-	evolutionEngine := evolution.NewEvolutionEngine(population, selector, metricsChan, cmdChan, fitnessCalculator, config.Tree.PrimitiveSet, config.Tree.TerminalSet)
+	crossoverInformation := individual.CrossoverInformation{CrossoverPoints: config.Evolution.CrossoverPointCount, MaxDepth: config.Tree.MaxDepth}
+	mutateInformation := individual.MutateInformation{PrimitiveSet: config.Tree.PrimitiveSet, TerminalSet: config.Tree.TerminalSet}
+	evolutionEngine := evolution.NewEvolutionEngine(population, selector, metricsChan, cmdChan, fitnessCalculator, crossoverInformation, mutateInformation)
 
 	metricsStreamer.Start(ctx)
 	evolutionEngine.Start(ctx)

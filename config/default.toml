@@ -7,15 +7,25 @@ generations = 50
 elitism_percentage = 0.1
 seed = 42
 
+[fitness]
+test_case_count=20
+target_function = "x * y + 3 * 2"
+
+
 [bitstring_individual]
 enabled = false
 genome_size = 200
 
 [tree_individual]
 enabled = true
+<<<<<<< HEAD
 max_depth = 5
 min_depth = 1
 target_function = "sin(x)"
+=======
+max_depth = 7
+initial_depth = 3
+>>>>>>> e94954d (feat(btree): Add max depth constraint)
 primitive_set = ["+", "-", "*", "/"]
 terminal_set = ["x", "y", "1.0", "2.0", "3.0"]
 
