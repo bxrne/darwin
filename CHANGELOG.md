@@ -1,3 +1,15 @@
+## [1.7.0](https://github.com/bxrne/darwin/compare/v1.6.0...v1.7.0) (2025-11-11)
+
+
+### Features
+
+* **btree:** Add max depth constraint ([cdf935f](https://github.com/bxrne/darwin/commit/cdf935f4a81218260882094fd60df8e64af32815))
+
+
+### Bug Fixes
+
+* **tests:** Make tests run with new contract ([27f87e6](https://github.com/bxrne/darwin/commit/27f87e6bd375eee830dc6505ff0797323b3a07e2))
+
 ## [1.6.0](https://github.com/bxrne/darwin/compare/v1.5.0...v1.6.0) (2025-11-11)
 
 
