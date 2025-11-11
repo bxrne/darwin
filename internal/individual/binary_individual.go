@@ -45,7 +45,7 @@ func (i *BinaryIndividual) Max(i2 Evolvable) Evolvable {
 }
 
 // Mutate performs mutation on the genome at specified points
-func (i *BinaryIndividual) Mutate(mutationRate float64) {
+func (i *BinaryIndividual) Mutate(mutationRate float64, _ *MutateInformation) {
 	if mutationRate < rng.Float64() {
 		return
 	}
@@ -57,7 +57,7 @@ func (i *BinaryIndividual) Mutate(mutationRate float64) {
 }
 
 // MultiPointCrossover performs multi-point crossover with another individual
-func (i *BinaryIndividual) MultiPointCrossover(i2 Evolvable, crossoverPoints int) (Evolvable, Evolvable) {
+func (i *BinaryIndividual) MultiPointCrossover(i2 Evolvable, crossoverInformation *CrossoverInformation) (Evolvable, Evolvable) {
 	o, ok := i2.(*BinaryIndividual)
 	if !ok {
 		panic("MultiPointCrossover requires BinaryIndividual")
@@ -67,7 +67,7 @@ func (i *BinaryIndividual) MultiPointCrossover(i2 Evolvable, crossoverPoints int
 	newI1Genome := make([]byte, 0, len(i.Genome))
 	newI2Genome := make([]byte, 0, len(i.Genome))
 
-	for range crossoverPoints {
+	for range crossoverInformation.CrossoverPoints {
 		crossoverPointArray = append(crossoverPointArray, rng.Intn(len(i.Genome)))
 	}
 	sort.Ints(crossoverPointArray)

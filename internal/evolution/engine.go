@@ -14,15 +14,15 @@ import (
 
 // EvolutionEngine manages the evolution process using channels
 type EvolutionEngine struct {
-	population        []individual.Evolvable
-	selector          selection.Selector
-	metricsChan       chan<- metrics.GenerationMetrics
-	cmdChan           <-chan EvolutionCommand
-	done              chan struct{}
-	currentGen        int
-	fitnessCalculator individual.FitnessCalculator
-	primitiveSet      []string
-	terminalSet       []string
+	population           []individual.Evolvable
+	selector             selection.Selector
+	metricsChan          chan<- metrics.GenerationMetrics
+	cmdChan              <-chan EvolutionCommand
+	done                 chan struct{}
+	currentGen           int
+	fitnessCalculator    individual.FitnessCalculator
+	crossoverInformation individual.CrossoverInformation
+	mutateInformation    individual.MutateInformation
 }
 
 // NewEvolutionEngine creates a new evolution engine
@@ -32,19 +32,19 @@ func NewEvolutionEngine(
 	metricsChan chan<- metrics.GenerationMetrics,
 	cmdChan <-chan EvolutionCommand,
 	fitnessCalculator individual.FitnessCalculator,
-	primitiveSet []string,
-	terminalSet []string,
+	crossoverInformation individual.CrossoverInformation,
+	mutateInformation individual.MutateInformation,
 ) *EvolutionEngine {
 	return &EvolutionEngine{
-		population:        population,
-		selector:          selector,
-		metricsChan:       metricsChan,
-		cmdChan:           cmdChan,
-		done:              make(chan struct{}),
-		currentGen:        0,
-		fitnessCalculator: fitnessCalculator,
-		primitiveSet:      primitiveSet,
-		terminalSet:       terminalSet,
+		population:           population,
+		selector:             selector,
+		metricsChan:          metricsChan,
+		cmdChan:              cmdChan,
+		done:                 make(chan struct{}),
+		currentGen:           0,
+		fitnessCalculator:    fitnessCalculator,
+		crossoverInformation: crossoverInformation,
+		mutateInformation:    mutateInformation,
 	}
 }
 
@@ -91,7 +91,7 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 	parentCopy1 := parent1.Clone()
 	parentCopy2 := parent2.Clone()
 	if 1 > rng.Float64() {
-		child1, child2 := parentCopy1.MultiPointCrossover(parentCopy2, cmd.CrossoverPoints)
+		child1, child2 := parentCopy1.MultiPointCrossover(parentCopy2, &ee.crossoverInformation)
 		ee.fitnessCalculator.CalculateFitness(&child1)
 		ee.fitnessCalculator.CalculateFitness(&child2)
 		out <- child1.Max(child2)
@@ -99,18 +99,10 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 	}
 
 	// Handle mutation based on individual type
-	if tree1, ok := parentCopy1.(*individual.Tree); ok {
-		tree1.MutateWithSets(cmd.MutationRate, ee.primitiveSet, ee.terminalSet)
-	} else {
-		parentCopy1.Mutate(cmd.MutationRate)
-	}
+	parentCopy1.Mutate(cmd.MutationRate, &ee.mutateInformation)
 	ee.fitnessCalculator.CalculateFitness(&parentCopy1)
 
-	if tree2, ok := parentCopy2.(*individual.Tree); ok {
-		tree2.MutateWithSets(cmd.MutationRate, ee.primitiveSet, ee.terminalSet)
-	} else {
-		parentCopy2.Mutate(cmd.MutationRate)
-	}
+	parentCopy2.Mutate(cmd.MutationRate, &ee.mutateInformation)
 	ee.fitnessCalculator.CalculateFitness(&parentCopy2)
 	out <- parentCopy1.Max(parentCopy2)
 }
@@ -121,11 +113,6 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 
 	// Sort population by fitness (descending)
 	ee.sortPopulation()
-	//o, ok := ee.population[0].(*individual.Tree)
-	//if ok {
-	//
-	//	individual.PrintTreeJSON(o)
-	//}
 	// Create new population
 	newPop := make([]individual.Evolvable, 0, len(ee.population))
 	// Elitism: keep best individuals
