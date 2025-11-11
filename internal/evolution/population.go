@@ -15,7 +15,6 @@ func NewPopulationBuilder() *PopulationBuilder {
 }
 
 // BuildPopulation creates a population of binary individuals
-// func (pb *PopulationBuilder) BuildPopulation(size, genomeSize int) []individual.Evolvable {
 func (pb *PopulationBuilder) BuildPopulation(size int, creator func() individual.Evolvable, fitnessCalc individual.FitnessCalculator) []individual.Evolvable {
 	population := make([]individual.Evolvable, size)
 	var wg sync.WaitGroup
