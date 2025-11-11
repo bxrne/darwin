@@ -52,43 +52,87 @@ func applyOperator(opStr string, left, right float64, dividedByZero *bool) float
 	}
 }
 
-// NewRandomTree generates a random expression tree
-func NewRandomTree(depth int, primitiveSet []string, terminalSet []string) *Tree {
-	if depth == 0 {
-		return &Tree{Root: &TreeNode{Value: terminalSet[rng.Intn(len(terminalSet))]}}
-	}
-
-	// Convert primitive strings to Operand types
+// newFullTree generates a tree where all non-leaf nodes are functions and all leaves are at max depth
+func newFullTree(depth int, primitiveSet []string, terminalSet []string) *Tree {
 	functionSet := make([]Operand, 0, len(primitiveSet))
 	for _, prim := range primitiveSet {
 		functionSet = append(functionSet, Operand(prim))
 	}
 
-	op := functionSet[rng.Intn(len(functionSet))]
-
 	return &Tree{
-		Root: &TreeNode{
-			Value: string(op),
-			Left:  NewRandomTreeNode(depth-1, terminalSet, functionSet),
-			Right: NewRandomTreeNode(depth-1, terminalSet, functionSet),
-		},
+		Root:  newFullTreeNode(depth, terminalSet, functionSet),
 		depth: depth,
 	}
 }
 
-// NewRandomTreeNode generates a random expression treenode
-func NewRandomTreeNode(depth int, terminalSet []string, functionSet []Operand) *TreeNode {
+// newFullTreeNode generates a full tree node (functions at all non-zero depths)
+func newFullTreeNode(depth int, terminalSet []string, functionSet []Operand) *TreeNode {
 	if depth == 0 {
 		return &TreeNode{Value: terminalSet[rng.Intn(len(terminalSet))]}
 	}
 
 	op := functionSet[rng.Intn(len(functionSet))]
-
 	return &TreeNode{
 		Value: string(op),
-		Left:  NewRandomTreeNode(depth-1, terminalSet, functionSet),
-		Right: NewRandomTreeNode(depth-1, terminalSet, functionSet),
+		Left:  newFullTreeNode(depth-1, terminalSet, functionSet),
+		Right: newFullTreeNode(depth-1, terminalSet, functionSet),
 	}
+}
+
+// newGrowTree generates a tree where nodes can be functions or terminals at any depth
+func newGrowTree(depth int, primitiveSet []string, terminalSet []string) *Tree {
+	functionSet := make([]Operand, 0, len(primitiveSet))
+	for _, prim := range primitiveSet {
+		functionSet = append(functionSet, Operand(prim))
+	}
+
+	return &Tree{
+		Root:  newGrowTreeNode(depth, terminalSet, functionSet),
+		depth: depth,
+	}
+}
+
+// newGrowTreeNode generates a grow tree node (can choose between function and terminal)
+func newGrowTreeNode(depth int, terminalSet []string, functionSet []Operand) *TreeNode {
+	if depth == 0 {
+		return &TreeNode{Value: terminalSet[rng.Intn(len(terminalSet))]}
+	}
+
+	// At non-zero depth, randomly choose between function and terminal
+	if rng.Float64() < 0.5 {
+		// Choose terminal
+		return &TreeNode{Value: terminalSet[rng.Intn(len(terminalSet))]}
+	}
+
+	// Choose function
+	op := functionSet[rng.Intn(len(functionSet))]
+	return &TreeNode{
+		Value: string(op),
+		Left:  newGrowTreeNode(depth-1, terminalSet, functionSet),
+		Right: newGrowTreeNode(depth-1, terminalSet, functionSet),
+	}
+}
+
+// NewRandomTree generates a random expression tree using ramped half-and-half method
+func NewRandomTree(maxDepth int, primitiveSet []string, terminalSet []string) *Tree {
+	// For single tree creation, use random depth between 0 and maxDepth
+	// This maintains compatibility with existing usage
+	depth := rng.Intn(maxDepth + 1)
+
+	// Randomly choose between grow (50%) and full (50%) methods
+	if rng.Float64() < 0.5 {
+		return newGrowTree(depth, primitiveSet, terminalSet)
+	}
+	return newFullTree(depth, primitiveSet, terminalSet)
+}
+
+// NewRampedHalfAndHalfTree generates a tree with specified depth using ramped half-and-half
+// This is useful for population initialization where specific depths are needed
+func NewRampedHalfAndHalfTree(depth int, useGrow bool, primitiveSet []string, terminalSet []string) *Tree {
+	if useGrow {
+		return newGrowTree(depth, primitiveSet, terminalSet)
+	}
+	return newFullTree(depth, primitiveSet, terminalSet)
 }
 
 // GetDepth returns the depth of the tree
@@ -138,6 +182,9 @@ func (t *TreeNode) CalculateMaxDepth() int {
 }
 
 func (t *Tree) CalculateCrossoverPoint(otherTreeDepth int, maxDepth int) (*TreeNode, *TreeNode, bool) {
+	if t.depth <= 0 {
+		return nil, nil, false
+	}
 	treeDepth := max(rng.Intn(t.depth), 1)
 	leftNodeSelected := true
 
@@ -147,9 +194,16 @@ func (t *Tree) CalculateCrossoverPoint(otherTreeDepth int, maxDepth int) (*TreeN
 	maxTreeDepth := t.Root.CalculateMaxDepth()
 	for i := range maxTreeDepth {
 
-		if ((otherTreeDepth+treeNode.CalculateMaxDepth()) <= maxDepth+1 && i >= treeDepth) || (treeNode.Left == nil && treeNode.Right == nil) {
+		// Only break if we've reached desired depth AND current node is a function (has children)
+		if ((otherTreeDepth+treeNode.CalculateMaxDepth()) <= maxDepth+1 && i >= treeDepth) && !treeNode.IsLeaf() {
 			break
 		}
+
+		// If current node is a leaf, we can't go deeper, so break
+		if treeNode.IsLeaf() {
+			break
+		}
+
 		if rng.Intn(2) == 1 && treeNode.Left != nil {
 			leftNodeSelected = true
 			prevTreeNode = treeNode
@@ -161,6 +215,12 @@ func (t *Tree) CalculateCrossoverPoint(otherTreeDepth int, maxDepth int) (*TreeN
 			treeNode = treeNode.Right
 		}
 	}
+
+	// Ensure we only return function nodes for crossover
+	if treeNode.IsLeaf() {
+		return nil, nil, false
+	}
+
 	return prevTreeNode, treeNode, leftNodeSelected
 
 }
@@ -172,8 +232,19 @@ func (t *Tree) MultiPointCrossover(t2 Evolvable, crossoverInformation *Crossover
 		panic("Need Tree for Crossover")
 	}
 
+	// Handle case where either tree has depth 0 (no crossover possible)
+	if t.depth <= 0 || tree2.depth <= 0 {
+		return t, tree2
+	}
+
 	prevFirstTreeNode, firstTreeNode, leftFirstNodeSelected := t.CalculateCrossoverPoint(tree2.depth, crossoverInformation.MaxDepth)
 	prevSecondTreeNode, secondTreeNode, leftSecondNodeSelected := tree2.CalculateCrossoverPoint(t.depth, crossoverInformation.MaxDepth)
+
+	// Check if crossover points are valid
+	if prevFirstTreeNode == nil || prevSecondTreeNode == nil || firstTreeNode == nil || secondTreeNode == nil {
+		return t, tree2
+	}
+
 	if leftFirstNodeSelected {
 		prevFirstTreeNode.Left = secondTreeNode.cloneNode()
 	} else {
@@ -198,30 +269,33 @@ func (t *Tree) Mutate(rate float64, mutateInformation *MutateInformation) {
 
 func (t *Tree) EvaluateTree(vars *map[string]float64) (float64, bool) {
 	dividedByZero := false
-	leftVal := t.Root.Left.NavigateTreeNode(vars, &dividedByZero)
-	rightVal := t.Root.Right.NavigateTreeNode(vars, &dividedByZero)
-
-	// Either use tn.Operator directly if filled in, or tn.Value
-	return applyOperator(string(t.Root.Value), leftVal, rightVal, &dividedByZero), dividedByZero
+	return t.Root.NavigateTreeNode(vars, &dividedByZero), dividedByZero
 }
 
 func (tn *TreeNode) NavigateTreeNode(vars *map[string]float64, dividedByZero *bool) float64 {
-	if val, ok := (*vars)[tn.Value]; ok {
-		return val
-	}
-	if num, err := strconv.ParseFloat(tn.Value, 64); err == nil {
-		return num
+	if tn == nil {
+		panic("attempted to navigate nil tree node")
 	}
 
-	// Check if this is a leaf node - if so, we shouldn't be here
+	// Check if this is a terminal node (variable or constant)
 	if tn.IsLeaf() {
-		panic(fmt.Sprintf("attempted to navigate leaf node as operator: %s", tn.Value))
+		if val, ok := (*vars)[tn.Value]; ok {
+			return val
+		}
+		if num, err := strconv.ParseFloat(tn.Value, 64); err == nil {
+			return num
+		}
+		panic(fmt.Sprintf("invalid terminal value: %s", tn.Value))
+	}
+
+	// This is a function node, evaluate children
+	if tn.Left == nil || tn.Right == nil {
+		panic(fmt.Sprintf("function node %s has nil child", tn.Value))
 	}
 
 	leftVal := tn.Left.NavigateTreeNode(vars, dividedByZero)
 	rightVal := tn.Right.NavigateTreeNode(vars, dividedByZero)
 
-	// Either use tn.Operator directly if filled in, or tn.Value
 	return applyOperator(string(tn.Value), leftVal, rightVal, dividedByZero)
 }
 
@@ -311,6 +385,9 @@ func (t *Tree) Clone() Evolvable {
 
 // cloneNode creates a deep copy of a tree node
 func (tn *TreeNode) cloneNode() *TreeNode {
+	if tn == nil {
+		return nil
+	}
 	if tn.IsLeaf() {
 		return &TreeNode{
 			Value: tn.Value,

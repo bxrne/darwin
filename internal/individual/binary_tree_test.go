@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewRandomTree_GIVEN_depth_zero_WHEN_new_random_tree_THEN_returns_leaf_node(t *testing.T) {
+func TestNewRandomTree_GIVEN_max_depth_zero_WHEN_new_random_tree_THEN_returns_leaf_node(t *testing.T) {
 	primitiveSet := []string{"+", "-", "*", "/"}
 	terminalSet := []string{"x", "y", "1.0", "2.0", "3.0"}
 	tree := individual.NewRandomTree(0, primitiveSet, terminalSet)
@@ -18,6 +18,28 @@ func TestNewRandomTree_GIVEN_depth_zero_WHEN_new_random_tree_THEN_returns_leaf_n
 	assert.Nil(t, tree.Root.Right)
 	// Value should be from terminal set
 	assert.Contains(t, terminalSet, tree.Root.Value)
+}
+
+func TestNewRampedHalfAndHalfTree_GIVEN_depth_and_useGrow_true_WHEN_new_tree_THEN_creates_grow_tree(t *testing.T) {
+	primitiveSet := []string{"+", "-", "*", "/"}
+	terminalSet := []string{"x", "y", "1.0", "2.0", "3.0"}
+	tree := individual.NewRampedHalfAndHalfTree(3, true, primitiveSet, terminalSet)
+
+	assert.NotNil(t, tree)
+	assert.NotNil(t, tree.Root)
+	assert.Equal(t, 3, tree.GetDepth())
+}
+
+func TestNewRampedHalfAndHalfTree_GIVEN_depth_and_useGrow_false_WHEN_new_tree_THEN_creates_full_tree(t *testing.T) {
+	primitiveSet := []string{"+", "-", "*", "/"}
+	terminalSet := []string{"x", "y", "1.0", "2.0", "3.0"}
+	tree := individual.NewRampedHalfAndHalfTree(2, false, primitiveSet, terminalSet)
+
+	assert.NotNil(t, tree)
+	assert.NotNil(t, tree.Root)
+	assert.Equal(t, 2, tree.GetDepth())
+	// Full tree should have all leaves at max depth
+	assert.True(t, tree.Root.CalculateMaxDepth() == 2)
 }
 
 func TestTreeNode_IsLeaf_GIVEN_leaf_node_WHEN_check_THEN_returns_true(t *testing.T) {
