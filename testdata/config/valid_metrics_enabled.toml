@@ -2,7 +2,6 @@
 population_size = 50
 crossover_point_count = 2
 mutation_rate = 0.2
-mutation_points = [1]
 generations = 20
 elitism_percentage = 0.2
 seed = 1234
@@ -15,9 +14,10 @@ genome_size = 4
 enabled = true
 max_depth = 5
 min_depth = 1
+target_function = "x * y + 3 * 2"
 primitive_set = ["+", "-", "*", "/"]
 terminal_set = ["x", "y", "1.0", "2.0", "3.0", "4.0", "5.0"]
 
 [metrics]
-csv_enabled = false
-csv_file = ""
+csv_enabled = true
+csv_file = "test_output.csv"
