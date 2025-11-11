@@ -93,13 +93,24 @@ func (t *Tree) GetDepth() int {
 	return t.depth
 }
 
-// Describe returns a string representation of the tree
+// Describe returns a human-readable string representation of the tree
 func (t *Tree) Describe() string {
-	data, err := json.MarshalIndent(t, "", "  ")
-	if err != nil {
-		return fmt.Sprintf("error: %v", err)
+	if t.Root == nil {
+		return "empty tree"
 	}
-	return string(data)
+	return t.Root.describeNode()
+}
+
+// describeNode recursively creates a human-readable expression
+func (tn *TreeNode) describeNode() string {
+	if tn.IsLeaf() {
+		return tn.Value
+	}
+
+	leftExpr := tn.Left.describeNode()
+	rightExpr := tn.Right.describeNode()
+
+	return fmt.Sprintf("(%s %s %s)", leftExpr, tn.Value, rightExpr)
 }
 
 // Max returns the tree with the higher fitness
