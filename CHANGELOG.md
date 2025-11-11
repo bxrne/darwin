@@ -1,3 +1,20 @@
+## [1.3.0](https://github.com/bxrne/darwin/compare/v1.2.1...v1.3.0) (2025-11-11)
+
+
+### Features
+
+* **individual, evolution, cmd:** Add depth and description metrics to the metrics ([b048648](https://github.com/bxrne/darwin/commit/b048648986267e16a9da99729d6561528d9499c8))
+
+
+### Bug Fixes
+
+* **individual:** describe trees by using nice expression formatting ([f9534bb](https://github.com/bxrne/darwin/commit/f9534bbb11ad5962627d4bb9a07af74f429b3fbd))
+
+
+### Miscellaneous Chores
+
+* **evolution:** Remove old commented out code ([9447314](https://github.com/bxrne/darwin/commit/9447314ea17dfbcaa12ee20a51d8b4d9d2140179))
+
 ## [1.2.1](https://github.com/bxrne/darwin/compare/v1.2.0...v1.2.1) (2025-11-07)
 
 
