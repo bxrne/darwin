@@ -100,12 +100,20 @@ func main() {
 		}
 
 		avgFitness := totalFitness / float64(len(finalPop))
+		bestIndividual := finalPop[0]
+		for _, ind := range finalPop {
+			if ind.GetFitness() == bestFitness {
+				bestIndividual = ind
+				break
+			}
+		}
 
 		logmgr.Info("Evolution complete",
 			logmgr.Field("population_size", len(finalPop)),
 			logmgr.Field("best_fitness", fmt.Sprintf("%.3f", bestFitness)),
 			logmgr.Field("avg_fitness", fmt.Sprintf("%.3f", avgFitness)),
 			logmgr.Field("min_fitness", fmt.Sprintf("%.3f", minFitness)),
+			logmgr.Field("best_individual", bestIndividual.Describe()),
 		)
 	}
 
