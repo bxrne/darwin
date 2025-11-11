@@ -1,3 +1,15 @@
+## [1.6.0](https://github.com/bxrne/darwin/compare/v1.5.0...v1.6.0) (2025-11-11)
+
+
+### Features
+
+* **plot:** plot experiments ([46f0929](https://github.com/bxrne/darwin/commit/46f0929b5bb65ae2012421d358bb7ffa37ccbc89))
+
+
+### Miscellaneous Chores
+
+* **plot:** Added plotting tool ([c15084e](https://github.com/bxrne/darwin/commit/c15084ee41ea039195d2ad8c967d652b243960d0))
+
 ## [1.5.0](https://github.com/bxrne/darwin/compare/v1.4.0...v1.5.0) (2025-11-11)
 
 
