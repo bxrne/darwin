@@ -137,63 +137,53 @@ func (t *TreeNode) CalculateMaxDepth() int {
 
 }
 
+func (t *Tree) CalculateCrossoverPoint() (*TreeNode, *TreeNode, bool) {
+	treeDepth := max(rng.Intn(t.depth), 1)
+	leftNodeSelected := true
+
+	treeNode := t.Root
+
+	prevTreeNode := t.Root
+
+	for i := range treeDepth {
+
+		if i >= treeDepth || (treeNode.Left == nil && treeNode.Right == nil) {
+			break
+		}
+		if rng.Intn(2) == 1 && treeNode.Left != nil {
+			leftNodeSelected = true
+			prevTreeNode = treeNode
+			treeNode = treeNode.Left
+
+		} else {
+			leftNodeSelected = false
+			prevTreeNode = treeNode
+			treeNode = treeNode.Right
+		}
+	}
+	return prevTreeNode, treeNode, leftNodeSelected
+
+}
+
 // MultiPointCrossover performs multi-point crossover between two trees
 func (t *Tree) MultiPointCrossover(t2 Evolvable, crossoverPointCount int) (Evolvable, Evolvable) {
 	tree2, ok := t2.(*Tree)
 	if !ok {
 		panic("Need Tree for Crossover")
 	}
-	firstTreeDepth := max(rng.Intn(t.depth), 1)
-	secondTreeDepth := max(rng.Intn(tree2.depth), 1)
-	leftFirstNodeSelected := true
-	leftSecondNodeSelected := true
-
-	firstTreeNode := t.Root
-	secondTreeNode := tree2.Root
-
-	firstTreeSet := false
-	secondTreeSet := false
-	prevFirstTreeNode := t.Root
-	prevSecondTreeNode := tree2.Root
-
-	for i := range max(firstTreeDepth, secondTreeDepth) {
-		if !firstTreeSet && i >= firstTreeDepth || (firstTreeNode.Left == nil && firstTreeNode.Right == nil) {
-			firstTreeSet = true
-		}
-		if !secondTreeSet && i >= secondTreeDepth || (secondTreeNode.Left == nil && secondTreeNode.Right == nil) {
-			secondTreeSet = true
-		}
-		if !firstTreeSet && rng.Intn(2) == 1 && firstTreeNode.Left != nil {
-			leftFirstNodeSelected = true
-			prevFirstTreeNode = firstTreeNode
-			firstTreeNode = firstTreeNode.Left
-
-		} else {
-			leftFirstNodeSelected = false
-			prevFirstTreeNode = firstTreeNode
-			firstTreeNode = firstTreeNode.Right
-		}
-
-		if secondTreeSet && rng.Intn(2) == 1 && secondTreeNode.Left != nil {
-			leftSecondNodeSelected = true
-			prevSecondTreeNode = secondTreeNode
-			secondTreeNode = secondTreeNode.Left
-		} else {
-			leftSecondNodeSelected = false
-			prevSecondTreeNode = secondTreeNode
-			secondTreeNode = secondTreeNode.Right
-		}
-	}
+	prevFirstTreeNode, firstTreeNode, leftFirstNodeSelected := t.CalculateCrossoverPoint()
+	prevSecondTreeNode, secondTreeNode, leftSecondNodeSelected := tree2.CalculateCrossoverPoint()
 	if leftFirstNodeSelected {
-		prevFirstTreeNode.Left = secondTreeNode
+		prevFirstTreeNode.Left = secondTreeNode.cloneNode()
 	} else {
-		prevFirstTreeNode.Right = secondTreeNode
+		prevFirstTreeNode.Right = secondTreeNode.cloneNode()
 	}
 	if leftSecondNodeSelected {
-		prevSecondTreeNode.Left = firstTreeNode
+		prevSecondTreeNode.Left = firstTreeNode.cloneNode()
 	} else {
-		prevSecondTreeNode.Right = firstTreeNode
+		prevSecondTreeNode.Right = firstTreeNode.cloneNode()
 	}
+
 	t.depth = t.Root.CalculateMaxDepth()
 	tree2.depth = tree2.Root.CalculateMaxDepth()
 

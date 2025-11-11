@@ -87,7 +87,6 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 	parent1 := ee.selector.Select(ee.population)
 	parent2 := ee.selector.Select(ee.population)
 	// Perform crossover and mutation
-
 	// Create copies of parents to avoid mutating the original population
 	parentCopy1 := parent1.Clone()
 	parentCopy2 := parent2.Clone()
