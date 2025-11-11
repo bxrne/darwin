@@ -194,15 +194,39 @@ func (ee *EvolutionEngine) calculateMetrics(generation int, duration time.Durati
 	}
 
 	avgFitness := totalFitness / float64(len(ee.population))
+	bestDescription := ee.population[0].Describe()
+	minDepth := -1
+	maxDepth := -1
+	totalDepth := 0.0
+	for _, citizen := range ee.population {
+		if tree, ok := citizen.(*individual.Tree); ok {
+			depth := tree.GetDepth()
+			if minDepth == -1 || depth < minDepth {
+				minDepth = depth
+			}
+			if maxDepth == -1 || depth > maxDepth {
+				maxDepth = depth
+			}
+			totalDepth += float64(depth)
+		}
+	}
+	avgDepth := 0.0
+	if minDepth != -1 && maxDepth != -1 {
+		avgDepth = totalDepth / float64(len(ee.population))
+	}
 
 	return metrics.GenerationMetrics{
-		Generation:     generation,
-		Duration:       duration,
-		BestFitness:    maxFitness,
-		AvgFitness:     avgFitness,
-		MinFitness:     minFitness,
-		MaxFitness:     maxFitness,
-		PopulationSize: len(ee.population),
-		Timestamp:      time.Now(),
+		Generation:      generation,
+		Duration:        duration,
+		BestFitness:     maxFitness,
+		AvgFitness:      avgFitness,
+		MinFitness:      minFitness,
+		MaxFitness:      maxFitness,
+		BestDescription: bestDescription,
+		MinDepth:        minDepth,
+		MaxDepth:        maxDepth,
+		AvgDepth:        avgDepth,
+		PopulationSize:  len(ee.population),
+		Timestamp:       time.Now(),
 	}
 }

@@ -50,14 +50,18 @@ func (suite *MetricsStreamerTestSuite) TestMetricsStreamer_Start_GIVEN_subscribe
 	go suite.streamer.Start(ctx)
 
 	testMetrics := GenerationMetrics{
-		Generation:     1,
-		Duration:       100 * time.Millisecond,
-		BestFitness:    0.9,
-		AvgFitness:     0.7,
-		MinFitness:     0.5,
-		MaxFitness:     0.9,
-		PopulationSize: 10,
-		Timestamp:      time.Now(),
+		Generation:      1,
+		Duration:        100 * time.Millisecond,
+		BestFitness:     0.9,
+		BestDescription: "best_individual",
+		MinDepth:        2,
+		MaxDepth:        5,
+		AvgDepth:        3.5,
+		AvgFitness:      0.7,
+		MinFitness:      0.5,
+		MaxFitness:      0.9,
+		PopulationSize:  10,
+		Timestamp:       time.Now(),
 	}
 
 	suite.metricsChan <- testMetrics
@@ -66,6 +70,7 @@ func (suite *MetricsStreamerTestSuite) TestMetricsStreamer_Start_GIVEN_subscribe
 	case received := <-suite.subscriber:
 		assert.Equal(suite.T(), testMetrics.Generation, received.Generation)
 		assert.Equal(suite.T(), testMetrics.PopulationSize, received.PopulationSize)
+		assert.Equal(suite.T(), testMetrics.BestDescription, received.BestDescription)
 	case <-time.After(100 * time.Millisecond):
 		suite.Fail("Metrics not received")
 	}

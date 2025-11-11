@@ -31,11 +31,18 @@ func main() {
 	// Define metrics handler for logging
 	handler := func(m metrics.GenerationMetrics) {
 		if m.Generation%10 == 0 || m.Generation == cfg.Evolution.Generations {
-			logmgr.Debug("Generation completed",
-				logmgr.Field("generation", m.Generation),
-				logmgr.Field("duration_ms", m.Duration.Milliseconds()),
-				logmgr.Field("best_fitness", fmt.Sprintf("%.3f", m.BestFitness)),
-				logmgr.Field("avg_fitness", fmt.Sprintf("%.3f", m.AvgFitness)),
+			logmgr.Debug("",
+				logmgr.Field("gen", m.Generation),
+				logmgr.Field("ns", m.Duration.Nanoseconds()),
+				logmgr.Field("best_fit", fmt.Sprintf("%.3f", m.BestFitness)),
+				logmgr.Field("avg_fit", fmt.Sprintf("%.3f", m.AvgFitness)),
+				logmgr.Field("min_fit", fmt.Sprintf("%.3f", m.MinFitness)),
+				logmgr.Field("max_fit", fmt.Sprintf("%.3f", m.MaxFitness)),
+				logmgr.Field("pop_size", m.PopulationSize),
+				logmgr.Field("best_desc", m.BestDescription),
+				logmgr.Field("min_depth", m.MinDepth),
+				logmgr.Field("max_depth", m.MaxDepth),
+				logmgr.Field("avg_depth", fmt.Sprintf("%.2f", m.AvgDepth)),
 			)
 		}
 	}
