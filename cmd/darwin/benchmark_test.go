@@ -51,7 +51,6 @@ func newBenchmarkConfig(popSize, sizeParam, generations int, individualType stri
 		tree = cfg.TreeIndividualConfig{
 			Enabled:      true,
 			MaxDepth:     sizeParam,
-			MinDepth:     0,
 			PrimitiveSet: []string{"+", "-", "*", "/"},
 			TerminalSet:  []string{"x", "y", "1.0", "2.0"},
 		}
