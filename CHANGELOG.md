@@ -1,3 +1,17 @@
+## [1.4.0](https://github.com/bxrne/darwin/compare/v1.3.0...v1.4.0) (2025-11-11)
+
+
+### Features
+
+* **tree:** Add correct crossover and apply penalty for /0 ([74a3278](https://github.com/bxrne/darwin/commit/74a3278f1862105e362e2ad872521e87d93e6dfa))
+* **tree:** Add tree crossover ([08b705e](https://github.com/bxrne/darwin/commit/08b705eb905a53f8d09c5bdd13d6be875edb7d6b))
+
+
+### Bug Fixes
+
+* **btree, roulette:** Make roulette would with - and btree test pass ([707f385](https://github.com/bxrne/darwin/commit/707f38577a5de45f2de12a5d83ff5330638751a2))
+* **btree:** Fix crossover bug ([0d23c54](https://github.com/bxrne/darwin/commit/0d23c5413b990f1fe5d9caa7c8389f80eb335b73))
+
 ## [1.3.0](https://github.com/bxrne/darwin/compare/v1.2.1...v1.3.0) (2025-11-11)
 
 
