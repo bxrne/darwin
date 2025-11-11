@@ -1,3 +1,10 @@
+## [1.5.0](https://github.com/bxrne/darwin/compare/v1.4.0...v1.5.0) (2025-11-11)
+
+
+### Features
+
+* **metrics:** Add csv output (configurable) of metrics ([b09efb9](https://github.com/bxrne/darwin/commit/b09efb9d779859e5e216551caa532a6b33da2a0b))
+
 ## [1.4.0](https://github.com/bxrne/darwin/compare/v1.3.0...v1.4.0) (2025-11-11)
 
 
