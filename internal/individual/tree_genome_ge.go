@@ -19,7 +19,7 @@ func expandArrayToTermArray(arr []string, isTerminal bool) []Node {
 	return nodeArray
 }
 
-func createMap(terminalSet []string, primitiveSet []string, operatorSet []string) map[string]Node {
+func CreateGrammar(terminalSet []string, primitiveSet []string, operatorSet []string) map[string]Node {
 	return map[string]Node{
 		"Expr": Choice{
 			Options: []Node{
@@ -49,21 +49,23 @@ func createMap(terminalSet []string, primitiveSet []string, operatorSet []string
 	}
 }
 
-func generateTreeFromGenome(grammar map[string]Node, genome []int) *TreeNode {
+func GenerateTreeFromGenome(grammar map[string]Node, genome []int) *TreeNode {
 	idx := 0
 	treeNode := &TreeNode{}
-	return treeNode.ExpandTree(NonTerm{"Expr"}, genome, &idx, grammar)
+	treeNode.ExpandTree(NonTerm{"Expr"}, genome, &idx, grammar)
+	return treeNode
 }
 
-func (tn *TreeNode) ExpandTree(n Node, codons []int, idx *int, grammar map[string]Node) *TreeNode {
+func (tn *TreeNode) ExpandTree(n Node, codons []int, idx *int, grammar map[string]Node) {
 	switch v := n.(type) {
 
 	case Term:
 		tn.Value = v.Value
+		return
 
 	case NonTerm:
 		// Lookup its production rule and expand it
-		return tn.ExpandTree(grammar[v.Name], codons, idx, grammar)
+		tn.ExpandTree(grammar[v.Name], codons, idx, grammar)
 
 	case Seq:
 		tn.Left = &TreeNode{}
@@ -84,6 +86,4 @@ func (tn *TreeNode) ExpandTree(n Node, codons []int, idx *int, grammar map[strin
 		option := v.Options[c%len(v.Options)]
 		tn.ExpandTree(option, codons, idx, grammar)
 	}
-
-	return &TreeNode{}
 }
