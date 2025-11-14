@@ -1,3 +1,15 @@
+## [1.8.0](https://github.com/bxrne/darwin/compare/v1.7.0...v1.8.0) (2025-11-14)
+
+
+### Features
+
+* **individual:** Ramped half and half ([59fb1e3](https://github.com/bxrne/darwin/commit/59fb1e318b117962ddbafb309ff39abf366f7e8c))
+
+
+### Miscellaneous Chores
+
+* **cmd:** Print out best formula ([70611c6](https://github.com/bxrne/darwin/commit/70611c606387e19b59dbd71ed50e0d0cef0a49eb))
+
 ## [1.7.0](https://github.com/bxrne/darwin/compare/v1.6.0...v1.7.0) (2025-11-11)
 
 
