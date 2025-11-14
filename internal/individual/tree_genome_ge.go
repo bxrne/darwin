@@ -9,7 +9,7 @@ type NonTerm struct{ Name string }
 
 func expandArrayToTermArray(arr []string, isTerminal bool) []Node {
 	nodeArray := make([]Node, 0, 0)
-	for index, element := range arr {
+	for _, element := range arr {
 		if isTerminal {
 			nodeArray = append(nodeArray, Term{element})
 		} else {
@@ -49,30 +49,28 @@ func createMap(terminalSet []string, primitiveSet []string, operatorSet []string
 	}
 }
 
-func generateTreeFromGenome(grammar map[string]Node, genome []int8) *TreeNode {
+func generateTreeFromGenome(grammar map[string]Node, genome []int) *TreeNode {
 	idx := 0
-	return
+	treeNode := &TreeNode{}
+	return treeNode.ExpandTree(NonTerm{"Expr"}, genome, &idx, grammar)
 }
 
-func (tn * TreeNode) ExpandTree(n Node, codons []int, idx *int, grammar map[string]Node) *TreeNode {
+func (tn *TreeNode) ExpandTree(n Node, codons []int, idx *int, grammar map[string]Node) *TreeNode {
 	switch v := n.(type) {
 
 	case Term:
-		return v.Value
+		tn.Value = v.Value
 
 	case NonTerm:
 		// Lookup its production rule and expand it
-		if v.Name == "Operand" {
-			tn.Left = ExpandTree(grammar[v.Name], codons, idx, grammar) 
-			tn.Right = ExpandTree(grammar[v.Name], codons, idx, grammar)}
-		}
-		return ExpandTree(grammar[v.Name], codons, idx, grammar)
+		return tn.ExpandTree(grammar[v.Name], codons, idx, grammar)
 
 	case Seq:
-		for _, item := range v.Items {
-			ExpandTree(item, codons, idx, grammar)
-		}
-		return out
+		tn.Left = &TreeNode{}
+		tn.Left.ExpandTree(NonTerm{"Expr"}, codons, idx, grammar)
+		tn.Right = &TreeNode{}
+		tn.Right.ExpandTree(NonTerm{"Expr"}, codons, idx, grammar)
+		tn.ExpandTree(NonTerm{"Operand"}, codons, idx, grammar)
 
 	case Choice:
 		// Consume codon with wrap-around
@@ -84,7 +82,7 @@ func (tn * TreeNode) ExpandTree(n Node, codons []int, idx *int, grammar map[stri
 		*idx++
 
 		option := v.Options[c%len(v.Options)]
-		return ExpandTree(option, codons, idx, grammar)
+		tn.ExpandTree(option, codons, idx, grammar)
 	}
 
 	return &TreeNode{}
