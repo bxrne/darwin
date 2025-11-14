@@ -14,7 +14,7 @@ func TestGenerateTreeFromGenome(t *testing.T) {
 
 	grammar := individual.CreateGrammar(terminalSet, primitiveSet, operatorSet)
 
-	genome := []int{10, 20, 33, 51}
+	genome := []int{214, 54, 212, 42, 79, 138, 61, 93}
 	tree := individual.GenerateTreeFromGenome(grammar, genome)
 
 	// is there a tree at all bai?
