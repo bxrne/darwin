@@ -22,9 +22,10 @@ func TestNewRandomTree_GIVEN_max_depth_zero_WHEN_new_random_tree_THEN_returns_le
 }
 
 func TestNewRampedHalfAndHalfTree_GIVEN_depth_and_useGrow_true_WHEN_new_tree_THEN_creates_grow_tree(t *testing.T) {
-	primitiveSet := []string{"+", "-", "*", "/"}
-	terminalSet := []string{"x", "y", "1.0", "2.0", "3.0"}
-	tree := individual.NewRampedHalfAndHalfTree(3, true, primitiveSet, terminalSet)
+	operandSet := []string{"+", "-", "*", "/"}
+	variableSet := []string{"x", "y"}
+	terminalSet := []string{"1.0", "2.0", "3.0"}
+	tree := individual.NewRampedHalfAndHalfTree(3, true, operandSet, variableSet, terminalSet)
 
 	assert.NotNil(t, tree)
 	assert.NotNil(t, tree.Root)
@@ -32,9 +33,10 @@ func TestNewRampedHalfAndHalfTree_GIVEN_depth_and_useGrow_true_WHEN_new_tree_THE
 }
 
 func TestNewRampedHalfAndHalfTree_GIVEN_depth_and_useGrow_false_WHEN_new_tree_THEN_creates_full_tree(t *testing.T) {
-	primitiveSet := []string{"+", "-", "*", "/"}
-	terminalSet := []string{"x", "y", "1.0", "2.0", "3.0"}
-	tree := individual.NewRampedHalfAndHalfTree(2, false, primitiveSet, terminalSet)
+	operandSet := []string{"+", "-", "*", "/"}
+	variableSet := []string{"x", "y"}
+	terminalSet := []string{"1.0", "2.0", "3.0"}
+	tree := individual.NewRampedHalfAndHalfTree(2, false, operandSet, variableSet, terminalSet)
 
 	assert.NotNil(t, tree)
 	assert.NotNil(t, tree.Root)
