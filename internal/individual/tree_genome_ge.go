@@ -1,7 +1,5 @@
 package individual
 
-import "fmt"
-
 type Node any
 
 type Choice struct{ Options []Node }
@@ -21,7 +19,7 @@ func expandArrayToTermArray(arr []string, isTerminal bool) []Node {
 	return nodeArray
 }
 
-func CreateGrammar(terminalSet []string, primitiveSet []string, operatorSet []string) map[string]Node {
+func CreateGrammar(terminalSet []string, variableSet []string, operatorSet []string) map[string]Node {
 	return map[string]Node{
 		"Expr": Choice{
 			Options: []Node{
@@ -42,7 +40,7 @@ func CreateGrammar(terminalSet []string, primitiveSet []string, operatorSet []st
 			Options: expandArrayToTermArray(terminalSet, true),
 		},
 		"Primitive": Choice{
-			Options: expandArrayToTermArray(primitiveSet, true),
+			Options: expandArrayToTermArray(variableSet, true),
 		},
 	}
 }
@@ -76,19 +74,7 @@ func (tn *TreeNode) ExpandTree(n Node, codons []int, idx *int, grammar map[strin
 		tn.Left.ExpandTree(v.Items[0], codons, idx, grammar, currentDepth+1, maxDepth) // First Expr
 		tn.Right = &TreeNode{}
 		tn.Right.ExpandTree(v.Items[2], codons, idx, grammar, currentDepth+1, maxDepth) // Second Expr
-
-		// Handle the operator (middle item)
-		switch op := v.Items[1].(type) {
-		case Term:
-			tn.Value = op.Value
-		case NonTerm:
-			// Expand non-terminal to get the actual operator
-			tempNode := &TreeNode{}
-			tempNode.ExpandTree(op, codons, idx, grammar, currentDepth, maxDepth)
-			tn.Value = tempNode.Value
-		default:
-			panic(fmt.Sprintf("Unexpected operator type in Seq: %T", v.Items[1]))
-		}
+		tn.ExpandTree(v.Items[1], codons, idx, grammar, currentDepth, maxDepth)
 
 	case Choice:
 		// When at max depth, force selection of terminal-only options

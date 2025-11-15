@@ -26,7 +26,7 @@ func TestGenerateTreeFromGenome(t *testing.T) {
 	if tree.Value == "" {
 		t.Errorf("Generated tree has empty value")
 	}
-
+	individual.PrintTreeJSON(&individual.Tree{Root: tree})
 	t.Logf("Generated tree: %+v", tree)
 }
 

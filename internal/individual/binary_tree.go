@@ -53,14 +53,15 @@ func applyOperator(opStr string, left, right float64, dividedByZero *bool) float
 }
 
 // newFullTree generates a tree where all non-leaf nodes are functions and all leaves are at max depth
-func newFullTree(depth int, primitiveSet []string, terminalSet []string) *Tree {
-	functionSet := make([]Operand, 0, len(primitiveSet))
-	for _, prim := range primitiveSet {
+func newFullTree(depth int, operandSet []string, variableSet []string, terminalSet []string) *Tree {
+	functionSet := make([]Operand, 0, len(operandSet))
+	for _, prim := range operandSet {
 		functionSet = append(functionSet, Operand(prim))
 	}
+	overallTerminalSet := append(terminalSet, variableSet...)
 
 	return &Tree{
-		Root:  newFullTreeNode(depth, terminalSet, functionSet),
+		Root:  newFullTreeNode(depth, overallTerminalSet, functionSet),
 		depth: depth,
 	}
 }
@@ -80,14 +81,15 @@ func newFullTreeNode(depth int, terminalSet []string, functionSet []Operand) *Tr
 }
 
 // newGrowTree generates a tree where nodes can be functions or terminals at any depth
-func newGrowTree(depth int, primitiveSet []string, terminalSet []string) *Tree {
-	functionSet := make([]Operand, 0, len(primitiveSet))
-	for _, prim := range primitiveSet {
+func newGrowTree(depth int, operandSet []string, variableSet []string, terminalSet []string) *Tree {
+	functionSet := make([]Operand, 0, len(operandSet))
+	for _, prim := range operandSet {
 		functionSet = append(functionSet, Operand(prim))
 	}
+	overallTerminalSet := append(terminalSet, variableSet...)
 
 	return &Tree{
-		Root:  newGrowTreeNode(depth, terminalSet, functionSet),
+		Root:  newGrowTreeNode(depth, overallTerminalSet, functionSet),
 		depth: depth,
 	}
 }
@@ -114,25 +116,25 @@ func newGrowTreeNode(depth int, terminalSet []string, functionSet []Operand) *Tr
 }
 
 // NewRandomTree generates a random expression tree using ramped half-and-half method
-func NewRandomTree(maxDepth int, primitiveSet []string, terminalSet []string) *Tree {
+func NewRandomTree(maxDepth int, operandSet []string, variableSet []string, terminalSet []string) *Tree {
 	// For single tree creation, use random depth between 0 and maxDepth
 	// This maintains compatibility with existing usage
 	depth := rng.Intn(maxDepth + 1)
 
 	// Randomly choose between grow (50%) and full (50%) methods
 	if rng.Float64() < 0.5 {
-		return newGrowTree(depth, primitiveSet, terminalSet)
+		return newGrowTree(depth, operandSet, variableSet, terminalSet)
 	}
-	return newFullTree(depth, primitiveSet, terminalSet)
+	return newFullTree(depth, operandSet, variableSet, terminalSet)
 }
 
 // NewRampedHalfAndHalfTree generates a tree with specified depth using ramped half-and-half
 // This is useful for population initialization where specific depths are needed
-func NewRampedHalfAndHalfTree(depth int, useGrow bool, primitiveSet []string, terminalSet []string) *Tree {
+func NewRampedHalfAndHalfTree(depth int, useGrow bool, operandSet []string, variableSet []string, terminalSet []string) *Tree {
 	if useGrow {
-		return newGrowTree(depth, primitiveSet, terminalSet)
+		return newGrowTree(depth, operandSet, variableSet, terminalSet)
 	}
-	return newFullTree(depth, primitiveSet, terminalSet)
+	return newFullTree(depth, operandSet, variableSet, terminalSet)
 }
 
 // GetDepth returns the depth of the tree
@@ -264,12 +266,13 @@ func (t *Tree) MultiPointCrossover(t2 Evolvable, crossoverInformation *Crossover
 
 // Mutate mutates the tree based on the given mutation rate (interface compatibility)
 func (t *Tree) Mutate(rate float64, mutateInformation *MutateInformation) {
-	t.Root = t.Root.mutateRecursive(rate, mutateInformation.PrimitiveSet, mutateInformation.TerminalSet)
+	newSet := append(mutateInformation.TerminalSet, mutateInformation.VariableSet...)
+	t.Root = t.Root.mutateRecursive(rate, mutateInformation.OperandSet, newSet)
 }
 
-func (t *Tree) EvaluateTree(vars *map[string]float64) (float64, bool) {
+func (t *TreeNode) EvaluateTree(vars *map[string]float64) (float64, bool) {
 	dividedByZero := false
-	return t.Root.NavigateTreeNode(vars, &dividedByZero), dividedByZero
+	return t.NavigateTreeNode(vars, &dividedByZero), dividedByZero
 }
 
 func (tn *TreeNode) NavigateTreeNode(vars *map[string]float64, dividedByZero *bool) float64 {

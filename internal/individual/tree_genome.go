@@ -11,6 +11,7 @@ type GrammarTree struct {
 	Root    *TreeNode
 	Genome  []int
 	Fitness float64
+	Depth   int
 }
 
 // NewGrammarTree creates a new binary individual with random genome

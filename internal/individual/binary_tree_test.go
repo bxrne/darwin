@@ -9,8 +9,9 @@ import (
 
 func TestNewRandomTree_GIVEN_max_depth_zero_WHEN_new_random_tree_THEN_returns_leaf_node(t *testing.T) {
 	primitiveSet := []string{"+", "-", "*", "/"}
-	terminalSet := []string{"x", "y", "1.0", "2.0", "3.0"}
-	tree := individual.NewRandomTree(0, primitiveSet, terminalSet)
+	terminalSet := []string{"1.0", "2.0", "3.0"}
+	variableSet := []string{"x", "y"}
+	tree := individual.NewRandomTree(0, primitiveSet, terminalSet, variableSet)
 
 	assert.NotNil(t, tree)
 	assert.NotNil(t, tree.Root)
