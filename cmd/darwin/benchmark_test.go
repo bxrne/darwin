@@ -49,10 +49,11 @@ func newBenchmarkConfig(popSize, sizeParam, generations int, individualType stri
 		tree.Enabled = false
 	} else if individualType == "tree" {
 		tree = cfg.TreeIndividualConfig{
-			Enabled:      true,
-			MaxDepth:     sizeParam,
-			PrimitiveSet: []string{"+", "-", "*", "/"},
-			TerminalSet:  []string{"x", "y", "1.0", "2.0"},
+			Enabled:     true,
+			MaxDepth:    sizeParam,
+			OperandSet:  []string{"+", "-", "*", "/"},
+			VariableSet: []string{"x"},
+			TerminalSet: []string{"1.0", "2.0"},
 		}
 		bitString.Enabled = false
 	}
