@@ -16,6 +16,7 @@ type GenomeType int
 const (
 	BitStringGenome GenomeType = iota
 	TreeGenome
+	GrammarTreeGenome
 )
 
 type CrossoverInformation struct {
@@ -24,6 +25,7 @@ type CrossoverInformation struct {
 }
 
 type MutateInformation struct {
-	PrimitiveSet []string
-	TerminalSet  []string
+	VariableSet []string
+	TerminalSet []string
+	OperandSet  []string
 }

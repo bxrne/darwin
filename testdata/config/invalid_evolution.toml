@@ -22,6 +22,11 @@ min_depth = 0
 primitive_set = ["+", "-", "*", "/"]
 terminal_set = ["x", "y", "1.0", "2.0"]
 
+[grammar_tree]
+enabled = false
+genome_size = 20
+
+
 [metrics]
 csv_enabled = false
 csv_file = ""

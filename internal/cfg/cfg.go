@@ -23,11 +23,12 @@ func (bic *BitStringIndividualConfig) validate() error {
 
 // TreeIndividualConfig holds configuration for tree individuals.
 type TreeIndividualConfig struct {
-	Enabled      bool     `toml:"enabled"`
-	MaxDepth     int      `toml:"max_depth"`
-	InitalDepth  int      `toml:"initial_depth"`
-	PrimitiveSet []string `toml:"primitive_set"`
-	TerminalSet  []string `toml:"terminal_set"`
+	Enabled     bool     `toml:"enabled"`
+	MaxDepth    int      `toml:"max_depth"`
+	InitalDepth int      `toml:"initial_depth"`
+	VariableSet []string `toml:"variable_set"`
+	OperandSet  []string `toml:"operand_set"`
+	TerminalSet []string `toml:"terminal_set"`
 }
 
 // validate validates the TreeIndividualConfig.
@@ -38,21 +39,28 @@ func (tic *TreeIndividualConfig) validate() error {
 	if tic.InitalDepth < 0 || tic.InitalDepth > tic.MaxDepth {
 		return fmt.Errorf("initial_depth must be between 0 and max_depth")
 	}
-	if len(tic.PrimitiveSet) == 0 {
-		return fmt.Errorf("primitive_set must not be empty")
+	if len(tic.VariableSet) == 0 {
+		return fmt.Errorf("variable_set must not be empty")
 	}
+	if len(tic.OperandSet) == 0 {
+		return fmt.Errorf("operand_set must not be empty")
+	}
+
 	if len(tic.TerminalSet) == 0 {
 		return fmt.Errorf("terminal_set must not be empty")
 	}
 
 	// Validate primitive set contains only valid operators
-	if err := validatePrimitiveSet(tic.PrimitiveSet); err != nil {
-		return fmt.Errorf("primitive_set validation failed: %w", err)
+	if err := validateTerminalSet(tic.VariableSet); err != nil {
+		return fmt.Errorf("Variable_set validation failed: %w", err)
 	}
 
 	// Validate terminal set contains valid variables and constants
 	if err := validateTerminalSet(tic.TerminalSet); err != nil {
 		return fmt.Errorf("terminal_set validation failed: %w", err)
+	}
+	if err := validateOperandSet(tic.OperandSet); err != nil {
+		return fmt.Errorf("operand set validation failed: %w", err)
 	}
 
 	return nil
@@ -80,6 +88,18 @@ type FitnessConfig struct {
 func (fc *FitnessConfig) validate() error {
 	if fc.TestCaseCount <= 0 {
 		return fmt.Errorf("test_case_count must be positive greater than 0")
+	}
+	return nil
+}
+
+type GrammarTreeConfig struct {
+	GenomeSize int  `toml:"genome_size"`
+	Enabled    bool `toml:"enabled"`
+}
+
+func (gtc *GrammarTreeConfig) validate() error {
+	if gtc.GenomeSize <= 0 {
+		return fmt.Errorf("genome_size must be postive int")
 	}
 	return nil
 }
@@ -131,11 +151,12 @@ func (ec *EvolutionConfig) validate() error {
 
 // Config holds the entire configuration for the evolutionary algorithm.
 type Config struct {
-	Evolution EvolutionConfig           `toml:"evolution"`
-	BitString BitStringIndividualConfig `toml:"bitstring_individual"`
-	Tree      TreeIndividualConfig      `toml:"tree_individual"`
-	Metrics   MetricsConfig             `toml:"metrics"`
-	Fitness   FitnessConfig             `toml:"fitness"`
+	Evolution   EvolutionConfig           `toml:"evolution"`
+	BitString   BitStringIndividualConfig `toml:"bitstring_individual"`
+	Tree        TreeIndividualConfig      `toml:"tree_individual"`
+	Metrics     MetricsConfig             `toml:"metrics"`
+	Fitness     FitnessConfig             `toml:"fitness"`
+	GrammarTree GrammarTreeConfig         `toml:"grammar_tree"`
 }
 
 // validate validates the entire Config.
@@ -160,9 +181,11 @@ func (c *Config) validate() error {
 	if err := c.Fitness.validate(); err != nil {
 		return fmt.Errorf("fitness config validation failed: %w", err)
 	}
-
+	if err := c.GrammarTree.validate(); err != nil {
+		return fmt.Errorf("grammar tree config validation failed: %w", err)
+	}
 	// Mutual exclusivity
-	if c.Tree.Enabled && c.BitString.Enabled {
+	if c.Tree.Enabled && c.BitString.Enabled && c.GrammarTree.Enabled {
 		return fmt.Errorf("only one individual type can be enabled at a time")
 	}
 
@@ -170,7 +193,7 @@ func (c *Config) validate() error {
 }
 
 // validatePrimitiveSet checks that primitive set contains only valid operators
-func validatePrimitiveSet(primitiveSet []string) error {
+func validateOperandSet(primitiveSet []string) error {
 	validPrimitives := map[string]bool{
 		"+": true, "-": true, "*": true, "/": true,
 	}

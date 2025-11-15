@@ -21,6 +21,8 @@ func getGenomeType(config *cfg.Config) individual.GenomeType {
 		return individual.BitStringGenome
 	} else if config.Tree.Enabled {
 		return individual.TreeGenome
+	} else if config.GrammarTree.Enabled {
+		return individual.GrammarTreeGenome
 	}
 	return -1 // or panic/error
 }
@@ -37,7 +39,9 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	metricsComplete := make(chan struct{})
 
 	populationType := getGenomeType(config)
-	fitnessCalculator := individual.FitnessCalculatorFactory(individual.FitnessSetupInformation{GenomeType: populationType, EvalFunction: config.Fitness.TargetFunction, TerminalSet: config.Tree.TerminalSet})
+	grammar := individual.CreateGrammar(config.Tree.TerminalSet, config.Tree.VariableSet, config.Tree.OperandSet)
+	fitnessInfo := individual.GenerateFitnessInfoFromConfig(config, populationType, grammar)
+	fitnessCalculator := individual.FitnessCalculatorFactory(fitnessInfo)
 
 	popBuilder := evolution.NewPopulationBuilder()
 	population := popBuilder.BuildPopulation(config.Evolution.PopulationSize, func() individual.Evolvable {
@@ -45,7 +49,9 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 		case individual.BitStringGenome:
 			return individual.NewBinaryIndividual(config.BitString.GenomeSize)
 		case individual.TreeGenome:
-			return individual.NewRandomTree(config.Tree.InitalDepth, config.Tree.PrimitiveSet, config.Tree.TerminalSet)
+			return individual.NewRandomTree(config.Tree.InitalDepth, config.Tree.OperandSet, config.Tree.VariableSet, config.Tree.TerminalSet)
+		case individual.GrammarTreeGenome:
+			return individual.NewGrammarTree(config.GrammarTree.GenomeSize)
 		default:
 			return nil
 		}
@@ -58,7 +64,7 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 		metricsSubscriber = metricsStreamer.Subscribe()
 	}
 	crossoverInformation := individual.CrossoverInformation{CrossoverPoints: config.Evolution.CrossoverPointCount, MaxDepth: config.Tree.MaxDepth}
-	mutateInformation := individual.MutateInformation{PrimitiveSet: config.Tree.PrimitiveSet, TerminalSet: config.Tree.TerminalSet}
+	mutateInformation := individual.MutateInformation{OperandSet: config.Tree.OperandSet, TerminalSet: config.Tree.TerminalSet, VariableSet: config.Tree.VariableSet}
 	evolutionEngine := evolution.NewEvolutionEngine(population, selector, metricsChan, cmdChan, fitnessCalculator, crossoverInformation, mutateInformation)
 
 	metricsStreamer.Start(ctx)
