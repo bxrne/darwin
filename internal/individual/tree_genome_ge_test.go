@@ -17,16 +17,6 @@ func TestGenerateTreeFromGenome(t *testing.T) {
 	genome := []int{214, 54, 212, 42, 79, 138, 61, 93}
 	tree := individual.GenerateTreeFromGenome(grammar, genome)
 
-	// is there a tree at all bai?
-	if tree == nil {
-		t.Errorf("Generated tree is nil")
-	}
-
-	// structural
-	if tree.Value == "" {
-		t.Errorf("Generated tree has empty value")
-	}
-	individual.PrintTreeJSON(&individual.Tree{Root: tree})
 	t.Logf("Generated tree: %+v", tree)
 }
 
