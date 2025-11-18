@@ -1,3 +1,17 @@
+## [1.8.1](https://github.com/bxrne/darwin/compare/v1.8.0...v1.8.1) (2025-11-18)
+
+
+### Bug Fixes
+
+* **individual:** Fix recursion ([2f2626e](https://github.com/bxrne/darwin/commit/2f2626e73cebf01f6edc452bf9b755ab99678923))
+* **test:** FIx test function calls ([32ea855](https://github.com/bxrne/darwin/commit/32ea855178badd362ba8d5cf7174073170f77d32))
+* **test:** Linting is stupid ([ed537db](https://github.com/bxrne/darwin/commit/ed537db8548d5c8d47f80a297b5d50b160b08ed9))
+
+
+### Miscellaneous Chores
+
+* **ckpt:** hmm many questions ([d741745](https://github.com/bxrne/darwin/commit/d74174524c39f2b923b5804e78cd50c313fac24a))
+
 ## [1.8.0](https://github.com/bxrne/darwin/compare/v1.7.0...v1.8.0) (2025-11-14)
 
 
