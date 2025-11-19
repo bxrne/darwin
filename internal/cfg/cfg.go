@@ -112,6 +112,8 @@ type EvolutionConfig struct {
 	MutationRate        float64 `toml:"mutation_rate"`
 	Generations         int     `toml:"generations"`
 	ElitismPercentage   float64 `toml:"elitism_percentage"`
+	SelectionSize       int     `toml:"selection_size"`
+	SelectionType       string  `toml:"selection_type"`
 	Seed                int64   `toml:"seed"`
 }
 
@@ -123,6 +125,13 @@ func (ec *EvolutionConfig) validate() error {
 
 	if ec.CrossoverPointCount <= 0 {
 		return fmt.Errorf("crossover_point_count must be above 0")
+	}
+
+	if ec.SelectionSize <= 0 {
+		return fmt.Errorf("selection_size must be above 0")
+	}
+	if ec.SelectionType != "tournament" && ec.SelectionType != "roulette" {
+		return fmt.Errorf("selection_type must be either tournament or roulette")
 	}
 	if ec.CrossoverRate < 0 || ec.CrossoverRate > 1 {
 		return fmt.Errorf("crossover_rate must be above 0")
