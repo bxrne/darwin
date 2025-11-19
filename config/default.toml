@@ -5,6 +5,8 @@ crossover_rate = 0.7
 mutation_rate = 0.3
 generations = 400
 elitism_percentage = 0.01
+selection_size = 7
+selection_type = "tournament"
 seed = 42
 
 [fitness]

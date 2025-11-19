@@ -5,6 +5,8 @@ mutation_rate = 0.2
 mutation_points = [1]
 generations = 20
 elitism_percentage = 0.2
+selection_size = 7
+selection_type = "tournament"
 seed = 1234
 
 [fitness]
