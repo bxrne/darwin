@@ -1,6 +1,7 @@
 package individual_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/bxrne/darwin/internal/individual"
@@ -15,6 +16,7 @@ func TestNewRandomTree_GIVEN_max_depth_zero_WHEN_new_random_tree_THEN_returns_le
 
 	assert.NotNil(t, tree)
 	assert.NotNil(t, tree.Root)
+	fmt.Println(individual.TreeToJSON(tree))
 	assert.Nil(t, tree.Root.Left)
 	assert.Nil(t, tree.Root.Right)
 	// Value should be from terminal set

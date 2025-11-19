@@ -57,7 +57,7 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 		}
 	}, fitnessCalculator)
 
-	selector := selection.NewTournamentSelector(30)
+	selector := selection.NewRouletteSelector(7)
 	metricsStreamer := metrics.NewMetricsStreamer(metricsChan)
 	var metricsSubscriber <-chan metrics.GenerationMetrics
 	if handler != nil {
