@@ -2,14 +2,14 @@
 population_size = 500
 crossover_point_count = 1
 crossover_rate = 0.7
-mutation_rate = 0.05
-generations = 100
-elitism_percentage = 0.1
+mutation_rate = 0.3
+generations = 400
+elitism_percentage = 0.01
 seed = 42
 
 [fitness]
-test_case_count=20
-target_function = "x*y+sin((x-1)(y-1))"
+test_case_count=100
+target_function = "(x^3)*y+y^3"
 
 
 [bitstring_individual]
@@ -17,15 +17,15 @@ enabled = false
 genome_size = 200
 
 [tree_individual]
-enabled = false
-max_depth = 7
-initial_depth = 3
+enabled = true
+max_depth = 8
+initial_depth = 2
 operand_set = ["+", "-", "*", "/"]
 variable_set = ["x", "y"]
 terminal_set = ["1.0", "2.0", "3.0"]
 
 [grammar_tree]
-enabled = true
+enabled = false
 genome_size = 20
 
 [metrics]

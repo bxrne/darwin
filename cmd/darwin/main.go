@@ -84,7 +84,7 @@ func main() {
 	<-metricsComplete
 
 	if len(finalPop) > 0 {
-		bestFitness := 0.0
+		bestFitness := finalPop[0].GetFitness()
 		totalFitness := 0.0
 		minFitness := finalPop[0].GetFitness()
 

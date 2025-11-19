@@ -1,19 +1,25 @@
 package individual
 
 import (
+	"math"
+
 	"github.com/Pramod-Devireddy/go-exprtk"
 	"github.com/bxrne/darwin/internal/rng"
-	"math"
 )
 
+func Round(x float64, places int) float64 {
+	factor := math.Pow(10, float64(places))
+	return math.Round(x*factor) / factor
+}
 func CalculateTreeFitness(tree *TreeNode, targetResults []float64, testCases []map[string]float64) float64 {
-	actualResults := make([]float64, 0, 10)
+	actualResults := make([]float64, 0)
 	error := 0.0
 	dividedByZero := false
 	for index, vars := range testCases {
 
 		actualResult, hasDividedByZero := tree.EvaluateTree(&vars)
 		dividedByZero = hasDividedByZero
+		actualResult = Round(actualResult, 6)
 		actualResults = append(actualResults, actualResult)
 		error += math.Pow(actualResults[index]-targetResults[index], 2)
 	}
@@ -21,7 +27,7 @@ func CalculateTreeFitness(tree *TreeNode, targetResults []float64, testCases []m
 	if dividedByZero {
 		return math.Inf(-20)
 	} else {
-		return (math.Sqrt(error/float64(len(actualResults))) * -1)
+		return ((math.Sqrt(error/float64(len(actualResults))) + 0.01*float64(tree.CalculateMaxDepth())) * -1)
 	}
 }
 
@@ -52,7 +58,7 @@ func SetupEvalFunction(evalFunction string, variableSet []string, testCaseCount 
 		for name, val := range caseVars {
 			exprtkObj.SetDoubleVariableValue(name, val)
 		}
-		targetResults = append(targetResults, exprtkObj.GetEvaluatedValue())
+		targetResults = append(targetResults, Round(exprtkObj.GetEvaluatedValue(), 6))
 		testCases[i] = caseVars
 
 	}

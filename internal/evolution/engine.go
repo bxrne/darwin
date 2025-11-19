@@ -91,19 +91,21 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 	parentCopy1 := parent1.Clone()
 	parentCopy2 := parent2.Clone()
 	if 1 > rng.Float64() {
+
 		child1, child2 := parentCopy1.MultiPointCrossover(parentCopy2, &ee.crossoverInformation)
+
 		ee.fitnessCalculator.CalculateFitness(&child1)
 		ee.fitnessCalculator.CalculateFitness(&child2)
 		out <- child1.Max(child2)
 		return
 	}
 
-	// Handle mutation based on individual type
 	parentCopy1.Mutate(cmd.MutationRate, &ee.mutateInformation)
 	ee.fitnessCalculator.CalculateFitness(&parentCopy1)
 
 	parentCopy2.Mutate(cmd.MutationRate, &ee.mutateInformation)
 	ee.fitnessCalculator.CalculateFitness(&parentCopy2)
+
 	out <- parentCopy1.Max(parentCopy2)
 }
 
@@ -140,7 +142,7 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	}
 	ee.population = newPop
 	duration := time.Since(start)
-
+	ee.fitnessCalculator.CalculateFitness(&ee.population[0])
 	// Calculate and send metrics
 	genMetrics := ee.calculateMetrics(cmd.Generation, duration)
 	select {
