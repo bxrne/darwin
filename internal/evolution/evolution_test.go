@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bxrne/darwin/internal/fitness"
 	"github.com/bxrne/darwin/internal/individual"
 	"github.com/bxrne/darwin/internal/metrics"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +30,7 @@ type EvolutionEngineTestSuite struct {
 	metricsChan       chan metrics.GenerationMetrics
 	cmdChan           chan EvolutionCommand
 	engine            *EvolutionEngine
-	fitnessCalculator individual.FitnessCalculator
+	fitnessCalculator fitness.FitnessCalculator
 }
 
 func (suite *EvolutionEngineTestSuite) SetupTest() {
@@ -40,7 +41,7 @@ func (suite *EvolutionEngineTestSuite) SetupTest() {
 	suite.selector = &MockSelector{}
 	suite.metricsChan = make(chan metrics.GenerationMetrics, 10)
 	suite.cmdChan = make(chan EvolutionCommand, 10)
-	suite.fitnessCalculator = individual.FitnessCalculatorFactory(individual.FitnessSetupInformation{GenomeType: individual.BitStringGenome})
+	suite.fitnessCalculator = fitness.FitnessCalculatorFactory(fitness.FitnessSetupInformation{GenomeType: individual.BitStringGenome})
 	suite.engine = NewEvolutionEngine(suite.population, suite.selector, suite.metricsChan, suite.cmdChan, suite.fitnessCalculator, individual.CrossoverInformation{}, individual.MutateInformation{})
 }
 

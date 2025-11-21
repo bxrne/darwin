@@ -1,17 +1,19 @@
-package individual
+package fitness
+
+import "github.com/bxrne/darwin/internal/individual"
 
 type GrammarTreeFitnessCalculator struct {
 	TestCases     []map[string]float64
 	TargetResults []float64
-	Grammar       map[string]Node
+	Grammar       map[string]individual.Node
 }
 
-func (gtreeCalculator *GrammarTreeFitnessCalculator) CalculateFitness(evolvable *Evolvable) {
-	tree, ok := (*evolvable).(*GrammarTree)
+func (gtreeCalculator *GrammarTreeFitnessCalculator) CalculateFitness(evolvable *individual.Evolvable) {
+	tree, ok := (*evolvable).(*individual.GrammarTree)
 	if !ok {
 		panic("Tree fitness Needs tree structure")
 	}
-	tree.Root = GenerateTreeFromGenome(gtreeCalculator.Grammar, tree.Genome)
+	tree.Root = individual.GenerateTreeFromGenome(gtreeCalculator.Grammar, tree.Genome)
 	tree.Depth = tree.Root.CalculateMaxDepth()
 	tree.SetFitness(CalculateTreeFitness(tree.Root, gtreeCalculator.TargetResults, gtreeCalculator.TestCases))
 

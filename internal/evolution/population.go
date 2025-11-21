@@ -1,9 +1,11 @@
 package evolution
 
 import (
-	"github.com/bxrne/darwin/internal/individual"
 	"runtime"
 	"sync"
+
+	"github.com/bxrne/darwin/internal/fitness"
+	"github.com/bxrne/darwin/internal/individual"
 )
 
 // PopulationBuilder creates initial populations
@@ -15,7 +17,7 @@ func NewPopulationBuilder() *PopulationBuilder {
 }
 
 // BuildPopulation creates a population of binary individuals
-func (pb *PopulationBuilder) BuildPopulation(size int, creator func() individual.Evolvable, fitnessCalc individual.FitnessCalculator) []individual.Evolvable {
+func (pb *PopulationBuilder) BuildPopulation(size int, creator func() individual.Evolvable, fitnessCalc fitness.FitnessCalculator) []individual.Evolvable {
 	population := make([]individual.Evolvable, size)
 	var wg sync.WaitGroup
 	numWorkers := runtime.NumCPU()

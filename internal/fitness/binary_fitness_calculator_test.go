@@ -1,8 +1,9 @@
-package individual_test
+package fitness_test
 
 import (
 	"testing"
 
+	"github.com/bxrne/darwin/internal/fitness"
 	"github.com/bxrne/darwin/internal/individual"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +21,7 @@ func TestCalculateFitness_GIVEN_valid_binary_individual_WHEN_calculate_fitness_T
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			calculator := &individual.BinaryFitnessCalculator{}
+			calculator := &fitness.BinaryFitnessCalculator{}
 			ind := &individual.BinaryIndividual{Genome: tt.genome}
 			var evolvable individual.Evolvable = ind
 

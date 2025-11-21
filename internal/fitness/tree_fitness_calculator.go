@@ -1,4 +1,6 @@
-package individual
+package fitness
+
+import "github.com/bxrne/darwin/internal/individual"
 
 type TreeFitnessCalculator struct {
 	TestCases     []map[string]float64
@@ -11,8 +13,8 @@ func (fitnessCalc *TreeFitnessCalculator) SetupEvalFunction(evalFunction string,
 	fitnessCalc.TargetResults = targetResults
 }
 
-func (fitnessCalc *TreeFitnessCalculator) CalculateFitness(evolvable *Evolvable) {
-	tree, ok := (*evolvable).(*Tree)
+func (fitnessCalc *TreeFitnessCalculator) CalculateFitness(evolvable *individual.Evolvable) {
+	tree, ok := (*evolvable).(*individual.Tree)
 	if !ok {
 		panic("Tree fitness Needs tree structure")
 	}

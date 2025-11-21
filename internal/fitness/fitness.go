@@ -1,20 +1,23 @@
-package individual
+package fitness
 
-import "github.com/bxrne/darwin/internal/cfg"
+import (
+	"github.com/bxrne/darwin/internal/cfg"
+	"github.com/bxrne/darwin/internal/individual"
+)
 
 type FitnessCalculator interface {
-	CalculateFitness(evolvable *Evolvable)
+	CalculateFitness(evolvable *individual.Evolvable)
 }
 
 type FitnessSetupInformation struct {
 	EvalFunction  string
 	VariableSet   []string
-	GenomeType    GenomeType
+	GenomeType    individual.GenomeType
 	TestCaseCount int
-	Grammar       map[string]Node
+	Grammar       map[string]individual.Node
 }
 
-func GenerateFitnessInfoFromConfig(config *cfg.Config, genomeType GenomeType, grammar map[string]Node) FitnessSetupInformation {
+func GenerateFitnessInfoFromConfig(config *cfg.Config, genomeType individual.GenomeType, grammar map[string]individual.Node) FitnessSetupInformation {
 	fitnessInfo := FitnessSetupInformation{}
 	fitnessInfo.EvalFunction = config.Fitness.TargetFunction
 	fitnessInfo.GenomeType = genomeType
@@ -26,13 +29,13 @@ func GenerateFitnessInfoFromConfig(config *cfg.Config, genomeType GenomeType, gr
 
 func FitnessCalculatorFactory(info FitnessSetupInformation) FitnessCalculator {
 	switch info.GenomeType {
-	case TreeGenome:
+	case individual.TreeGenome:
 		calc := &TreeFitnessCalculator{}
 		calc.SetupEvalFunction(info.EvalFunction, info.VariableSet, info.TestCaseCount)
 		return calc
-	case BitStringGenome:
+	case individual.BitStringGenome:
 		return &BinaryFitnessCalculator{}
-	case GrammarTreeGenome:
+	case individual.GrammarTreeGenome:
 		calc := &GrammarTreeFitnessCalculator{Grammar: info.Grammar}
 		calc.SetupEvalFunction(info.EvalFunction, info.VariableSet, info.TestCaseCount)
 		return calc
