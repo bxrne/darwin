@@ -1,28 +1,31 @@
-from generals.agents import RandomAgent, ExpanderAgent
-from generals.envs import PettingZooGenerals
+"""
+Entry point for the Generals game bridge server.
+"""
+
+import threading
+from src.bridge import Bridge
+
 
 def main():
-    random = RandomAgent()
-    expander = ExpanderAgent()
+    """Start the bridge server."""
+    bridge = Bridge(
+        address="0.0.0.0",  # Listen on all interfaces
+        port=5000,
+        render_mode=None  # Set to "human" for visual rendering
+    )
+    
+    bridge.start()
+    
+    try:
+        while True:
+            threading.Event().wait(5)
+            stats = bridge.get_stats()
+            print(f"\nStatus: {stats['active_clients']} clients, {stats['active_games']} games")
 
-    agent_names = [random.id, expander.id]
-    agents = {
-        random.id: random,
-        expander.id: expander
-    }
-
-    env = PettingZooGenerals(agents=agent_names, render_mode="human")
-    observations, info = env.reset()
-
-    terminated = truncated = False
-    while not (terminated or truncated):
-        actions = {}
-        for agent in env.agents:
-            # Ask agent for action
-            actions[agent] = agents[agent].act(observations[agent])
-        # All agents perform their actions
-        observations, rewards, terminated, truncated, info = env.step(actions)
-        env.render()
+    except KeyboardInterrupt:
+        print("\nShutting down...")
+        bridge.stop()
+        print("Server stopped")
 
 
 if __name__ == "__main__":
