@@ -7,6 +7,7 @@ import (
 
 	"github.com/bxrne/darwin/internal/cfg"
 	"github.com/bxrne/darwin/internal/evolution"
+	"github.com/bxrne/darwin/internal/fitness"
 	"github.com/bxrne/darwin/internal/individual"
 	"github.com/bxrne/darwin/internal/metrics"
 	"github.com/bxrne/darwin/internal/rng"
@@ -40,8 +41,8 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 
 	populationType := getGenomeType(config)
 	grammar := individual.CreateGrammar(config.Tree.TerminalSet, config.Tree.VariableSet, config.Tree.OperandSet)
-	fitnessInfo := individual.GenerateFitnessInfoFromConfig(config, populationType, grammar)
-	fitnessCalculator := individual.FitnessCalculatorFactory(fitnessInfo)
+	fitnessInfo := fitness.GenerateFitnessInfoFromConfig(config, populationType, grammar)
+	fitnessCalculator := fitness.FitnessCalculatorFactory(fitnessInfo)
 
 	popBuilder := evolution.NewPopulationBuilder()
 	population := popBuilder.BuildPopulation(config.Evolution.PopulationSize, func() individual.Evolvable {

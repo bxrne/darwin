@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bxrne/darwin/internal/fitness"
 	"github.com/bxrne/darwin/internal/individual"
 	"github.com/bxrne/darwin/internal/metrics"
 	"github.com/bxrne/darwin/internal/rng"
@@ -20,7 +21,7 @@ type EvolutionEngine struct {
 	cmdChan              <-chan EvolutionCommand
 	done                 chan struct{}
 	currentGen           int
-	fitnessCalculator    individual.FitnessCalculator
+	fitnessCalculator    fitness.FitnessCalculator
 	crossoverInformation individual.CrossoverInformation
 	mutateInformation    individual.MutateInformation
 }
@@ -31,7 +32,7 @@ func NewEvolutionEngine(
 	selector selection.Selector,
 	metricsChan chan<- metrics.GenerationMetrics,
 	cmdChan <-chan EvolutionCommand,
-	fitnessCalculator individual.FitnessCalculator,
+	fitnessCalculator fitness.FitnessCalculator,
 	crossoverInformation individual.CrossoverInformation,
 	mutateInformation individual.MutateInformation,
 ) *EvolutionEngine {

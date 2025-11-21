@@ -1,9 +1,11 @@
-package individual
+package fitness
+
+import "github.com/bxrne/darwin/internal/individual"
 
 type BinaryFitnessCalculator struct{}
 
-func (binaryFitness *BinaryFitnessCalculator) CalculateFitness(evolvable *Evolvable) {
-	binaryIndividual, ok := (*evolvable).(*BinaryIndividual)
+func (binaryFitness *BinaryFitnessCalculator) CalculateFitness(evolvable *individual.Evolvable) {
+	binaryIndividual, ok := (*evolvable).(*individual.BinaryIndividual)
 	if !ok {
 		panic("Binary Indiviual Fitness Needs Binary INdividual")
 	}
