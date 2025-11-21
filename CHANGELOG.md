@@ -1,3 +1,15 @@
+## [1.9.0](https://github.com/bxrne/darwin/compare/v1.8.1...v1.9.0) (2025-11-21)
+
+
+### Features
+
+* **config:** Add selection style config ([65164f9](https://github.com/bxrne/darwin/commit/65164f9bc71ecd72f3f0e1753dc57c387422d356))
+
+
+### Bug Fixes
+
+* **evo:** Fix evolution logic ([9e0b8ab](https://github.com/bxrne/darwin/commit/9e0b8ab9b5535db46a71b3ddc072a1c8d6c78cfa))
+
 ## [1.8.1](https://github.com/bxrne/darwin/compare/v1.8.0...v1.8.1) (2025-11-18)
 
 
