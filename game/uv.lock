@@ -85,10 +85,14 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "generals-bots" },
+    { name = "numpy" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "generals-bots", specifier = ">=2.5.0" }]
+requires-dist = [
+    { name = "generals-bots", specifier = ">=2.5.0" },
+    { name = "numpy", specifier = ">=2.2.6" },
+]
 
 [[package]]
 name = "generals-bots"

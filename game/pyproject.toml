@@ -6,4 +6,5 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "generals-bots>=2.5.0",
+    "numpy>=2.2.6",
 ]
