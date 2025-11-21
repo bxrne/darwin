@@ -1,3 +1,22 @@
+## [1.10.0](https://github.com/bxrne/darwin/compare/v1.9.0...v1.10.0) (2025-11-21)
+
+
+### Features
+
+* **game:** functional bridge ([f50c3a3](https://github.com/bxrne/darwin/commit/f50c3a348c18174993223981e21544ca73fb97bd))
+
+
+### Bug Fixes
+
+* **game:** add numpy dep ([39b4eb2](https://github.com/bxrne/darwin/commit/39b4eb26cbceff6bd524fb98cec0c5537767ce58))
+
+
+### Miscellaneous Chores
+
+* **game:** add bash smoketest to bridge ([8157804](https://github.com/bxrne/darwin/commit/815780457a404d13e9269c466930212bfde34e4d))
+* **game:** added generals usage example ([e0612da](https://github.com/bxrne/darwin/commit/e0612daaa32709f7fe1f677693abef1c929be4fc))
+* **game:** initialise uv project ([f2fa3e4](https://github.com/bxrne/darwin/commit/f2fa3e4289c5dce90d1cefaa9fa7aac3d45d0f26))
+
 ## [1.9.0](https://github.com/bxrne/darwin/compare/v1.8.1...v1.9.0) (2025-11-21)
 
 
