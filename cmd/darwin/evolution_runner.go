@@ -53,6 +53,8 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 			return individual.NewRandomTree(config.Tree.InitalDepth, config.Tree.OperandSet, config.Tree.VariableSet, config.Tree.TerminalSet)
 		case individual.GrammarTreeGenome:
 			return individual.NewGrammarTree(config.GrammarTree.GenomeSize)
+		case individual.ActionTreeGenome:
+			return individual.NewActionTreeIndividual()
 		default:
 			return nil
 		}
