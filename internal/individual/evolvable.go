@@ -17,6 +17,7 @@ const (
 	BitStringGenome GenomeType = iota
 	TreeGenome
 	GrammarTreeGenome
+	ActionTreeGenome
 )
 
 type CrossoverInformation struct {
