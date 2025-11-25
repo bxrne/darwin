@@ -58,18 +58,7 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 			return individual.NewGrammarTree(config.GrammarTree.GenomeSize)
 		case individual.ActionTreeGenome:
 			fmt.Printf("Creating ActionTree individual\n")
-			// Create random trees for each action
-			initialTrees := make(map[string]*individual.Tree)
-			for _, action := range config.ActionTree.Actions {
-				tree := individual.NewRandomTree(
-					config.Tree.InitalDepth,
-					config.Tree.OperandSet,
-					config.Tree.VariableSet,
-					config.Tree.TerminalSet,
-				)
-				initialTrees[action] = tree
-			}
-			result := individual.NewActionTreeIndividual(config.ActionTree.Actions, config.ActionTree.NumInputs, initialTrees)
+			result := individual.NewActionTreeIndividual(config.ActionTree.Actions, config.ActionTree.NumInputs, make(map[string]*individual.Tree))
 			fmt.Printf("ActionTree individual created: %v\n", result != nil)
 			return result
 		default:
