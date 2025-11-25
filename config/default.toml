@@ -10,8 +10,8 @@ selection_type = "tournament"
 seed = 0
 
 [fitness]
-test_case_count=100
-target_function = "(x^4)+(x^3)+(x^2)+x"
+test_case_count = 100
+target_function = "(x^3)*y+y^3"
 
 
 [bitstring_individual]
@@ -19,7 +19,7 @@ enabled = false
 genome_size = 200
 
 [tree_individual]
-enabled = true
+enabled = false
 max_depth = 8
 initial_depth = 4
 operand_set = ["+", "-", "*", "/"]
@@ -31,7 +31,7 @@ enabled = false
 genome_size = 20
 
 [action_tree]
-enabled = false
+enabled = true
 actions = ["move", "turn", "jump"]
 num_inputs = 2
 
