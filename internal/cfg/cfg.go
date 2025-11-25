@@ -103,9 +103,12 @@ func (gtc *GrammarTreeConfig) validate() error {
 
 // ActionTreeConfig holds configuration for action tree individuals.
 type ActionTreeConfig struct {
-	Actions   []string `toml:"actions"`
-	NumInputs int      `toml:"num_inputs"`
-	Enabled   bool     `toml:"enabled"`
+	Actions      []string `toml:"actions"`
+	NumInputs    int      `toml:"num_inputs"`
+	Enabled      bool     `toml:"enabled"`
+	ServerAddr   string   `toml:"server_addr"`
+	OpponentType string   `toml:"opponent_type"`
+	MaxSteps     int      `toml:"max_steps"`
 }
 
 // validate validates the ActionTreeConfig.
@@ -115,6 +118,15 @@ func (atc *ActionTreeConfig) validate() error {
 	}
 	if atc.NumInputs <= 0 {
 		return fmt.Errorf("num_inputs must be greater than 0")
+	}
+	if atc.ServerAddr == "" {
+		atc.ServerAddr = "localhost:5000" // Default server address
+	}
+	if atc.OpponentType == "" {
+		atc.OpponentType = "random" // Default opponent
+	}
+	if atc.MaxSteps <= 0 {
+		atc.MaxSteps = 1000 // Default max steps
 	}
 	return nil
 }

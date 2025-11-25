@@ -34,6 +34,9 @@ genome_size = 20
 enabled = true
 actions = ["move", "turn", "jump"]
 num_inputs = 2
+server_addr = "localhost:5000"
+opponent_type = "random"
+max_steps = 500
 
 [metrics]
 csv_enabled = true
