@@ -3,6 +3,7 @@ package cfg
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -39,15 +40,11 @@ func (tic *TreeIndividualConfig) validate() error {
 	if tic.InitalDepth < 0 || tic.InitalDepth > tic.MaxDepth {
 		return fmt.Errorf("initial_depth must be between 0 and max_depth")
 	}
-	if len(tic.VariableSet) == 0 {
+	if len(tic.VariableSet) == 0 && len(tic.TerminalSet) == 0 {
 		return fmt.Errorf("variable_set must not be empty")
 	}
 	if len(tic.OperandSet) == 0 {
 		return fmt.Errorf("operand_set must not be empty")
-	}
-
-	if len(tic.TerminalSet) == 0 {
-		return fmt.Errorf("terminal_set must not be empty")
 	}
 
 	// Validate primitive set contains only valid operators
@@ -151,7 +148,7 @@ func (ec *EvolutionConfig) validate() error {
 	// Set default seed if not provided
 
 	if ec.Seed == 0 {
-		ec.Seed = 42
+		ec.Seed = time.Now().UnixNano()
 	}
 
 	// Set default seed if not provided
