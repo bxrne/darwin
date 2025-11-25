@@ -75,7 +75,7 @@ func main() {
 		handler = logHandler
 	}
 
-	finalPop, metricsComplete, err := runEvolution(ctx, cfg, handler)
+	finalPop, metricsComplete, err := RunEvolution(ctx, cfg, handler)
 	if err != nil {
 		logmgr.Fatal("Evolution failed", logmgr.Field("error", err))
 	}

@@ -24,14 +24,16 @@ func getGenomeType(config *cfg.Config) individual.GenomeType {
 		return individual.TreeGenome
 	} else if config.GrammarTree.Enabled {
 		return individual.GrammarTreeGenome
+	} else if config.ActionTree.Enabled {
+		return individual.ActionTreeGenome
 	}
 	return -1 // or panic/error
 }
 
-// runEvolution encapsulates the shared evolution logic.
+// RunEvolution encapsulates the shared evolution logic.
 // It takes a context, config, and optional metrics handler.
 // Returns the final population, a completion channel, and an error.
-func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandler) ([]individual.Evolvable, MetricsComplete, error) {
+func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandler) ([]individual.Evolvable, MetricsComplete, error) {
 	// Seed the RNG for reproducible results
 	rng.Seed(config.Evolution.Seed)
 
@@ -40,6 +42,7 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	metricsComplete := make(chan struct{})
 
 	populationType := getGenomeType(config)
+	fmt.Printf("Population type: %v\n", populationType)
 	grammar := individual.CreateGrammar(config.Tree.TerminalSet, config.Tree.VariableSet, config.Tree.OperandSet)
 	fitnessInfo := fitness.GenerateFitnessInfoFromConfig(config, populationType, grammar)
 	fitnessCalculator := fitness.FitnessCalculatorFactory(fitnessInfo)
@@ -54,8 +57,12 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 		case individual.GrammarTreeGenome:
 			return individual.NewGrammarTree(config.GrammarTree.GenomeSize)
 		case individual.ActionTreeGenome:
-			return individual.NewActionTreeIndividual(config.ActionTree.Actions, config.ActionTree.NumInputs, map[string]*individual.Tree)
+			fmt.Printf("Creating ActionTree individual\n")
+			result := individual.NewActionTreeIndividual(config.ActionTree.Actions, config.ActionTree.NumInputs, make(map[string]*individual.Tree))
+			fmt.Printf("ActionTree individual created: %v\n", result != nil)
+			return result
 		default:
+			fmt.Printf("Unknown genome type: %v\n", populationType)
 			return nil
 		}
 	}, fitnessCalculator)
