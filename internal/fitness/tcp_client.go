@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/bxrne/logmgr"
@@ -119,6 +120,10 @@ func (tc *TCPClient) SendMessage(message interface{}) error {
 
 	_, err = tc.conn.Write(data)
 	if err != nil {
+		// Check for broken pipe specifically
+		if strings.Contains(err.Error(), "broken pipe") || strings.Contains(err.Error(), "EPIPE") {
+			return fmt.Errorf("broken pipe: server closed connection")
+		}
 		return fmt.Errorf("failed to send message: %w", err)
 	}
 

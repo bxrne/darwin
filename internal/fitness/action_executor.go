@@ -37,7 +37,10 @@ func (ae *ActionExecutor) ExecuteActionTrees(actionTreeIndividual *individual.Ac
 		}
 
 		// Execute tree with inputs
-		output := ae.executeTree(tree, inputs)
+		output, err := ae.executeTree(tree, inputs)
+		if err != nil {
+			return "", fmt.Errorf("failed to execute tree for action %s: %w", actionName, err)
+		}
 		actionOutputs[i] = output
 	}
 
@@ -73,78 +76,96 @@ func (ae *ActionExecutor) ExecuteActionTrees(actionTreeIndividual *individual.Ac
 }
 
 // executeTree recursively evaluates a tree with given inputs
-func (ae *ActionExecutor) executeTree(tree *individual.Tree, inputs []float64) float64 {
+func (ae *ActionExecutor) executeTree(tree *individual.Tree, inputs []float64) (float64, error) {
 	if tree == nil || tree.Root == nil {
-		return 0.0
+		return 0.0, fmt.Errorf("tree or root is nil")
 	}
 
-	return ae.executeTreeNode(tree.Root, inputs)
+	result, err := ae.executeTreeNode(tree.Root, inputs)
+	if err != nil {
+		return 0.0, fmt.Errorf("tree execution failed: %w", err)
+	}
+	return result, nil
 }
 
 // executeTreeNode recursively evaluates a tree node with given inputs
-func (ae *ActionExecutor) executeTreeNode(node *individual.TreeNode, inputs []float64) float64 {
+func (ae *ActionExecutor) executeTreeNode(node *individual.TreeNode, inputs []float64) (float64, error) {
 	if node == nil {
-		return 0.0
+		return 0.0, fmt.Errorf("node is nil")
 	}
 
 	// If it's a leaf node (terminal)
 	if node.Left == nil && node.Right == nil {
-		return ae.evaluateTerminal(node.Value, inputs)
+		value, err := ae.evaluateTerminal(node.Value, inputs)
+		if err != nil {
+			return 0.0, fmt.Errorf("terminal evaluation failed: %w", err)
+		}
+		return value, nil
 	}
 
 	// If it's an internal node (operator)
-	leftValue := ae.executeTreeNode(node.Left, inputs)
-	rightValue := ae.executeTreeNode(node.Right, inputs)
+	leftValue, err := ae.executeTreeNode(node.Left, inputs)
+	if err != nil {
+		return 0.0, fmt.Errorf("left subtree failed: %w", err)
+	}
+	rightValue, err := ae.executeTreeNode(node.Right, inputs)
+	if err != nil {
+		return 0.0, fmt.Errorf("right subtree failed: %w", err)
+	}
 
-	return ae.applyOperator(node.Value, leftValue, rightValue)
+	result, err := ae.applyOperator(node.Value, leftValue, rightValue)
+	if err != nil {
+		return 0.0, fmt.Errorf("operator failed: %w", err)
+	}
+	return result, nil
 }
 
 // evaluateTerminal evaluates a terminal value
-func (ae *ActionExecutor) evaluateTerminal(value string, inputs []float64) float64 {
+func (ae *ActionExecutor) evaluateTerminal(value string, inputs []float64) (float64, error) {
 	// Check if it's a variable
 	for i, inputName := range []string{"x", "y", "z", "w"} {
 		if i < len(inputs) && value == inputName {
-			return inputs[i]
+			return inputs[i], nil
 		}
 	}
 
 	// Try to parse as constant
 	if val, err := parseFloat(value); err == nil {
-		return val
+		return val, nil
 	}
 
 	// Default to 0.0 for unknown terminals
-	return 0.0
+	return 0.0, fmt.Errorf("unknown terminal: %s", value)
 }
 
 // applyOperator applies an operator to two values
-func (ae *ActionExecutor) applyOperator(operator string, left, right float64) float64 {
+func (ae *ActionExecutor) applyOperator(operator string, left, right float64) (float64, error) {
 	switch operator {
 	case "+":
-		return left + right
+		return left + right, nil
 	case "-":
-		return left - right
+		return left - right, nil
 	case "*":
-		return left * right
+		return left * right, nil
 	case "/":
 		if right != 0 {
-			return left / right
+			return left / right, nil
 		}
-		return 0.0
+		return 0.0, fmt.Errorf("division by zero")
 	case "^":
-		return math.Pow(left, right)
+		return math.Pow(left, right), nil
 	case "max":
 		if left > right {
-			return left
+			return left, nil
 		}
-		return right
+		return right, nil
 	case "min":
 		if left < right {
-			return left
+			return left, nil
 		}
-		return right
+		return right, nil
 	default:
-		return 0.0
+		return 0.0, fmt.Errorf("unknown operator: %s", operator)
 	}
 }
 
