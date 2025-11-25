@@ -3,6 +3,7 @@ package fitness
 import (
 	"fmt"
 	"math"
+	"time"
 
 	"github.com/bxrne/darwin/internal/individual"
 	"github.com/bxrne/logmgr"
@@ -46,6 +47,10 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable *individual.
 		(*evolvable).SetFitness(0.0)
 		return
 	}
+	defer client.Disconnect()
+
+	// Small delay to ensure connection is stable
+	time.Sleep(100 * time.Millisecond)
 
 	// Connect to game
 	connectedResp, err := client.ConnectToGame(atfc.opponentType)
@@ -116,6 +121,9 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, individual 
 			logmgr.Error("Failed to send action", logmgr.Field("error", err))
 			break
 		}
+
+		// Small delay to prevent overwhelming the server
+		time.Sleep(10 * time.Millisecond)
 
 		survivalTime = step + 1
 		totalReward += obs.Reward

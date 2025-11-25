@@ -89,11 +89,12 @@ class Game:
                     actions[agent] = self.opponent.act(self.observations[agent])
             
             # Execute actions
-            observations, rewards, terminated, truncated, info = self.env.step(actions)
+            self.logger.info(actions)
+            observations, rewards, terminated, truncated  = self.env.step(actions)
+            self.logger.info(observations)
             
             # Update state
             self.observations = observations
-            self.info = info
             self.terminated = terminated
             self.truncated = truncated
             
