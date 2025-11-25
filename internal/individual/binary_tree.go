@@ -197,7 +197,7 @@ func (t *Tree) CalculateCrossoverPoint(otherTreeDepth int, maxDepth int) (*TreeN
 	for i := range maxTreeDepth {
 
 		// Only break if we've reached desired Depth AND current node is a function (has children)
-		if ((otherTreeDepth+treeNode.CalculateMaxDepth()) <= maxDepth+1 && i >= treeDepth) || treeNode.IsLeaf() {
+		if ((otherTreeDepth+treeNode.CalculateMaxDepth()) <= maxDepth && i >= treeDepth) || treeNode.IsLeaf() {
 			break
 		}
 		if rng.Intn(2) == 1 && treeNode.Left != nil {
