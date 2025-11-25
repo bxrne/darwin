@@ -101,6 +101,24 @@ func (gtc *GrammarTreeConfig) validate() error {
 	return nil
 }
 
+// ActionTreeConfig holds configuration for action tree individuals.
+type ActionTreeConfig struct {
+	Actions   []string `toml:"actions"`
+	NumInputs int      `toml:"num_inputs"`
+	Enabled   bool     `toml:"enabled"`
+}
+
+// validate validates the ActionTreeConfig.
+func (atc *ActionTreeConfig) validate() error {
+	if len(atc.Actions) == 0 {
+		return fmt.Errorf("actions must not be empty")
+	}
+	if atc.NumInputs <= 0 {
+		return fmt.Errorf("num_inputs must be greater than 0")
+	}
+	return nil
+}
+
 // EvolutionConfig holds configuration for the evolutionary algorithm.
 type EvolutionConfig struct {
 	PopulationSize      int     `toml:"population_size"`
@@ -163,6 +181,7 @@ type Config struct {
 	Metrics     MetricsConfig             `toml:"metrics"`
 	Fitness     FitnessConfig             `toml:"fitness"`
 	GrammarTree GrammarTreeConfig         `toml:"grammar_tree"`
+	ActionTree  ActionTreeConfig          `toml:"action_tree"`
 }
 
 // validate validates the entire Config.
@@ -190,8 +209,11 @@ func (c *Config) validate() error {
 	if err := c.GrammarTree.validate(); err != nil {
 		return fmt.Errorf("grammar tree config validation failed: %w", err)
 	}
+	if err := c.ActionTree.validate(); err != nil {
+		return fmt.Errorf("action tree config validation failed: %w", err)
+	}
 	// Mutual exclusivity
-	if c.Tree.Enabled && c.BitString.Enabled && c.GrammarTree.Enabled {
+	if c.Tree.Enabled && c.BitString.Enabled && c.GrammarTree.Enabled && c.ActionTree.Enabled {
 		return fmt.Errorf("only one individual type can be enabled at a time")
 	}
 

@@ -54,7 +54,7 @@ func runEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 		case individual.GrammarTreeGenome:
 			return individual.NewGrammarTree(config.GrammarTree.GenomeSize)
 		case individual.ActionTreeGenome:
-			return individual.NewActionTreeIndividual()
+			return individual.NewActionTreeIndividual(config.ActionTree.Actions, config.ActionTree.NumInputs, map[string]*individual.Tree)
 		default:
 			return nil
 		}
