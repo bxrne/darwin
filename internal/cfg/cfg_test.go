@@ -16,6 +16,7 @@ func TestLoadConfigFiles(t *testing.T) {
 		// Samples
 		{"valid_bitstring", "../testdata/config/valid_bitstring.toml", false},
 		{"valid_tree", "../testdata/config/valid_tree.toml", false},
+		{"valid_action_tree", "../testdata/config/valid_action_tree.toml", false},
 		{"both_enabled", "../testdata/config/both_enabled.toml", true},
 		{"invalid_evolution", "../testdata/config/invalid_evolution.toml", true},
 		{"valid_metrics_enabled", "../testdata/config/valid_metrics_enabled.toml", false},

@@ -30,6 +30,11 @@ terminal_set = []
 enabled = false
 genome_size = 20
 
+[action_tree]
+enabled = false
+actions = ["move", "turn", "jump"]
+num_inputs = 2
+
 [metrics]
 csv_enabled = true
 csv_file = "default_metrics.csv"
