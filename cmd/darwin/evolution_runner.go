@@ -48,7 +48,7 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	fitnessCalculator := fitness.FitnessCalculatorFactory(fitnessInfo)
 
 	popBuilder := evolution.NewPopulationBuilder()
-	population := popBuilder.BuildPopulation(config.Evolution.PopulationSize, func() individual.Evolvable {
+	population := popBuilder.BuildPopulation(config.Evolution.PopulationSize, populationType, func() individual.Evolvable {
 		switch populationType {
 		case individual.BitStringGenome:
 			return individual.NewBinaryIndividual(config.BitString.GenomeSize)
@@ -144,5 +144,5 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	metricsStreamer.Stop()
 
 	finalPop := evolutionEngine.GetPopulation()
-	return finalPop, metricsComplete, nil
+	return finalPop.GetPopulation(), metricsComplete, nil
 }

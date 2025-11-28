@@ -10,7 +10,6 @@ import (
 // ActionTreeIndividual implements an individual composed of action trees and a weights matrix for action selection
 type ActionTreeIndividual struct {
 	Trees   map[string]*Tree // action name -> action tree
-	Weights *mat.Dense       // weights matrix (numActions x numInputs)
 	fitness float64
 }
 
@@ -22,14 +21,6 @@ func (ati *ActionTreeIndividual) Describe() string {
 		description += "Tree: " + tree.Describe() + "\n"
 	}
 	description += "Weights:\n"
-	r, c := ati.Weights.Dims()
-	for i := range r {
-		for j := range c {
-			description += fmt.Sprintf("%f ", ati.Weights.At(i, j))
-		}
-		description += "\n"
-	}
-	description += "Fitness: " + fmt.Sprintf("%f", ati.fitness) + "\n"
 	return description
 }
 
@@ -50,18 +41,8 @@ func (ati *ActionTreeIndividual) Clone() Evolvable {
 		}
 	}
 
-	// Clone weights
-	r, c := ati.Weights.Dims()
-	clonedWeights := mat.NewDense(r, c, nil)
-	for i := range r {
-		for j := range c {
-			clonedWeights.Set(i, j, ati.Weights.At(i, j))
-		}
-	}
-
 	return &ActionTreeIndividual{
 		Trees:   clonedTrees,
-		Weights: clonedWeights,
 		fitness: ati.fitness,
 	}
 }
@@ -78,16 +59,6 @@ func (ati *ActionTreeIndividual) Mutate(rate float64, mutateInformation *MutateI
 		tree.Mutate(rate, mutateInformation)
 	}
 
-	// Mutate weights by adding small random values
-	r, c := ati.Weights.Dims()
-	for i := range r {
-		for j := range c {
-			if rng.Float64() < rate {
-				delta := (rng.Float64() - 0.5) * 0.1 // small change between -0.05 and 0.05
-				ati.Weights.Set(i, j, ati.Weights.At(i, j)+delta)
-			}
-		}
-	}
 }
 
 // Max returns the ActionTreeIndividual with the higher fitness
@@ -122,34 +93,7 @@ func (ati *ActionTreeIndividual) MultiPointCrossover(i2 Evolvable, crossoverInfo
 		}
 	}
 
-	// Crossover Weights
-	r, c := ati.Weights.Dims()
-	child1Weights := mat.NewDense(r, c, nil)
-	child2Weights := mat.NewDense(r, c, nil)
-	for i := range r {
-		for j := range c {
-			if rng.Float64() < 0.5 {
-				child1Weights.Set(i, j, ati.Weights.At(i, j))
-				child2Weights.Set(i, j, other.Weights.At(i, j))
-			} else {
-				child1Weights.Set(i, j, other.Weights.At(i, j))
-				child2Weights.Set(i, j, ati.Weights.At(i, j))
-			}
-		}
-	}
-
-	// new kids
-	child1 := &ActionTreeIndividual{
-		Trees:   child1Trees,
-		Weights: child1Weights,
-		fitness: 0.0,
-	}
-	child2 := &ActionTreeIndividual{
-		Trees:   child2Trees,
-		Weights: child2Weights,
-		fitness: 0.0,
-	}
-	return child1, child2
+	return ati, other
 }
 
 // NewActionTreeIndividual creates a new ActionTreeIndividual with provided trees
@@ -163,7 +107,6 @@ func NewActionTreeIndividual(actions []string, numInputs int, initialTrees map[s
 	}
 	return &ActionTreeIndividual{
 		Trees:   initialTrees,
-		Weights: weights,
 		fitness: 0.0,
 	}
 }
