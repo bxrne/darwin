@@ -21,10 +21,10 @@ genome_size = 200
 [tree_individual]
 enabled = false
 max_depth = 8
-initial_depth = 4
-operand_set = ["+", "-", "*", "/"]
-variable_set = ["x"]
-terminal_set = []
+initial_depth = 2
+operand_set = ["+", "-", "*", "/", ">", "<", "=", "%"]
+variable_set = ["x", "y"]
+terminal_set = ["1.0", "2.0", "3.0"]
 
 [grammar_tree]
 enabled = false
