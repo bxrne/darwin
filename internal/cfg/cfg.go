@@ -236,6 +236,7 @@ func (c *Config) validate() error {
 func validateOperandSet(primitiveSet []string) error {
 	validPrimitives := map[string]bool{
 		"+": true, "-": true, "*": true, "/": true,
+		">": true, "<": true, "=": true, "%": true,
 	}
 
 	for _, prim := range primitiveSet {
