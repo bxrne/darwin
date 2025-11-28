@@ -236,31 +236,55 @@ func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *in
 	// Apply softmax to convert scores to probabilities
 	probabilities := ae.calculateSoftmax(finalScores)
 
-	// Generate selected action array
-	// For this test, we'll create action arrays where each tree outputs one component
+	// Sample which action tree to use based on probabilities
+	selectedActionIdx := ae.sampleAction(probabilities)
+
+	// Execute the selected action tree to get the action components
+	selectedActionName := ae.actions[selectedActionIdx]
+	selectedTree := actionTreeIndividual.Trees[selectedActionName]
+
+	// Execute the selected tree to get raw component value
+	rawComponent, err := ae.executeTree(selectedTree, inputs)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to execute selected tree %s: %w", selectedActionName, err)
+	}
+
+	// Create the 5-element action array based on which tree was selected
 	selectedAction := make([]float64, 5)
 
-	// Execute all trees to get complete action components
-	for i, actionName := range ae.actions {
-		tree := actionTreeIndividual.Trees[actionName]
-		component, err := ae.executeTree(tree, inputs)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to execute tree for component %s: %w", actionName, err)
-		}
-
-		// Map tree output to action component based on action index
-		switch i {
-		case 0: // pass (0 or 1)
-			selectedAction[0] = math.Max(0.0, math.Min(1.0, component)) // Clamp to [0,1]
-		case 1: // cell_i (0-17 for 18 height)
-			selectedAction[1] = math.Max(0.0, math.Min(17.0, math.Mod(component, 18.0))) // Clamp to [0,17]
-		case 2: // cell_j (0-21 for 22 width)
-			selectedAction[2] = math.Max(0.0, math.Min(21.0, math.Mod(component, 22.0))) // Clamp to [0,21]
-		case 3: // direction (0-3 for up, down, left, right)
-			selectedAction[3] = math.Max(0.0, math.Min(3.0, math.Mod(component, 4.0))) // Clamp to [0,3]
-		case 4: // split (0 or 1)
-			selectedAction[4] = math.Max(0.0, math.Min(1.0, component)) // Clamp to [0,1]
-		}
+	// Generate action components where selected tree determines the primary action
+	// and other components are set to reasonable defaults
+	switch selectedActionIdx {
+	case 0: // pass decision tree selected
+		selectedAction[0] = math.Max(0.0, math.Min(1.0, rawComponent)) // Clamp to [0,1]
+		selectedAction[1] = 0.0                                        // default cell_i
+		selectedAction[2] = 0.0                                        // default cell_j
+		selectedAction[3] = 0.0                                        // default direction
+		selectedAction[4] = 0.0                                        // default split
+	case 1: // cell_i decision tree selected
+		selectedAction[0] = 0.0                                                         // default pass
+		selectedAction[1] = math.Max(0.0, math.Min(17.0, math.Mod(rawComponent, 18.0))) // Clamp to [0,17]
+		selectedAction[2] = 0.0                                                         // default cell_j
+		selectedAction[3] = 0.0                                                         // default direction
+		selectedAction[4] = 0.0                                                         // default split
+	case 2: // cell_j decision tree selected
+		selectedAction[0] = 0.0                                                         // default pass
+		selectedAction[1] = 0.0                                                         // default cell_i
+		selectedAction[2] = math.Max(0.0, math.Min(21.0, math.Mod(rawComponent, 22.0))) // Clamp to [0,21]
+		selectedAction[3] = 0.0                                                         // default direction
+		selectedAction[4] = 0.0                                                         // default split
+	case 3: // direction decision tree selected
+		selectedAction[0] = 0.0                                                       // default pass
+		selectedAction[1] = 0.0                                                       // default cell_i
+		selectedAction[2] = 0.0                                                       // default cell_j
+		selectedAction[3] = math.Max(0.0, math.Min(3.0, math.Mod(rawComponent, 4.0))) // Clamp to [0,3]
+		selectedAction[4] = 0.0                                                       // default split
+	case 4: // split decision tree selected
+		selectedAction[0] = 0.0                                        // default pass
+		selectedAction[1] = 0.0                                        // default cell_i
+		selectedAction[2] = 0.0                                        // default cell_j
+		selectedAction[3] = 0.0                                        // default direction
+		selectedAction[4] = math.Max(0.0, math.Min(1.0, rawComponent)) // Clamp to [0,1]
 	}
 
 	return selectedAction, probabilities, nil
