@@ -99,7 +99,7 @@ func runBenchmark(b *testing.B, config *cfg.Config) {
 
 	// Run evolution b.N times
 	for i := 0; b.Loop(); i++ {
-		finalPop, _, err := runEvolution(b.Context(), config, nil)
+		finalPop, _, err := RunEvolution(b.Context(), config, nil)
 		if err != nil {
 			b.Fatalf("Evolution failed: %v", err)
 		}
