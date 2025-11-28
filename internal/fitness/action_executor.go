@@ -23,7 +23,7 @@ func NewActionExecutor(actions []string, numInputs int) *ActionExecutor {
 }
 
 // ExecuteActionTrees evaluates all action trees with given inputs and returns selected action
-func (ae *ActionExecutor) ExecuteActionTrees(actionTreeIndividual *individual.ActionTreeIndividual, inputs []float64) (string, error) {
+func (ae *ActionExecutor) ExecuteActionTrees(actionTreeIndividual *individual.ActionTreeIndividual, inputs []float64, weights *individual.WeightsIndividual) (string, error) {
 	if len(inputs) != ae.numInputs {
 		return "", fmt.Errorf("expected %d inputs, got %d", ae.numInputs, len(inputs))
 	}
@@ -45,9 +45,7 @@ func (ae *ActionExecutor) ExecuteActionTrees(actionTreeIndividual *individual.Ac
 		actionOutputs[i] = output
 	}
 
-	// Apply weights matrix to get final action scores
-	weights := actionTreeIndividual.Weights
-	r, c := weights.Dims()
+	r, c := weights.Weights.Dims()
 	if r != len(ae.actions) || c != len(inputs) {
 		return "", fmt.Errorf("weights matrix dimensions mismatch: expected %dx%d, got %dx%d",
 			len(ae.actions), len(inputs), r, c)
@@ -58,7 +56,7 @@ func (ae *ActionExecutor) ExecuteActionTrees(actionTreeIndividual *individual.Ac
 	for actionIdx := range ae.actions {
 		score := 0.0
 		for inputIdx := range inputs {
-			score += weights.At(actionIdx, inputIdx) * inputs[inputIdx]
+			score += weights.Weights.At(actionIdx, inputIdx) * inputs[inputIdx]
 		}
 		finalScores[actionIdx] = score + actionOutputs[actionIdx]
 	}

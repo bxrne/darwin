@@ -15,7 +15,7 @@ import (
 
 // EvolutionEngine manages the evolution process using channels
 type EvolutionEngine struct {
-	population           []individual.Evolvable
+	population           Population
 	selector             selection.Selector
 	metricsChan          chan<- metrics.GenerationMetrics
 	cmdChan              <-chan EvolutionCommand
@@ -28,7 +28,7 @@ type EvolutionEngine struct {
 
 // NewEvolutionEngine creates a new evolution engine
 func NewEvolutionEngine(
-	population []individual.Evolvable,
+	population Population,
 	selector selection.Selector,
 	metricsChan chan<- metrics.GenerationMetrics,
 	cmdChan <-chan EvolutionCommand,
@@ -80,13 +80,13 @@ func (ee *EvolutionEngine) Wait() {
 }
 
 // GetPopulation returns the current population
-func (ee *EvolutionEngine) GetPopulation() []individual.Evolvable {
+func (ee *EvolutionEngine) GetPopulation() Population {
 	return ee.population
 }
 
 func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- individual.Evolvable) {
-	parent1 := ee.selector.Select(ee.population)
-	parent2 := ee.selector.Select(ee.population)
+	parent1 := ee.selector.Select(ee.population.GetPopulation())
+	parent2 := ee.selector.Select(ee.population.GetPopulation())
 	// Perform crossover and mutation
 	// Create copies of parents to avoid mutating the original population
 	parentCopy1 := parent1.Clone()
@@ -117,14 +117,14 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	// Sort population by fitness (descending)
 	ee.sortPopulation()
 	// Create new population
-	newPop := make([]individual.Evolvable, 0, len(ee.population))
+	newPop := make([]individual.Evolvable, 0, ee.population.Count())
 	// Elitism: keep best individuals
-	elitismCount := int(float64(len(ee.population)) * cmd.ElitismPct)
-	for i := 0; i < elitismCount && i < len(ee.population); i++ {
-		newPop = append(newPop, ee.population[i])
+	elitismCount := int(float64(ee.population.Count()) * cmd.ElitismPct)
+	for i := 0; i < elitismCount && i < ee.population.Count(); i++ {
+		newPop = append(newPop, ee.population.Get(i))
 	}
-	offspringNeeded := len(ee.population) - len(newPop)
-	offspringChan := make(chan individual.Evolvable, len(ee.population)-elitismCount+1)
+	offspringNeeded := ee.population.Count() - len(newPop)
+	offspringChan := make(chan individual.Evolvable, ee.population.Count()-elitismCount+1)
 	var wg sync.WaitGroup
 	// Generate offspring
 	for i := 0; i < offspringNeeded; i++ {
@@ -141,9 +141,8 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	for ind := range offspringChan {
 		newPop = append(newPop, ind)
 	}
-	ee.population = newPop
+	ee.population.SetPopulation(newPop)
 	duration := time.Since(start)
-	ee.fitnessCalculator.CalculateFitness(&ee.population[0])
 	// Calculate and send metrics
 	genMetrics := ee.calculateMetrics(cmd.Generation, duration)
 	select {
@@ -155,14 +154,14 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 
 // sortPopulation sorts the population by fitness (descending)
 func (ee *EvolutionEngine) sortPopulation() {
-	sort.SliceStable(ee.population, func(i, j int) bool {
-		return ee.population[i].GetFitness() > ee.population[j].GetFitness()
+	sort.SliceStable(ee.population.GetPopulation(), func(i, j int) bool {
+		return ee.population.Get(i).GetFitness() > ee.population.Get(j).GetFitness()
 	})
 }
 
 // calculateMetrics computes generation metrics
 func (ee *EvolutionEngine) calculateMetrics(generation int, duration time.Duration) metrics.GenerationMetrics {
-	if len(ee.population) == 0 {
+	if ee.population.Count() == 0 {
 		return metrics.GenerationMetrics{
 			Generation:     generation,
 			Duration:       duration,
@@ -172,11 +171,11 @@ func (ee *EvolutionEngine) calculateMetrics(generation int, duration time.Durati
 	}
 
 	totalFitness := 0.0
-	maxFitness := ee.population[0].GetFitness()
-	minFitness := ee.population[0].GetFitness()
+	maxFitness := ee.population.Get(0).GetFitness()
+	minFitness := ee.population.Get(0).GetFitness()
 
-	for _, individual := range ee.population {
-		fitness := individual.GetFitness()
+	for i := range ee.population.Count() {
+		fitness := ee.population.Get(i).GetFitness()
 		totalFitness += fitness
 		if fitness > maxFitness {
 			maxFitness = fitness
@@ -186,13 +185,13 @@ func (ee *EvolutionEngine) calculateMetrics(generation int, duration time.Durati
 		}
 	}
 
-	avgFitness := totalFitness / float64(len(ee.population))
-	bestDescription := ee.population[0].Describe()
+	avgFitness := totalFitness / float64(ee.population.Count())
+	bestDescription := ee.population.Get(0).Describe()
 	minDepth := -1
 	maxDepth := -1
 	totalDepth := 0.0
-	for _, citizen := range ee.population {
-		if tree, ok := citizen.(*individual.Tree); ok {
+	for citizenIndex := range ee.population.Count() {
+		if tree, ok := ee.population.Get(citizenIndex).(*individual.Tree); ok {
 			depth := tree.GetDepth()
 			if minDepth == -1 || depth < minDepth {
 				minDepth = depth
@@ -205,7 +204,7 @@ func (ee *EvolutionEngine) calculateMetrics(generation int, duration time.Durati
 	}
 	avgDepth := 0.0
 	if minDepth != -1 && maxDepth != -1 {
-		avgDepth = totalDepth / float64(len(ee.population))
+		avgDepth = totalDepth / float64(ee.population.Count())
 	}
 
 	return metrics.GenerationMetrics{
@@ -219,7 +218,7 @@ func (ee *EvolutionEngine) calculateMetrics(generation int, duration time.Durati
 		MinDepth:        minDepth,
 		MaxDepth:        maxDepth,
 		AvgDepth:        avgDepth,
-		PopulationSize:  len(ee.population),
+		PopulationSize:  ee.population.Count(),
 		Timestamp:       time.Now(),
 	}
 }

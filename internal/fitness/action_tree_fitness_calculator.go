@@ -29,7 +29,7 @@ func NewActionTreeFitnessCalculator(serverAddr string, opponentType string, acti
 
 // CalculateFitness evaluates the fitness of an ActionTree individual
 func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable *individual.Evolvable) {
-	actionTreeIndividual, ok := (*evolvable).(*individual.ActionTreeIndividual)
+	weightsAndActionIndividual, ok := (*evolvable).(*individual.WeightsAndActionIndividual)
 	if !ok {
 		logmgr.Error("Expected ActionTreeIndividual", logmgr.Field("type", fmt.Sprintf("%T", *evolvable)))
 		(*evolvable).SetFitness(0.0)
@@ -73,7 +73,7 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable *individual.
 		logmgr.Field("opponent_id", connectedResp.OpponentID))
 
 	// Play the game
-	fitness := atfc.playGame(client, actionTreeIndividual)
+	fitness := atfc.playGame(client, weightsAndActionIndividual)
 
 	(*evolvable).SetFitness(fitness)
 
@@ -83,7 +83,7 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable *individual.
 }
 
 // playGame plays a single game and returns the fitness score
-func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, individual *individual.ActionTreeIndividual) float64 {
+func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, individual *individual.WeightsAndActionIndividual) float64 {
 	var totalReward float64
 	var survivalTime int
 	var finalScore float64
@@ -116,7 +116,7 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, individual 
 		inputs := atfc.extractInputs(obs.Observation)
 
 		// Execute action trees to get action
-		action, err := atfc.actionExecutor.ExecuteActionTrees(individual, inputs)
+		action, err := atfc.actionExecutor.ExecuteActionTrees(individual.ActionTree, inputs, individual.Weight)
 		if err != nil {
 			logmgr.Error("Failed to execute action trees", logmgr.Field("error", err))
 			// Send a default action
