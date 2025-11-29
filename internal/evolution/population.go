@@ -32,7 +32,7 @@ func (pb *PopulationBuilder) BuildPopulation(size int, genomeType individual.Gen
 	chunkSize := (size + numWorkers - 1) / numWorkers
 	switch genomeType {
 	case individual.ActionTreeGenome:
-		return newActionTreeAndWeightsPopulation(size)
+		return newActionTreeAndWeightsPopulation(size, creator)
 	default:
 		population := make([]individual.Evolvable, size)
 		for i := range numWorkers {
