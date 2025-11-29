@@ -9,8 +9,29 @@ type ActionTreeAndWeightsPopulation struct {
 	isTrainingWeights  bool
 }
 
-func newActionTreeAndWeightsPopulation(count int) *ActionTreeAndWeightsPopulation {
-	return &ActionTreeAndWeightsPopulation{}
+func newActionTreeAndWeightsPopulation(size int, creator func() individual.Evolvable) *ActionTreeAndWeightsPopulation {
+	actionTreePopulation := make([]individual.ActionTreeIndividual, size)
+	weightsPopulation := make([]individual.WeightsIndividual, size)
+	combinedPopulation := make([]individual.WeightsAndActionIndividual, size)
+	for i := range size {
+		trees := creator()
+		realTree := trees.(*individual.ActionTreeIndividual)
+		actionTreePopulation[i] = *realTree
+		weightsPopulation[i] = *individual.NewWeightsIndividual(10, 10)
+		combinedPopulation[i] = individual.WeightsAndActionIndividual{ActionTree: &actionTreePopulation[i], Weight: &weightsPopulation[i]}
+
+	}
+
+	actionTreePtrs := make([]*individual.ActionTreeIndividual, size)
+	weightsPtrs := make([]*individual.WeightsIndividual, size)
+
+	for i := 0; i < size; i++ {
+		actionTreePtrs[i] = &actionTreePopulation[i]
+		weightsPtrs[i] = &weightsPopulation[i]
+	}
+
+	return &ActionTreeAndWeightsPopulation{actionTrees: actionTreePtrs,
+		Weights: weightsPtrs, CombinedPopulation: combinedPopulation}
 }
 
 func (at *ActionTreeAndWeightsPopulation) Get(index int) individual.Evolvable {
@@ -21,7 +42,6 @@ func (at *ActionTreeAndWeightsPopulation) Get(index int) individual.Evolvable {
 }
 
 func (at *ActionTreeAndWeightsPopulation) Update(generation int) {
-	return
 }
 
 func (at *ActionTreeAndWeightsPopulation) SetPopulation(population []individual.Evolvable) {

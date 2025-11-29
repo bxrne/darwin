@@ -25,7 +25,7 @@ func (m *MockSelector) Select(population []individual.Evolvable) individual.Evol
 
 type EvolutionEngineTestSuite struct {
 	suite.Suite
-	population        []individual.Evolvable
+	population        Population
 	selector          *MockSelector
 	metricsChan       chan metrics.GenerationMetrics
 	cmdChan           chan EvolutionCommand
@@ -34,14 +34,14 @@ type EvolutionEngineTestSuite struct {
 }
 
 func (suite *EvolutionEngineTestSuite) SetupTest() {
-	suite.population = []individual.Evolvable{
-		individual.NewBinaryIndividual(5),
-		individual.NewBinaryIndividual(5),
-	}
+	popBuilder := NewPopulationBuilder()
+	fitnessCalc := fitness.FitnessCalculatorFactory(fitness.FitnessSetupInformation{GenomeType: individual.BitStringGenome})
+	suite.population = popBuilder.BuildPopulation(10, individual.BitStringGenome,
+		func() individual.Evolvable { return individual.NewBinaryIndividual(5) }, fitnessCalc)
 	suite.selector = &MockSelector{}
 	suite.metricsChan = make(chan metrics.GenerationMetrics, 10)
 	suite.cmdChan = make(chan EvolutionCommand, 10)
-	suite.fitnessCalculator = fitness.FitnessCalculatorFactory(fitness.FitnessSetupInformation{GenomeType: individual.BitStringGenome})
+	suite.fitnessCalculator = fitnessCalc
 	suite.engine = NewEvolutionEngine(suite.population, suite.selector, suite.metricsChan, suite.cmdChan, suite.fitnessCalculator, individual.CrossoverInformation{}, individual.MutateInformation{})
 }
 
@@ -70,8 +70,8 @@ func (suite *EvolutionEngineTestSuite) TestEvolutionEngine_Start_GIVEN_running_e
 	parent1 := individual.NewBinaryIndividual(5)
 	parent2 := individual.NewBinaryIndividual(5)
 	// Set up multiple expectations since processGeneration may be called
-	suite.selector.On("Select", suite.population).Return(parent1).Maybe()
-	suite.selector.On("Select", suite.population).Return(parent2).Maybe()
+	suite.selector.On("Select", suite.population.GetPopulation()).Return(parent1).Maybe()
+	suite.selector.On("Select", suite.population.GetPopulation()).Return(parent2).Maybe()
 
 	cmd := EvolutionCommand{
 		Type:            CmdStartGeneration,
@@ -130,13 +130,13 @@ func (suite *EvolutionEngineTestSuite) TestEvolutionEngine_GetPopulation_GIVEN_p
 
 func (suite *EvolutionEngineTestSuite) TestPopulationBuilder_BuildPopulation_GIVEN_size_genome_size_WHEN_build_THEN_population_created() {
 	builder := NewPopulationBuilder()
-	population := builder.BuildPopulation(3, func() individual.Evolvable {
+	population := builder.BuildPopulation(3, individual.BitStringGenome, func() individual.Evolvable {
 		return individual.NewBinaryIndividual(5)
 	}, suite.fitnessCalculator)
 
-	assert.Len(suite.T(), population, 3)
-	for _, ind := range population {
-		binInd, ok := ind.(*individual.BinaryIndividual)
+	assert.Equal(suite.T(), population.Count(), 3)
+	for index := range population.Count() {
+		binInd, ok := population.Get(index).(*individual.BinaryIndividual)
 		assert.True(suite.T(), ok)
 		assert.Len(suite.T(), binInd.Genome, 5)
 	}

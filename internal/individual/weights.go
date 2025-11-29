@@ -11,7 +11,7 @@ type WeightsIndividual struct {
 	fitness float64
 }
 
-func newWeightsIndividual(height int, width int) *WeightsIndividual {
+func NewWeightsIndividual(height int, width int) *WeightsIndividual {
 	Weights := mat.NewDense(height, width, nil)
 	for i := range height {
 		for j := range make([]int, width) {
