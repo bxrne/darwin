@@ -1,3 +1,4 @@
+// Individual package defines the Evolvable interface and related types for individuals to be evolved
 package individual
 
 // Evolvable represents an individual that can evolve through genetic operations
