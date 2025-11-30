@@ -152,7 +152,7 @@ func (ati *ActionTreeIndividual) MultiPointCrossover(i2 Evolvable, crossoverInfo
 	return child1, child2
 }
 
-// NewActionTreeIndividual creates a new ActionTreeIndividual
+// NewActionTreeIndividual creates a new ActionTreeIndividual with provided trees
 func NewActionTreeIndividual(actions []string, numInputs int, initialTrees map[string]*Tree) *ActionTreeIndividual {
 	weights := mat.NewDense(len(actions), numInputs, nil)
 	// Initialize weights to zero
@@ -166,4 +166,17 @@ func NewActionTreeIndividual(actions []string, numInputs int, initialTrees map[s
 		Weights: weights,
 		fitness: 0.0,
 	}
+}
+
+// NewRandomActionTreeIndividual creates a new ActionTreeIndividual with random trees
+func NewRandomActionTreeIndividual(actions []string, numInputs int, maxDepth int, operands []string, variables []string, terminals []string) *ActionTreeIndividual {
+	trees := make(map[string]*Tree)
+
+	// Create random tree for each action
+	for _, action := range actions {
+		tree := NewRandomTree(maxDepth, operands, variables, terminals)
+		trees[action] = tree
+	}
+
+	return NewActionTreeIndividual(actions, numInputs, trees)
 }
