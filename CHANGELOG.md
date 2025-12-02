@@ -1,3 +1,11 @@
+## [1.12.2](https://github.com/bxrne/darwin/compare/v1.12.1...v1.12.2) (2025-12-02)
+
+
+### Reverts
+
+* Revert "fix(individual): Culled params from new random ATI" ([b143aba](https://github.com/bxrne/darwin/commit/b143aba54617218caa65ae0af1eb5f3289dd02b3))
+* Revert "fix(demo, individual): Fix calls to Random ATI init" ([22410da](https://github.com/bxrne/darwin/commit/22410da20e7260abf0ad2d18ed828c723bd9b056))
+
 ## [1.12.1](https://github.com/bxrne/darwin/compare/v1.12.0...v1.12.1) (2025-12-02)
 
 
