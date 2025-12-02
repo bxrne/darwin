@@ -110,14 +110,14 @@ func NewActionTreeIndividual(actions []string, numInputs int, initialTrees map[s
 }
 
 // NewRandomActionTreeIndividual creates a new ActionTreeIndividual with random trees
-func NewRandomActionTreeIndividual(numInputs int, maxDepth int, operands []string, variables []string, terminals []string) *ActionTreeIndividual {
+func NewRandomActionTreeIndividual(actions []string, numInputs int, maxDepth int, operands []string, variables []string, terminals []string) *ActionTreeIndividual {
 	trees := make(map[string]*Tree)
 
 	// Create random tree for each action
-	for _, action := range variables {
+	for _, action := range actions {
 		tree := NewRandomTree(maxDepth, operands, variables, terminals)
 		trees[action] = tree
 	}
 
-	return NewActionTreeIndividual(variables, numInputs, trees)
+	return NewActionTreeIndividual(actions, numInputs, trees)
 }
