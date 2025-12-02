@@ -38,7 +38,7 @@ func NewActionTreeFitnessCalculator(serverAddr string, opponentType string, acti
 func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.Evolvable) {
 	wi, wiok := evolvable.(*individual.WeightsIndividual)
 	at, atok := evolvable.(*individual.ActionTreeIndividual)
-	if !wiok && atok {
+	if !wiok && !atok {
 		logmgr.Error("Expected ActionTreeIndividual or weightsIndividual", logmgr.Field("type", fmt.Sprintf("%T", evolvable)))
 		evolvable.SetFitness(0.0)
 		return

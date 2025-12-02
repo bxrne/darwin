@@ -1,8 +1,6 @@
 package individual
 
 import (
-	"fmt"
-
 	"github.com/bxrne/darwin/internal/rng"
 	"gonum.org/v1/gonum/mat"
 )

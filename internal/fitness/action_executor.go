@@ -191,7 +191,7 @@ func (ae *ActionExecutor) applyOperator(operator string, left, right float64) (f
 }
 
 // ExecuteActionTreesWithSoftmax evaluates all action trees with given inputs and returns selected action using softmax
-func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *individual.ActionTreeIndividual, inputs []float64) ([]float64, []float64, error) {
+func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *individual.ActionTreeIndividual, weights *individual.WeightsIndividual, inputs []float64) ([]float64, []float64, error) {
 	if len(inputs) != ae.numInputs {
 		return nil, nil, fmt.Errorf("expected %d inputs, got %d", ae.numInputs, len(inputs))
 	}
@@ -214,8 +214,8 @@ func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *in
 	}
 
 	// Apply weights matrix to get final action scores
-	weights := actionTreeIndividual.Weights
-	r, c := weights.Dims()
+
+	r, c := weights.Weights.Dims()
 	if r != len(ae.actions) || c != len(inputs) {
 		return nil, nil, fmt.Errorf("weights matrix dimensions mismatch: expected %dx%d, got %dx%d",
 			len(ae.actions), len(inputs), r, c)
@@ -226,7 +226,7 @@ func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *in
 	for actionIdx := range ae.actions {
 		score := 0.0
 		for inputIdx := range inputs {
-			score += weights.At(actionIdx, inputIdx) * inputs[inputIdx]
+			score += weights.Weights.At(actionIdx, inputIdx) * inputs[inputIdx]
 		}
 		finalScores[actionIdx] = score + actionOutputs[actionIdx]
 	}
