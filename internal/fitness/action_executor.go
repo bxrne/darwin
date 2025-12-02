@@ -250,41 +250,38 @@ func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *in
 	}
 
 	// Create the 5-element action array based on which tree was selected
+	// The action array always has 5 components regardless of number of actions
 	selectedAction := make([]float64, 5)
+
+	// Define clamping ranges for each of the 5 action components
+	componentRanges := [][2]float64{
+		{0.0, 1.0},  // pass: [0,1]
+		{0.0, 17.0}, // cell_i: [0,17]
+		{0.0, 21.0}, // cell_j: [0,21]
+		{0.0, 3.0},  // direction: [0,3]
+		{0.0, 1.0},  // split: [0,1]
+	}
 
 	// Generate action components where selected tree determines the primary action
 	// and other components are set to reasonable defaults
-	switch selectedActionIdx {
-	case 0: // pass decision tree selected
-		selectedAction[0] = math.Max(0.0, math.Min(1.0, rawComponent)) // Clamp to [0,1]
-		selectedAction[1] = 0.0                                        // default cell_i
-		selectedAction[2] = 0.0                                        // default cell_j
-		selectedAction[3] = 0.0                                        // default direction
-		selectedAction[4] = 0.0                                        // default split
-	case 1: // cell_i decision tree selected
-		selectedAction[0] = 0.0                                                         // default pass
-		selectedAction[1] = math.Max(0.0, math.Min(17.0, math.Mod(rawComponent, 18.0))) // Clamp to [0,17]
-		selectedAction[2] = 0.0                                                         // default cell_j
-		selectedAction[3] = 0.0                                                         // default direction
-		selectedAction[4] = 0.0                                                         // default split
-	case 2: // cell_j decision tree selected
-		selectedAction[0] = 0.0                                                         // default pass
-		selectedAction[1] = 0.0                                                         // default cell_i
-		selectedAction[2] = math.Max(0.0, math.Min(21.0, math.Mod(rawComponent, 22.0))) // Clamp to [0,21]
-		selectedAction[3] = 0.0                                                         // default direction
-		selectedAction[4] = 0.0                                                         // default split
-	case 3: // direction decision tree selected
-		selectedAction[0] = 0.0                                                       // default pass
-		selectedAction[1] = 0.0                                                       // default cell_i
-		selectedAction[2] = 0.0                                                       // default cell_j
-		selectedAction[3] = math.Max(0.0, math.Min(3.0, math.Mod(rawComponent, 4.0))) // Clamp to [0,3]
-		selectedAction[4] = 0.0                                                       // default split
-	case 4: // split decision tree selected
-		selectedAction[0] = 0.0                                        // default pass
-		selectedAction[1] = 0.0                                        // default cell_i
-		selectedAction[2] = 0.0                                        // default cell_j
-		selectedAction[3] = 0.0                                        // default direction
-		selectedAction[4] = math.Max(0.0, math.Min(1.0, rawComponent)) // Clamp to [0,1]
+	// Map the selected action index to one of the 5 components using modulo
+	componentIdx := selectedActionIdx % 5
+
+	for i := 0; i < 5; i++ {
+		if i == componentIdx {
+			// Apply clamping for the selected component
+			minVal, maxVal := componentRanges[i][0], componentRanges[i][1]
+
+			// Apply appropriate clamping based on component type
+			if i == 0 || i == 4 { // pass and split: simple clamping
+				selectedAction[i] = math.Max(minVal, math.Min(maxVal, rawComponent))
+			} else { // cell_i, cell_j, direction: clamping with modulo for range wrapping
+				selectedAction[i] = math.Max(minVal, math.Min(maxVal, math.Mod(rawComponent, maxVal+1.0)))
+			}
+		} else {
+			// Set non-selected components to defaults
+			selectedAction[i] = 0.0
+		}
 	}
 
 	return selectedAction, probabilities, nil
