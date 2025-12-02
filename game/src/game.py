@@ -6,6 +6,7 @@ import logging
 from typing import Dict, Any, Optional, Tuple
 from generals.agents import RandomAgent, ExpanderAgent, Agent
 from generals.envs import PettingZooGenerals
+from generals.core.rewards import FrequentAssetRewardFn
 
 
 class Game:
@@ -39,7 +40,8 @@ class Game:
         # Initialize environment
         self.env = PettingZooGenerals(
             agents=self.agent_names,
-            render_mode=render_mode
+            render_mode=render_mode,
+            reward_fn=FrequentAssetRewardFn
         )
 
         self.observations = None
