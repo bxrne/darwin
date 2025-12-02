@@ -1,3 +1,10 @@
+## [1.12.4](https://github.com/bxrne/darwin/compare/v1.12.3...v1.12.4) (2025-12-02)
+
+
+### Bug Fixes
+
+* fix callers to New ATI ([eb9d7a3](https://github.com/bxrne/darwin/commit/eb9d7a33c0bc766a322eebaa1dd0651112b5e902))
+
 ## [1.12.3](https://github.com/bxrne/darwin/compare/v1.12.2...v1.12.3) (2025-12-02)
 
 
