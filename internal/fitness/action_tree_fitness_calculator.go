@@ -38,7 +38,11 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable *individual.
 
 	// Create TCP client for this evaluation
 	client := NewTCPClient(atfc.serverAddr)
-	defer client.Disconnect()
+	defer func() {
+		if err := client.Disconnect(); err != nil {
+			logmgr.Error("Failed to disconnect client", logmgr.Field("error", err))
+		}
+	}()
 
 	// Connect to server
 	err := client.Connect()
@@ -47,7 +51,11 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable *individual.
 		(*evolvable).SetFitness(0.0)
 		return
 	}
-	defer client.Disconnect()
+	defer func() {
+		if err := client.Disconnect(); err != nil {
+			logmgr.Error("Failed to disconnect client", logmgr.Field("error", err))
+		}
+	}()
 
 	// Small delay to ensure connection is stable
 	time.Sleep(100 * time.Millisecond)
@@ -136,7 +144,7 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, individual 
 }
 
 // extractInputs extracts numeric inputs from observation data
-func (atfc *ActionTreeFitnessCalculator) extractInputs(observation map[string]interface{}) []float64 {
+func (atfc *ActionTreeFitnessCalculator) extractInputs(observation map[string]any) []float64 {
 	inputs := make([]float64, 4) // x, y, z, w (max 4 inputs)
 
 	// Try to extract common input fields
