@@ -51,7 +51,7 @@ func (wi *WeightsIndividual) GetFitness() float64 {
 	return wi.fitness
 }
 
-func (wi *WeightsIndividual) Clone() Evolvable {
+func (wi WeightsIndividual) Clone() Evolvable {
 
 	// Clone Weights
 	r, c := wi.Weights.Dims()
