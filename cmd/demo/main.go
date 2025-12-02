@@ -21,7 +21,7 @@ func main() {
 	variables := observations // trees use all observations
 	terminals := []string{"0", "1", "2", "3", "4", "5"}
 
-	ati := individual.NewRandomActionTreeIndividual(len(observations), 3, operands, variables, terminals)
+	ati := individual.NewRandomActionTreeIndividual(actions, len(observations), 3, operands, variables, terminals)
 
 	fmt.Println("\nActionTreeIndividual")
 	fmt.Printf("move_east_tree=%s\n", ati.Trees["move_east"].Describe())
