@@ -38,14 +38,15 @@ func TestNewActionTreeIndividual_GIVEN_actions_and_trees_WHEN_created_THEN_has_c
 }
 
 func TestNewRandomActionTreeIndividual_GIVEN_parameters_WHEN_created_THEN_has_random_trees(t *testing.T) {
-	variables := []string{"action1", "action2"}
+	actions := []string{"action1", "action2"}
 	numInputs := 3
 	maxDepth := 2
 	operands := []string{"+", "-"}
+	variables := []string{"x", "y"}
 	terminals := []string{"1", "2"}
 
 	// Create ActionTreeIndividual with random trees
-	ati := individual.NewRandomActionTreeIndividual(numInputs, maxDepth, operands, variables, terminals)
+	ati := individual.NewRandomActionTreeIndividual(actions, numInputs, maxDepth, operands, variables, terminals)
 
 	// Verify structure
 	assert.NotNil(t, ati)
@@ -62,15 +63,16 @@ func TestNewRandomActionTreeIndividual_GIVEN_parameters_WHEN_created_THEN_has_ra
 }
 
 func TestNewRandomActionTreeIndividual_GIVEN_same_parameters_WHEN_created_multiple_THEN_different_trees(t *testing.T) {
-	variables := []string{"action1"}
+	actions := []string{"action1"}
 	numInputs := 2
 	maxDepth := 2
 	operands := []string{"+", "-"}
+	variables := []string{"x"}
 	terminals := []string{"1", "2"}
 
 	// Create two individuals with same parameters
-	ati1 := individual.NewRandomActionTreeIndividual(numInputs, maxDepth, operands, variables, terminals)
-	ati2 := individual.NewRandomActionTreeIndividual(numInputs, maxDepth, operands, variables, terminals)
+	ati1 := individual.NewRandomActionTreeIndividual(actions, numInputs, maxDepth, operands, variables, terminals)
+	ati2 := individual.NewRandomActionTreeIndividual(actions, numInputs, maxDepth, operands, variables, terminals)
 
 	// They should have different trees (randomness)
 	tree1Desc := ati1.Trees["action1"].Describe()
@@ -82,13 +84,14 @@ func TestNewRandomActionTreeIndividual_GIVEN_same_parameters_WHEN_created_multip
 }
 
 func TestActionTreeIndividual_Clone_GIVEN_individual_WHEN_cloned_THEN_deep_copy(t *testing.T) {
-	variables := []string{"move_east", "move_west"}
+	actions := []string{"move_east", "move_west"}
 	numInputs := 2
 	operands := []string{"+"}
+	variables := []string{"x"}
 	terminals := []string{"1"}
 
 	// Create original
-	original := individual.NewRandomActionTreeIndividual(numInputs, 2, operands, variables, terminals)
+	original := individual.NewRandomActionTreeIndividual(actions, numInputs, 2, operands, variables, terminals)
 	original.SetFitness(42.0)
 
 	// Clone it
