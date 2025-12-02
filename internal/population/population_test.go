@@ -51,7 +51,6 @@ func TestPopulationBuilder_BuildPopulation_GIVEN_various_genome_types_WHEN_build
 			initFunc: func() individual.Evolvable {
 				return individual.NewActionTreeIndividual(
 					[]string{"move", "jump", "turn"}, // actions
-					3,                                // numInputs
 					map[string]*individual.Tree{ // initialTrees
 						"move": individual.NewRandomTree(3,
 							[]string{"+", "-", "*"},
