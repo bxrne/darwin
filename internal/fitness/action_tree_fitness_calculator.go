@@ -22,12 +22,12 @@ type ActionTreeFitnessCalculator struct {
 }
 
 // NewActionTreeFitnessCalculator creates a new action tree fitness calculator
-func NewActionTreeFitnessCalculator(serverAddr string, opponentType string, actions []string, numInputs int, maxSteps int, populations []*[]individual.Evolvable, selectionPercentage float64) *ActionTreeFitnessCalculator {
+func NewActionTreeFitnessCalculator(serverAddr string, opponentType string, actions []string, maxSteps int, populations []*[]individual.Evolvable, selectionPercentage float64) *ActionTreeFitnessCalculator {
 	return &ActionTreeFitnessCalculator{
 		serverAddr:           serverAddr,
 		opponentType:         opponentType,
 		maxSteps:             maxSteps,
-		actionExecutor:       NewActionExecutor(actions, numInputs),
+		actionExecutor:       NewActionExecutor(actions),
 		weightsPopulation:    populations[0],
 		actionTreePopulation: populations[1],
 		selectionPercentage:  selectionPercentage,

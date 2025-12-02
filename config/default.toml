@@ -23,8 +23,8 @@ enabled = false
 max_depth = 8
 initial_depth = 2
 operand_set = ["+", "-", "*", "/", ">", "<", "=", "%"]
-variable_set = ["x", "y"]
-terminal_set = ["1.0", "2.0", "3.0"]
+variable_set = ["armies","generals","cities","mountains","neutral_cells","owned_cells","opponent_cells","fog_cells","structures_in_fog","owned_land_count","owned_army_count","opponent_land_count","opponent_army_count","timestep","priority"]
+terminal_set = ["1.0"]
 
 [grammar_tree]
 enabled = false
@@ -32,11 +32,16 @@ genome_size = 20
 
 [action_tree]
 enabled = true
-actions = ["move", "turn", "jump"]
-num_inputs = 2
-server_addr = "localhost:5000"
 opponent_type = "random"
 max_steps = 500
+actions = ["Pass", "Cell_i", "Cell_j", "Direction", "Split"]
+max_action_size = 5
+weights_count = 20
+weights_column_count = 12
+server_addr = "127.0.0.1:8080"
+train_weights_first = false
+fitness_selection_percentage = 0.25
+switch_training_target_step =10
 
 [metrics]
 csv_enabled = true

@@ -11,19 +11,19 @@ type ActionTreeAndWeightsPopulation struct {
 	isTrainingWeights bool
 }
 
-func NewActionTreeAndWeightsPopulation(size int, creator func() individual.Evolvable) *ActionTreeAndWeightsPopulation {
-	actionTreePopulation := make([]individual.Evolvable, size)
-	weightsPopulation := make([]individual.Evolvable, size)
-	for i := range size {
-		trees := creator()
-		realTree := trees.(*individual.ActionTreeIndividual)
-		actionTreePopulation[i] = realTree
-		weightsPopulation[i] = individual.NewWeightsIndividual(10, 10)
+func NewActionTreeAndWeightsPopulation(populationInfo *PopulationInfo, creator func() individual.Evolvable) *ActionTreeAndWeightsPopulation {
+	actionTreePopulation := make([]individual.Evolvable, populationInfo.Size)
+	weightsPopulation := make([]individual.Evolvable, populationInfo.weightsCount)
+	for i := range populationInfo.Size {
+		actionTreePopulation[i] = creator()
+	}
 
+	for i := range populationInfo.weightsCount {
+		weightsPopulation[i] = individual.NewWeightsIndividual(populationInfo.maxNumInputs, populationInfo.numColumns)
 	}
 
 	return &ActionTreeAndWeightsPopulation{actionTrees: actionTreePopulation,
-		Weights: weightsPopulation}
+		Weights: weightsPopulation, isTrainingWeights: populationInfo.trainWeightsFirst}
 }
 
 func (at *ActionTreeAndWeightsPopulation) Get(index int) individual.Evolvable {

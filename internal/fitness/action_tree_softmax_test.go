@@ -81,7 +81,7 @@ func TestExecuteActionTreesWithSoftmax_Deterministic(t *testing.T) {
 
 			// Create executor
 			actions := []string{"action_0", "action_1", "action_2", "action_3", "action_4"}
-			executor := fitness.NewActionExecutor(actions, len(tc.inputs))
+			executor := fitness.NewActionExecutor(actions)
 
 			// Execute softmax
 			selectedAction, probabilities, err := executor.ExecuteActionTreesWithSoftmax(actionIndividual, tc.weights, tc.inputs)
@@ -172,7 +172,7 @@ func TestExecuteActionTreesWithSoftmax_ErrorCases(t *testing.T) {
 			actionIndividual.SetFitness(0.0)
 
 			actions := []string{"action_0", "action_1", "action_2", "action_3", "action_4"}
-			executor := fitness.NewActionExecutor(actions, len(tc.inputs))
+			executor := fitness.NewActionExecutor(actions)
 
 			_, _, err := executor.ExecuteActionTreesWithSoftmax(actionIndividual, tc.weights, tc.inputs)
 

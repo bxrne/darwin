@@ -47,7 +47,8 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	grammar := individual.CreateGrammar(config.Tree.TerminalSet, config.Tree.VariableSet, config.Tree.OperandSet)
 
 	popBuilder := population.NewPopulationBuilder()
-	population := popBuilder.BuildPopulation(config.Evolution.PopulationSize, populationType, func() individual.Evolvable {
+	popinfo := population.NewPopulationInfo(config, populationType)
+	population := popBuilder.BuildPopulation(&popinfo, func() individual.Evolvable {
 		switch populationType {
 		case individual.BitStringGenome:
 			return individual.NewBinaryIndividual(config.BitString.GenomeSize)
