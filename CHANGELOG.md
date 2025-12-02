@@ -1,3 +1,27 @@
+## [1.12.0](https://github.com/bxrne/darwin/compare/v1.11.0...v1.12.0) (2025-12-02)
+
+
+### Features
+
+* **plumbing:** Basic plumbing implementation for two populations ([7e5a9c4](https://github.com/bxrne/darwin/commit/7e5a9c4d732aff56abfd7a31fce3b2f563d1f3f7))
+* **test:** Add new population tests ([f4d618c](https://github.com/bxrne/darwin/commit/f4d618cbb603878a6a5754f56e2ea27bcd7f4028))
+* **weigths:** Add crossover and mutate to weights Individual ([873453f](https://github.com/bxrne/darwin/commit/873453ff957d32fd91988d88bed22f0544b651cf))
+* **wrapper:** Create action tree and weigths wrapper for init and running WIP ([b0bb9f7](https://github.com/bxrne/darwin/commit/b0bb9f7113d2503c6e4f94f1a1f6d161088bcaeb))
+
+
+### Bug Fixes
+
+* **darwin, config:** action tree ckpt ([2f37a71](https://github.com/bxrne/darwin/commit/2f37a71172c58efcef348d772796be2322e9326e))
+* Got further ([1c4c40b](https://github.com/bxrne/darwin/commit/1c4c40b17881beb876539f9fac4c4885187891b9))
+* **population:** GetPop no longer uses combined on return, CalcFit does not operate on nils now ([8993f9a](https://github.com/bxrne/darwin/commit/8993f9afe596ce760e9aa4456f9482f3b44ed732))
+* **tests:** Make tests compliant with new weights contract ([3963cb5](https://github.com/bxrne/darwin/commit/3963cb564ee107d06a0e17de808f60a6c9f98264))
+* **test:** Some tests fixed many more broken ([8db7ae9](https://github.com/bxrne/darwin/commit/8db7ae9578f4ff066bdbcad0bf206a84131e0c23))
+
+
+### Code Refactoring
+
+* **unused code:** Remove unused code ([6dac888](https://github.com/bxrne/darwin/commit/6dac8889779b4b3d694fe2380d7fd61634a0227b))
+
 ## [1.11.0](https://github.com/bxrne/darwin/compare/v1.10.0...v1.11.0) (2025-12-02)
 
 
