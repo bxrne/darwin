@@ -1,3 +1,10 @@
+## [1.12.3](https://github.com/bxrne/darwin/compare/v1.12.2...v1.12.3) (2025-12-02)
+
+
+### Bug Fixes
+
+* **individual:** Ati create remove unneeded vars ([e9d7d47](https://github.com/bxrne/darwin/commit/e9d7d47a35c419febab3bc44eb28980b48ae89fa))
+
 ## [1.12.2](https://github.com/bxrne/darwin/compare/v1.12.1...v1.12.2) (2025-12-02)
 
 
