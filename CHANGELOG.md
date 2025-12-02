@@ -1,3 +1,32 @@
+## [1.11.0](https://github.com/bxrne/darwin/compare/v1.10.0...v1.11.0) (2025-12-02)
+
+
+### Features
+
+* **action_tree:** Added cfg and tests ([d3e1147](https://github.com/bxrne/darwin/commit/d3e11471b0608b8082adb30c7d7ea6b0d070176b))
+* **config, fitness:** Action tree softmax attempt ([0340e6f](https://github.com/bxrne/darwin/commit/0340e6fa42ebf543ffcf342f5f295c88705779c3))
+* **fitness:** add action tree tcp client and receive obs for fitness ([de7496c](https://github.com/bxrne/darwin/commit/de7496c5bb0325d240fb743af0daab8727b6b17a))
+
+
+### Bug Fixes
+
+* **action_tree.go:** Add mutate and crossover ([1166336](https://github.com/bxrne/darwin/commit/1166336b18ec880fe2c4b55ca6f5e03d4cbe58ba))
+* **cfg:** add tcp conn field ([55ab351](https://github.com/bxrne/darwin/commit/55ab35140708034e9d76db94641de7432423f2a9))
+* **cmd, cfg:** Fix config test and call to RunEvo ([b9dd0f1](https://github.com/bxrne/darwin/commit/b9dd0f1c90f56e89282ec5fc77ccc34106f44e3f))
+* **darwin, config:** action tree ckpt ([a3d4c45](https://github.com/bxrne/darwin/commit/a3d4c45ca939672c6fa3a600c655462afc9469de))
+* **fitness:** cleanup and add better tests ([e8c98bf](https://github.com/bxrne/darwin/commit/e8c98bfc0bacf74dd05cb3e8efa26a4d3bf97a8c))
+* **fitness:** remove switch for clamping ([08a5a5d](https://github.com/bxrne/darwin/commit/08a5a5d09324ed3f6702bf7c8542cf598470d357))
+* Got further ([d2451c3](https://github.com/bxrne/darwin/commit/d2451c33db5faf3e053d78a6f7a9b055af8d3a06))
+* **individual:** Fix create of ATIs to use vars as obs ([be2aff7](https://github.com/bxrne/darwin/commit/be2aff73a0ea080843ffbec4c227f050036703e3))
+
+
+### Miscellaneous Chores
+
+* **cmd, individual:** Add start of action tree with wm ([48d1b9a](https://github.com/bxrne/darwin/commit/48d1b9ac70b799f35d5a75fa7de51752bc1152b7))
+* **cmd/demo:** Checkpointing a stubbed imp of ATI evolving ([2d41e29](https://github.com/bxrne/darwin/commit/2d41e295adc150f9acf5324e293087e489daf68e))
+* **evolvable.go:** add package comment to silence gopls ([27371e0](https://github.com/bxrne/darwin/commit/27371e0095d75c95a0a1ed6bdcdf0e8ae54787c7))
+* **fitness:** fix linting by checking client disconn err ([03e126e](https://github.com/bxrne/darwin/commit/03e126e0296c99e41982db15557893618f978da3))
+
 ## [1.10.0](https://github.com/bxrne/darwin/compare/v1.9.0...v1.10.0) (2025-11-21)
 
 
