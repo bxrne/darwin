@@ -1,3 +1,10 @@
+## [1.13.0](https://github.com/bxrne/darwin/compare/v1.12.4...v1.13.0) (2025-12-02)
+
+
+### Features
+
+* **game:** Use frequent asset reward fn in game ([357abdf](https://github.com/bxrne/darwin/commit/357abdfbd40280d4d5542703856672896683fe5d))
+
 ## [1.12.4](https://github.com/bxrne/darwin/compare/v1.12.3...v1.12.4) (2025-12-02)
 
 
