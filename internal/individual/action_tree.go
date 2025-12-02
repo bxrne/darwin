@@ -2,7 +2,6 @@ package individual
 
 import (
 	"github.com/bxrne/darwin/internal/rng"
-	"gonum.org/v1/gonum/mat"
 )
 
 // ActionTreeIndividual implements an individual composed of action trees and a weights matrix for action selection
@@ -95,14 +94,7 @@ func (ati *ActionTreeIndividual) MultiPointCrossover(i2 Evolvable, crossoverInfo
 }
 
 // NewActionTreeIndividual creates a new ActionTreeIndividual with provided trees
-func NewActionTreeIndividual(actions []string, numInputs int, initialTrees map[string]*Tree) *ActionTreeIndividual {
-	weights := mat.NewDense(len(actions), numInputs, nil)
-	// Initialize weights to zero
-	for i := range actions {
-		for j := range make([]int, numInputs) {
-			weights.Set(i, j, 0.0)
-		}
-	}
+func NewActionTreeIndividual(actions []string, initialTrees map[string]*Tree) *ActionTreeIndividual {
 	return &ActionTreeIndividual{
 		Trees:   initialTrees,
 		fitness: 0.0,
@@ -119,5 +111,5 @@ func NewRandomActionTreeIndividual(actions []string, maxDepth int, operands []st
 		trees[action] = tree
 	}
 
-	return NewActionTreeIndividual(actions, len(variables), trees)
+	return NewActionTreeIndividual(actions, trees)
 }

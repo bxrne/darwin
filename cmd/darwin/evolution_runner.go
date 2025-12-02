@@ -68,7 +68,7 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 				)
 				initialTrees[action] = tree
 			}
-			result := individual.NewActionTreeIndividual(config.ActionTree.Actions, config.ActionTree.NumInputs, initialTrees)
+			result := individual.NewActionTreeIndividual(config.ActionTree.Actions, initialTrees)
 			fmt.Printf("ActionTree individual created: %v\n", result != nil)
 			return result
 		default:
