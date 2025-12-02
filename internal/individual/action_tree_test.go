@@ -35,10 +35,6 @@ func TestNewActionTreeIndividual_GIVEN_actions_and_trees_WHEN_created_THEN_has_c
 	assert.Equal(t, tree1, ati.Trees["move_east"])
 	assert.Equal(t, tree2, ati.Trees["move_west"])
 
-	// Verify weights matrix dimensions
-	rows, cols := ati.Weights.Dims()
-	assert.Equal(t, 2, rows) // 2 actions
-	assert.Equal(t, 2, cols) // 2 inputs
 }
 
 func TestNewRandomActionTreeIndividual_GIVEN_parameters_WHEN_created_THEN_has_random_trees(t *testing.T) {
@@ -64,17 +60,6 @@ func TestNewRandomActionTreeIndividual_GIVEN_parameters_WHEN_created_THEN_has_ra
 	assert.NotNil(t, ati.Trees["action1"].Root)
 	assert.NotNil(t, ati.Trees["action2"].Root)
 
-	// Verify weights matrix dimensions
-	rows, cols := ati.Weights.Dims()
-	assert.Equal(t, 2, rows) // 2 actions
-	assert.Equal(t, 3, cols) // 3 inputs
-
-	// Verify weights are initialized to zero
-	for i := 0; i < rows; i++ {
-		for j := 0; j < cols; j++ {
-			assert.Equal(t, 0.0, ati.Weights.At(i, j))
-		}
-	}
 }
 
 func TestNewRandomActionTreeIndividual_GIVEN_same_parameters_WHEN_created_multiple_THEN_different_trees(t *testing.T) {
