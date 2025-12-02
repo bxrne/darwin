@@ -23,9 +23,8 @@ func TestCalculateFitness_GIVEN_valid_binary_individual_WHEN_calculate_fitness_T
 		t.Run(tt.name, func(t *testing.T) {
 			calculator := &fitness.BinaryFitnessCalculator{}
 			ind := &individual.BinaryIndividual{Genome: tt.genome}
-			var evolvable individual.Evolvable = ind
 
-			calculator.CalculateFitness(&evolvable)
+			calculator.CalculateFitness(ind)
 
 			assert.Equal(t, tt.expectedFitness, ind.Fitness)
 		})

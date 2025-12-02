@@ -26,8 +26,7 @@ func TestCalculateTreeFitness_GIVEN_various_trees_WHEN_calculate_THEN_sets_expec
 			vars := make([]map[string]float64, 1)
 			vars[0] = map[string]float64{"x": 1}
 			fitnessCalc.TestCases = vars
-			var ind individual.Evolvable = tt.tree
-			fitnessCalc.CalculateFitness(&ind)
+			fitnessCalc.CalculateFitness(tt.tree)
 			// Assert fitness is as expected
 			assert.Equal(t, 1, 1)
 		})

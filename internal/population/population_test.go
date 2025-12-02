@@ -1,11 +1,11 @@
-package evolution_test
+package population_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/bxrne/darwin/internal/evolution"
 	"github.com/bxrne/darwin/internal/individual"
+	"github.com/bxrne/darwin/internal/population"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,9 +14,9 @@ import (
 // mock fitness calculator
 type mockFitnessCalc struct{}
 
-func (f *mockFitnessCalc) CalculateFitness(e *individual.Evolvable) {
+func (f *mockFitnessCalc) CalculateFitness(e individual.Evolvable) {
 	// Assign deterministic fitness for tests
-	(*e).SetFitness(42.0)
+	(e).SetFitness(42.0)
 }
 
 func (f *mockFitnessCalc) SetupEvalFunction(expr string, vars []string, c int) {}
@@ -79,12 +79,12 @@ func TestPopulationBuilder_BuildPopulation_GIVEN_various_genome_types_WHEN_build
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			pb := evolution.NewPopulationBuilder()
+			pb := population.NewPopulationBuilder()
 
 			fit := &mockFitnessCalc{}
 
-			pop := pb.BuildPopulation(tt.size, tt.genomeType, tt.initFunc, fit)
-
+			pop := pb.BuildPopulation(tt.size, tt.genomeType, tt.initFunc)
+			pop.CalculateFitnesses(fit)
 			// -- Validate population exists --
 			assert.NotNil(t, pop, "Returned population should not be nil")
 			fmt.Println(pop.GetPopulation())
@@ -92,11 +92,11 @@ func TestPopulationBuilder_BuildPopulation_GIVEN_various_genome_types_WHEN_build
 
 			// -- Validate type correctness --
 			if tt.genomeType == individual.ActionTreeGenome {
-				_, ok := pop.(*evolution.ActionTreeAndWeightsPopulation)
+				_, ok := pop.(*population.ActionTreeAndWeightsPopulation)
 				assert.True(t, ok, "Expected ActionTreeAndWeightsPopulation for ActionTreeGenome")
 				return // Other checks don't apply to action-tree path
 			} else {
-				_, ok := pop.(*evolution.GenericPopulation)
+				_, ok := pop.(*population.GenericPopulation)
 				assert.True(t, ok, "Expected GenericPopulation for GenericGenome")
 			}
 

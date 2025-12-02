@@ -10,6 +10,7 @@ import (
 	"github.com/bxrne/darwin/internal/fitness"
 	"github.com/bxrne/darwin/internal/individual"
 	"github.com/bxrne/darwin/internal/metrics"
+	"github.com/bxrne/darwin/internal/population"
 	"github.com/bxrne/darwin/internal/rng"
 	"github.com/bxrne/darwin/internal/selection"
 )
@@ -44,10 +45,8 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	populationType := getGenomeType(config)
 	fmt.Printf("Population type: %v\n", populationType)
 	grammar := individual.CreateGrammar(config.Tree.TerminalSet, config.Tree.VariableSet, config.Tree.OperandSet)
-	fitnessInfo := fitness.GenerateFitnessInfoFromConfig(config, populationType, grammar)
-	fitnessCalculator := fitness.FitnessCalculatorFactory(fitnessInfo)
 
-	popBuilder := evolution.NewPopulationBuilder()
+	popBuilder := population.NewPopulationBuilder()
 	population := popBuilder.BuildPopulation(config.Evolution.PopulationSize, populationType, func() individual.Evolvable {
 		switch populationType {
 		case individual.BitStringGenome:
@@ -76,7 +75,13 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 			fmt.Printf("Unknown genome type: %v\n", populationType)
 			return nil
 		}
-	}, fitnessCalculator)
+	})
+
+	fitnessInfo := fitness.GenerateFitnessInfoFromConfig(config, populationType, grammar, population.GetPopulations())
+	fitnessCalculator := fitness.FitnessCalculatorFactory(fitnessInfo)
+
+	population.CalculateFitnesses(fitnessCalculator)
+
 	var selector selection.Selector
 	switch config.Evolution.SelectionType {
 	case "tournament":
@@ -144,5 +149,5 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	metricsStreamer.Stop()
 
 	finalPop := evolutionEngine.GetPopulation()
-	return finalPop.GetPopulation(), metricsComplete, nil
+	return finalPop, metricsComplete, nil
 }

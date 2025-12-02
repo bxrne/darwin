@@ -9,13 +9,14 @@ import (
 	"github.com/bxrne/darwin/internal/fitness"
 	"github.com/bxrne/darwin/internal/individual"
 	"github.com/bxrne/darwin/internal/metrics"
+	"github.com/bxrne/darwin/internal/population"
 	"github.com/bxrne/darwin/internal/rng"
 	"github.com/bxrne/darwin/internal/selection"
 )
 
 // EvolutionEngine manages the evolution process using channels
 type EvolutionEngine struct {
-	population           Population
+	population           population.Population
 	selector             selection.Selector
 	metricsChan          chan<- metrics.GenerationMetrics
 	cmdChan              <-chan EvolutionCommand
@@ -28,7 +29,7 @@ type EvolutionEngine struct {
 
 // NewEvolutionEngine creates a new evolution engine
 func NewEvolutionEngine(
-	population Population,
+	population population.Population,
 	selector selection.Selector,
 	metricsChan chan<- metrics.GenerationMetrics,
 	cmdChan <-chan EvolutionCommand,
@@ -74,14 +75,14 @@ func (ee *EvolutionEngine) Start(ctx context.Context) {
 	}()
 }
 
+// GetPopulation returns the current population
+func (ee *EvolutionEngine) GetPopulation() []individual.Evolvable {
+	return ee.population.GetPopulation()
+}
+
 // Wait blocks until the engine is done
 func (ee *EvolutionEngine) Wait() {
 	<-ee.done
-}
-
-// GetPopulation returns the current population
-func (ee *EvolutionEngine) GetPopulation() Population {
-	return ee.population
 }
 
 func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- individual.Evolvable) {
@@ -95,17 +96,17 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 
 		child1, child2 := parentCopy1.MultiPointCrossover(parentCopy2, &ee.crossoverInformation)
 
-		ee.fitnessCalculator.CalculateFitness(&child1)
-		ee.fitnessCalculator.CalculateFitness(&child2)
+		ee.fitnessCalculator.CalculateFitness(child1)
+		ee.fitnessCalculator.CalculateFitness(child2)
 		out <- child1.Max(child2)
 		return
 	}
 
 	parentCopy1.Mutate(cmd.MutationRate, &ee.mutateInformation)
-	ee.fitnessCalculator.CalculateFitness(&parentCopy1)
+	ee.fitnessCalculator.CalculateFitness(parentCopy1)
 
 	parentCopy2.Mutate(cmd.MutationRate, &ee.mutateInformation)
-	ee.fitnessCalculator.CalculateFitness(&parentCopy2)
+	ee.fitnessCalculator.CalculateFitness(parentCopy2)
 
 	out <- parentCopy1.Max(parentCopy2)
 }
@@ -142,6 +143,7 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 		newPop = append(newPop, ind)
 	}
 	ee.population.SetPopulation(newPop)
+	ee.population.Update(cmd.Generation)
 	duration := time.Since(start)
 	// Calculate and send metrics
 	genMetrics := ee.calculateMetrics(cmd.Generation, duration)

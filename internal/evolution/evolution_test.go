@@ -8,6 +8,7 @@ import (
 	"github.com/bxrne/darwin/internal/fitness"
 	"github.com/bxrne/darwin/internal/individual"
 	"github.com/bxrne/darwin/internal/metrics"
+	"github.com/bxrne/darwin/internal/population"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -25,7 +26,7 @@ func (m *MockSelector) Select(population []individual.Evolvable) individual.Evol
 
 type EvolutionEngineTestSuite struct {
 	suite.Suite
-	population        Population
+	population        population.Population
 	selector          *MockSelector
 	metricsChan       chan metrics.GenerationMetrics
 	cmdChan           chan EvolutionCommand
@@ -34,10 +35,10 @@ type EvolutionEngineTestSuite struct {
 }
 
 func (suite *EvolutionEngineTestSuite) SetupTest() {
-	popBuilder := NewPopulationBuilder()
+	popBuilder := population.NewPopulationBuilder()
 	fitnessCalc := fitness.FitnessCalculatorFactory(fitness.FitnessSetupInformation{GenomeType: individual.BitStringGenome})
 	suite.population = popBuilder.BuildPopulation(10, individual.BitStringGenome,
-		func() individual.Evolvable { return individual.NewBinaryIndividual(5) }, fitnessCalc)
+		func() individual.Evolvable { return individual.NewBinaryIndividual(5) })
 	suite.selector = &MockSelector{}
 	suite.metricsChan = make(chan metrics.GenerationMetrics, 10)
 	suite.cmdChan = make(chan EvolutionCommand, 10)
@@ -123,16 +124,16 @@ func (suite *EvolutionEngineTestSuite) TestEvolutionEngine_Wait_GIVEN_started_en
 }
 
 func (suite *EvolutionEngineTestSuite) TestEvolutionEngine_GetPopulation_GIVEN_population_WHEN_get_THEN_returns_population() {
-	pop := suite.engine.GetPopulation()
+	pop := suite.engine.population.GetPopulation()
 
-	assert.Equal(suite.T(), suite.population, pop)
+	assert.Equal(suite.T(), suite.population.GetPopulation(), pop)
 }
 
 func (suite *EvolutionEngineTestSuite) TestPopulationBuilder_BuildPopulation_GIVEN_size_genome_size_WHEN_build_THEN_population_created() {
-	builder := NewPopulationBuilder()
+	builder := population.NewPopulationBuilder()
 	population := builder.BuildPopulation(3, individual.BitStringGenome, func() individual.Evolvable {
 		return individual.NewBinaryIndividual(5)
-	}, suite.fitnessCalculator)
+	})
 
 	assert.Equal(suite.T(), population.Count(), 3)
 	for index := range population.Count() {

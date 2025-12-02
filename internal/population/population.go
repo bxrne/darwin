@@ -1,4 +1,4 @@
-package evolution
+package population
 
 import (
 	"runtime"
@@ -14,6 +14,8 @@ type Population interface {
 	Update(generation int)
 	SetPopulation(Population []individual.Evolvable)
 	GetPopulation() []individual.Evolvable
+	GetPopulations() []*[]individual.Evolvable
+	CalculateFitnesses(fitnessCalc fitness.FitnessCalculator)
 }
 
 // PopulationBuilder creates initial populations
@@ -25,14 +27,14 @@ func NewPopulationBuilder() *PopulationBuilder {
 }
 
 // BuildPopulation creates a population of binary individuals
-func (pb *PopulationBuilder) BuildPopulation(size int, genomeType individual.GenomeType, creator func() individual.Evolvable, fitnessCalc fitness.FitnessCalculator) Population {
+func (pb *PopulationBuilder) BuildPopulation(size int, genomeType individual.GenomeType, creator func() individual.Evolvable) Population {
 	var wg sync.WaitGroup
 	numWorkers := runtime.NumCPU()
 
 	chunkSize := (size + numWorkers - 1) / numWorkers
 	switch genomeType {
 	case individual.ActionTreeGenome:
-		return newActionTreeAndWeightsPopulation(size, creator)
+		return NewActionTreeAndWeightsPopulation(size, creator)
 	default:
 		population := make([]individual.Evolvable, size)
 		for i := range numWorkers {
@@ -45,7 +47,6 @@ func (pb *PopulationBuilder) BuildPopulation(size int, genomeType individual.Gen
 				defer wg.Done()
 				for j := start; j < end; j++ {
 					population[j] = creator()
-					fitnessCalc.CalculateFitness(&population[j])
 				}
 			}(start, end) // chunk to use
 		}

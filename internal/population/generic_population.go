@@ -1,6 +1,9 @@
-package evolution
+package population
 
-import "github.com/bxrne/darwin/internal/individual"
+import (
+	"github.com/bxrne/darwin/internal/fitness"
+	"github.com/bxrne/darwin/internal/individual"
+)
 
 type GenericPopulation struct {
 	population []individual.Evolvable
@@ -21,7 +24,6 @@ func (gp *GenericPopulation) Count() int {
 }
 
 func (gp *GenericPopulation) Update(generation int) {
-	return
 }
 
 func (gp *GenericPopulation) SetPopulation(population []individual.Evolvable) {
@@ -30,4 +32,14 @@ func (gp *GenericPopulation) SetPopulation(population []individual.Evolvable) {
 
 func (gp *GenericPopulation) GetPopulation() []individual.Evolvable {
 	return gp.population
+}
+
+func (gp *GenericPopulation) GetPopulations() []*[]individual.Evolvable {
+	return nil
+}
+
+func (gp *GenericPopulation) CalculateFitnesses(fitnessCalc fitness.FitnessCalculator) {
+	for _, ind := range gp.population {
+		fitnessCalc.CalculateFitness(ind)
+	}
 }

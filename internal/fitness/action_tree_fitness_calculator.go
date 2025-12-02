@@ -3,6 +3,7 @@ package fitness
 import (
 	"fmt"
 	"math"
+	"sort"
 	"time"
 
 	"github.com/bxrne/darwin/internal/individual"
@@ -11,31 +12,81 @@ import (
 
 // ActionTreeFitnessCalculator implements fitness calculation for ActionTree individuals
 type ActionTreeFitnessCalculator struct {
-	serverAddr     string
-	opponentType   string
-	maxSteps       int
-	actionExecutor *ActionExecutor
+	serverAddr           string
+	opponentType         string
+	maxSteps             int
+	actionExecutor       *ActionExecutor
+	weightsPopulation    *[]individual.Evolvable
+	actionTreePopulation *[]individual.Evolvable
+	selectionPercentage  float64
 }
 
 // NewActionTreeFitnessCalculator creates a new action tree fitness calculator
-func NewActionTreeFitnessCalculator(serverAddr string, opponentType string, actions []string, numInputs int, maxSteps int) *ActionTreeFitnessCalculator {
+func NewActionTreeFitnessCalculator(serverAddr string, opponentType string, actions []string, numInputs int, maxSteps int, populations []*[]individual.Evolvable, selectionPercentage float64) *ActionTreeFitnessCalculator {
 	return &ActionTreeFitnessCalculator{
-		serverAddr:     serverAddr,
-		opponentType:   opponentType,
-		maxSteps:       maxSteps,
-		actionExecutor: NewActionExecutor(actions, numInputs),
+		serverAddr:           serverAddr,
+		opponentType:         opponentType,
+		maxSteps:             maxSteps,
+		actionExecutor:       NewActionExecutor(actions, numInputs),
+		weightsPopulation:    populations[0],
+		actionTreePopulation: populations[1],
+		selectionPercentage:  selectionPercentage,
 	}
 }
 
 // CalculateFitness evaluates the fitness of an ActionTree individual
-func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable *individual.Evolvable) {
-	weightsAndActionIndividual, ok := (*evolvable).(*individual.WeightsAndActionIndividual)
-	if !ok {
-		logmgr.Error("Expected ActionTreeIndividual", logmgr.Field("type", fmt.Sprintf("%T", *evolvable)))
-		(*evolvable).SetFitness(0.0)
+func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.Evolvable) {
+	wi, wiok := evolvable.(*individual.WeightsIndividual)
+	at, atok := evolvable.(*individual.ActionTreeIndividual)
+	if !wiok && atok {
+		logmgr.Error("Expected ActionTreeIndividual or weightsIndividual", logmgr.Field("type", fmt.Sprintf("%T", evolvable)))
+		evolvable.SetFitness(0.0)
 		return
 	}
 
+	if wiok {
+		weightsFitnesses := make([]float64, len(*atfc.weightsPopulation))
+		for _, evolvable := range *atfc.actionTreePopulation {
+			tree, ok := (evolvable).(*individual.ActionTreeIndividual)
+			if !ok {
+				panic("Not action tree in action tree population")
+			}
+			weightsFitnesses = append(weightsFitnesses, atfc.SetupGameAndRun(wi, tree))
+		}
+		weightsCount := int(float64(len(weightsFitnesses)) * atfc.selectionPercentage)
+		sort.Float64s(weightsFitnesses)
+		total_fitness := 0.0
+		for i := range weightsCount {
+			total_fitness = total_fitness + weightsFitnesses[i]
+		}
+		wi.SetFitness(total_fitness / float64(weightsCount))
+		return
+
+	}
+
+	if atok {
+		actionTreeFitnesses := make([]float64, len(*atfc.actionTreePopulation))
+		for _, evolvable := range *atfc.weightsPopulation {
+			weights, ok := (evolvable).(*individual.WeightsIndividual)
+			if !ok {
+				panic("Not action tree in action tree population")
+			}
+			actionTreeFitnesses = append(actionTreeFitnesses, atfc.SetupGameAndRun(weights, at))
+		}
+		actionTreeCount := int(float64(len(actionTreeFitnesses)) * atfc.selectionPercentage)
+		sort.Float64s(actionTreeFitnesses)
+		total_fitness := 0.0
+		for i := range actionTreeCount {
+			total_fitness = total_fitness + actionTreeFitnesses[i]
+		}
+		at.SetFitness(total_fitness / float64(actionTreeCount))
+		return
+
+	}
+
+}
+
+func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.WeightsIndividual, actionTreeInd *individual.ActionTreeIndividual) float64 {
 	// Create TCP client for this evaluation
 	client := NewTCPClient(atfc.serverAddr)
 	defer func() {
@@ -48,8 +99,7 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable *individual.
 	err := client.Connect()
 	if err != nil {
 		logmgr.Error("Failed to connect to game server", logmgr.Field("error", err))
-		(*evolvable).SetFitness(0.0)
-		return
+		panic("FAILED")
 	}
 	defer func() {
 		if err := client.Disconnect(); err != nil {
@@ -64,8 +114,7 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable *individual.
 	connectedResp, err := client.ConnectToGame(atfc.opponentType)
 	if err != nil {
 		logmgr.Error("Failed to connect to game", logmgr.Field("error", err))
-		(*evolvable).SetFitness(0.0)
-		return
+		panic("FAILED")
 	}
 
 	logmgr.Debug("Connected to game",
@@ -73,17 +122,16 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable *individual.
 		logmgr.Field("opponent_id", connectedResp.OpponentID))
 
 	// Play the game
-	fitness := atfc.playGame(client, weightsAndActionIndividual)
-
-	(*evolvable).SetFitness(fitness)
+	fitness := atfc.playGame(client, weightsInd, actionTreeInd)
 
 	logmgr.Debug("Fitness calculated",
 		logmgr.Field("fitness", fitness),
 		logmgr.Field("agent_id", connectedResp.AgentID))
+	return fitness
 }
 
 // playGame plays a single game and returns the fitness score
-func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, individual *individual.WeightsAndActionIndividual) float64 {
+func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd *individual.WeightsIndividual, actionTreeInd *individual.ActionTreeIndividual) float64 {
 	var totalReward float64
 	var survivalTime int
 	var finalScore float64
@@ -116,7 +164,7 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, individual 
 		inputs := atfc.extractInputs(obs.Observation)
 
 		// Execute action trees to get action
-		action, err := atfc.actionExecutor.ExecuteActionTrees(individual.ActionTree, inputs, individual.Weight)
+		action, err := atfc.actionExecutor.ExecuteActionTrees(actionTreeInd, inputs, weightsInd)
 		if err != nil {
 			logmgr.Error("Failed to execute action trees", logmgr.Field("error", err))
 			// Send a default action

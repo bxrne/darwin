@@ -6,23 +6,25 @@ import (
 )
 
 type FitnessCalculator interface {
-	CalculateFitness(evolvable *individual.Evolvable)
+	CalculateFitness(evolvable individual.Evolvable)
 }
 
 type FitnessSetupInformation struct {
-	EvalFunction  string
-	VariableSet   []string
-	GenomeType    individual.GenomeType
-	TestCaseCount int
-	Grammar       map[string]individual.Node
-	ServerAddr    string
-	OpponentType  string
-	MaxSteps      int
-	Actions       []string
-	NumInputs     int
+	EvalFunction                  string
+	VariableSet                   []string
+	GenomeType                    individual.GenomeType
+	TestCaseCount                 int
+	Grammar                       map[string]individual.Node
+	ServerAddr                    string
+	OpponentType                  string
+	MaxSteps                      int
+	Actions                       []string
+	NumInputs                     int
+	Population                    []*[]individual.Evolvable
+	ActionTreeSelectionPercentage float64
 }
 
-func GenerateFitnessInfoFromConfig(config *cfg.Config, genomeType individual.GenomeType, grammar map[string]individual.Node) FitnessSetupInformation {
+func GenerateFitnessInfoFromConfig(config *cfg.Config, genomeType individual.GenomeType, grammar map[string]individual.Node, populations []*[]individual.Evolvable) FitnessSetupInformation {
 	fitnessInfo := FitnessSetupInformation{}
 	fitnessInfo.EvalFunction = config.Fitness.TargetFunction
 	fitnessInfo.GenomeType = genomeType
@@ -37,6 +39,8 @@ func GenerateFitnessInfoFromConfig(config *cfg.Config, genomeType individual.Gen
 		fitnessInfo.MaxSteps = config.ActionTree.MaxSteps
 		fitnessInfo.Actions = config.ActionTree.Actions
 		fitnessInfo.NumInputs = config.ActionTree.NumInputs
+		fitnessInfo.Population = populations
+		fitnessInfo.ActionTreeSelectionPercentage = 0.3
 	}
 
 	return fitnessInfo
@@ -61,6 +65,8 @@ func FitnessCalculatorFactory(info FitnessSetupInformation) FitnessCalculator {
 			info.Actions,
 			info.NumInputs,
 			info.MaxSteps,
+			info.Population,
+			info.ActionTreeSelectionPercentage,
 		)
 		return calc
 	default:

@@ -8,8 +8,8 @@ type GrammarTreeFitnessCalculator struct {
 	Grammar       map[string]individual.Node
 }
 
-func (gtreeCalculator *GrammarTreeFitnessCalculator) CalculateFitness(evolvable *individual.Evolvable) {
-	tree, ok := (*evolvable).(*individual.GrammarTree)
+func (gtreeCalculator *GrammarTreeFitnessCalculator) CalculateFitness(evolvable individual.Evolvable) {
+	tree, ok := evolvable.(*individual.GrammarTree)
 	if !ok {
 		panic("Tree fitness Needs tree structure")
 	}
