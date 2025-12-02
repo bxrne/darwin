@@ -7,7 +7,6 @@ import (
 	"github.com/bxrne/darwin/internal/individual"
 	"github.com/bxrne/darwin/internal/rng"
 	"github.com/stretchr/testify/assert"
-	"gonum.org/v1/gonum/mat"
 )
 
 // softmaxTestCase defines a deterministic test case for softmax functionality
@@ -16,7 +15,7 @@ type softmaxTestCase struct {
 	description   string // INFO: What this test demonstrates
 	inputs        []float64
 	trees         map[string]*individual.Tree
-	weights       *mat.Dense
+	weights       *individual.WeightsIndividual
 	expectedError string
 	seed          int64
 }
@@ -76,8 +75,7 @@ func TestExecuteActionTreesWithSoftmax_Deterministic(t *testing.T) {
 
 			// Create action individual
 			actionIndividual := &individual.ActionTreeIndividual{
-				Trees:   tc.trees,
-				Weights: tc.weights,
+				Trees: tc.trees,
 			}
 			actionIndividual.SetFitness(0.0)
 
@@ -86,7 +84,7 @@ func TestExecuteActionTreesWithSoftmax_Deterministic(t *testing.T) {
 			executor := fitness.NewActionExecutor(actions, len(tc.inputs))
 
 			// Execute softmax
-			selectedAction, probabilities, err := executor.ExecuteActionTreesWithSoftmax(actionIndividual, tc.inputs)
+			selectedAction, probabilities, err := executor.ExecuteActionTreesWithSoftmax(actionIndividual, tc.weights, tc.inputs)
 
 			// Check for expected error
 			if tc.expectedError != "" {
@@ -169,15 +167,14 @@ func TestExecuteActionTreesWithSoftmax_ErrorCases(t *testing.T) {
 			rng.Seed(tc.seed)
 
 			actionIndividual := &individual.ActionTreeIndividual{
-				Trees:   tc.trees,
-				Weights: tc.weights,
+				Trees: tc.trees,
 			}
 			actionIndividual.SetFitness(0.0)
 
 			actions := []string{"action_0", "action_1", "action_2", "action_3", "action_4"}
 			executor := fitness.NewActionExecutor(actions, len(tc.inputs))
 
-			_, _, err := executor.ExecuteActionTreesWithSoftmax(actionIndividual, tc.inputs)
+			_, _, err := executor.ExecuteActionTreesWithSoftmax(actionIndividual, tc.weights, tc.inputs)
 
 			assert.Error(t, err, "Should return an error")
 			assert.Contains(t, err.Error(), tc.expectedError, "Error message should match expected")
@@ -188,12 +185,8 @@ func TestExecuteActionTreesWithSoftmax_ErrorCases(t *testing.T) {
 // Helper functions
 
 // createAllOnesWeights creates a weights matrix filled with 1.0
-func createAllOnesWeights(rows, cols int) *mat.Dense {
-	data := make([]float64, rows*cols)
-	for i := range data {
-		data[i] = 1.0
-	}
-	return mat.NewDense(rows, cols, data)
+func createAllOnesWeights(rows, cols int) *individual.WeightsIndividual {
+	return individual.NewWeightsIndividual(rows, cols)
 }
 
 // sum calculates the sum of a float slice
