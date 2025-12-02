@@ -19,7 +19,6 @@ type FitnessSetupInformation struct {
 	OpponentType                  string
 	MaxSteps                      int
 	Actions                       []string
-	NumInputs                     int
 	Population                    []*[]individual.Evolvable
 	ActionTreeSelectionPercentage float64
 }
@@ -38,7 +37,6 @@ func GenerateFitnessInfoFromConfig(config *cfg.Config, genomeType individual.Gen
 		fitnessInfo.OpponentType = config.ActionTree.OpponentType
 		fitnessInfo.MaxSteps = config.ActionTree.MaxSteps
 		fitnessInfo.Actions = config.ActionTree.Actions
-		fitnessInfo.NumInputs = config.ActionTree.NumInputs
 		fitnessInfo.Population = populations
 		fitnessInfo.ActionTreeSelectionPercentage = 0.3
 	}
@@ -63,7 +61,6 @@ func FitnessCalculatorFactory(info FitnessSetupInformation) FitnessCalculator {
 			info.ServerAddr,
 			info.OpponentType,
 			info.Actions,
-			info.NumInputs,
 			info.MaxSteps,
 			info.Population,
 			info.ActionTreeSelectionPercentage,

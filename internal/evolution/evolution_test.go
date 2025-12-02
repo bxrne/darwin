@@ -37,7 +37,8 @@ type EvolutionEngineTestSuite struct {
 func (suite *EvolutionEngineTestSuite) SetupTest() {
 	popBuilder := population.NewPopulationBuilder()
 	fitnessCalc := fitness.FitnessCalculatorFactory(fitness.FitnessSetupInformation{GenomeType: individual.BitStringGenome})
-	suite.population = popBuilder.BuildPopulation(10, individual.BitStringGenome,
+	popInfo := &population.PopulationInfo{Size: 10, GenomeType: individual.BitStringGenome}
+	suite.population = popBuilder.BuildPopulation(popInfo,
 		func() individual.Evolvable { return individual.NewBinaryIndividual(5) })
 	suite.selector = &MockSelector{}
 	suite.metricsChan = make(chan metrics.GenerationMetrics, 10)
@@ -131,7 +132,8 @@ func (suite *EvolutionEngineTestSuite) TestEvolutionEngine_GetPopulation_GIVEN_p
 
 func (suite *EvolutionEngineTestSuite) TestPopulationBuilder_BuildPopulation_GIVEN_size_genome_size_WHEN_build_THEN_population_created() {
 	builder := population.NewPopulationBuilder()
-	population := builder.BuildPopulation(3, individual.BitStringGenome, func() individual.Evolvable {
+	popInfo := &population.PopulationInfo{Size: 3, GenomeType: individual.BitStringGenome}
+	population := builder.BuildPopulation(popInfo, func() individual.Evolvable {
 		return individual.NewBinaryIndividual(5)
 	})
 

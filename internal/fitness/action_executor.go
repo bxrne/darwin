@@ -10,23 +10,18 @@ import (
 
 // ActionExecutor evaluates action trees and converts outputs to game actions
 type ActionExecutor struct {
-	actions   []string
-	numInputs int
+	actions []string
 }
 
 // NewActionExecutor creates a new action executor
-func NewActionExecutor(actions []string, numInputs int) *ActionExecutor {
+func NewActionExecutor(actions []string) *ActionExecutor {
 	return &ActionExecutor{
-		actions:   actions,
-		numInputs: numInputs,
+		actions: actions,
 	}
 }
 
 // ExecuteActionTrees evaluates all action trees with given inputs and returns selected action
 func (ae *ActionExecutor) ExecuteActionTrees(actionTreeIndividual *individual.ActionTreeIndividual, inputs []float64, weights *individual.WeightsIndividual) (string, error) {
-	if len(inputs) != ae.numInputs {
-		return "", fmt.Errorf("expected %d inputs, got %d", ae.numInputs, len(inputs))
-	}
 
 	// Calculate outputs for each action tree
 	actionOutputs := make([]float64, len(ae.actions))
@@ -192,10 +187,6 @@ func (ae *ActionExecutor) applyOperator(operator string, left, right float64) (f
 
 // ExecuteActionTreesWithSoftmax evaluates all action trees with given inputs and returns selected action using softmax
 func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *individual.ActionTreeIndividual, weights *individual.WeightsIndividual, inputs []float64) ([]float64, []float64, error) {
-	if len(inputs) != ae.numInputs {
-		return nil, nil, fmt.Errorf("expected %d inputs, got %d", ae.numInputs, len(inputs))
-	}
-
 	// Calculate outputs for each action tree
 	actionOutputs := make([]float64, len(ae.actions))
 

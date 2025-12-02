@@ -4,6 +4,7 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/bxrne/darwin/internal/cfg"
 	"github.com/bxrne/darwin/internal/fitness"
 	"github.com/bxrne/darwin/internal/individual"
 )
@@ -18,6 +19,28 @@ type Population interface {
 	CalculateFitnesses(fitnessCalc fitness.FitnessCalculator)
 }
 
+type PopulationInfo struct {
+	Size                 int
+	weightsCount         int
+	maxNumInputs         int
+	numColumns           int
+	trainWeightsFirst    bool
+	GenomeType           individual.GenomeType
+	SwitchPopulationStep int
+}
+
+func NewPopulationInfo(config *cfg.Config, genomeType individual.GenomeType) PopulationInfo {
+	return PopulationInfo{
+		Size:                 config.Evolution.PopulationSize,
+		weightsCount:         config.ActionTree.WeightsCount,
+		maxNumInputs:         config.ActionTree.MaxActionSize,
+		numColumns:           config.ActionTree.WeightsColumnCount,
+		trainWeightsFirst:    config.ActionTree.TrainWeightsFirst,
+		SwitchPopulationStep: config.ActionTree.SwitchTrainingTargetStep,
+		GenomeType:           genomeType,
+	}
+}
+
 // PopulationBuilder creates initial populations
 type PopulationBuilder struct{}
 
@@ -27,20 +50,20 @@ func NewPopulationBuilder() *PopulationBuilder {
 }
 
 // BuildPopulation creates a population of binary individuals
-func (pb *PopulationBuilder) BuildPopulation(size int, genomeType individual.GenomeType, creator func() individual.Evolvable) Population {
+func (pb *PopulationBuilder) BuildPopulation(popInfo *PopulationInfo, creator func() individual.Evolvable) Population {
 	var wg sync.WaitGroup
 	numWorkers := runtime.NumCPU()
 
-	chunkSize := (size + numWorkers - 1) / numWorkers
-	switch genomeType {
+	chunkSize := (popInfo.Size + numWorkers - 1) / numWorkers
+	switch popInfo.GenomeType {
 	case individual.ActionTreeGenome:
-		return NewActionTreeAndWeightsPopulation(size, creator)
+		return NewActionTreeAndWeightsPopulation(popInfo, creator)
 	default:
-		population := make([]individual.Evolvable, size)
+		population := make([]individual.Evolvable, popInfo.Size)
 		for i := range numWorkers {
 			start := i * chunkSize
 			end := start + chunkSize
-			end = min(end, size)
+			end = min(end, popInfo.Size)
 
 			wg.Add(1)
 			go func(start, end int) {
@@ -52,7 +75,7 @@ func (pb *PopulationBuilder) BuildPopulation(size int, genomeType individual.Gen
 		}
 
 		wg.Wait()
-		newPop := newGenericPopulation(size)
+		newPop := newGenericPopulation(popInfo.Size)
 		newPop.SetPopulation(population)
 		return newPop
 	}

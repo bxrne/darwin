@@ -81,8 +81,8 @@ func TestPopulationBuilder_BuildPopulation_GIVEN_various_genome_types_WHEN_build
 			pb := population.NewPopulationBuilder()
 
 			fit := &mockFitnessCalc{}
-
-			pop := pb.BuildPopulation(tt.size, tt.genomeType, tt.initFunc)
+			popInfo := &population.PopulationInfo{Size: tt.size, GenomeType: tt.genomeType}
+			pop := pb.BuildPopulation(popInfo, tt.initFunc)
 			pop.CalculateFitnesses(fit)
 			// -- Validate population exists --
 			assert.NotNil(t, pop, "Returned population should not be nil")

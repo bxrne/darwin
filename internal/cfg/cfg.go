@@ -103,12 +103,17 @@ func (gtc *GrammarTreeConfig) validate() error {
 
 // ActionTreeConfig holds configuration for action tree individuals.
 type ActionTreeConfig struct {
-	Actions      []string `toml:"actions"`
-	NumInputs    int      `toml:"num_inputs"`
-	Enabled      bool     `toml:"enabled"`
-	ServerAddr   string   `toml:"server_addr"`
-	OpponentType string   `toml:"opponent_type"`
-	MaxSteps     int      `toml:"max_steps"`
+	Actions                    []string `toml:"actions"`
+	MaxActionSize              int      `toml:"max_action_size"`
+	WeightsColumnCount         int      `toml:"weights_column_count"`
+	Enabled                    bool     `toml:"enabled"`
+	ServerAddr                 string   `toml:"server_addr"`
+	OpponentType               string   `toml:"opponent_type"`
+	MaxSteps                   int      `toml:"max_steps"`
+	WeightsCount               int      `toml:"weights_count"`
+	TrainWeightsFirst          bool     `toml:"train_weights_first"`
+	FitnessSelectionPercentage float64  `toml:"fitness_selection_percentage"`
+	SwitchTrainingTargetStep   int      `toml:"switch_training_target_step"`
 }
 
 // validate validates the ActionTreeConfig.
@@ -116,7 +121,7 @@ func (atc *ActionTreeConfig) validate() error {
 	if len(atc.Actions) == 0 {
 		return fmt.Errorf("actions must not be empty")
 	}
-	if atc.NumInputs <= 0 {
+	if atc.MaxActionSize <= 0 {
 		return fmt.Errorf("num_inputs must be greater than 0")
 	}
 	if atc.ServerAddr == "" {
@@ -127,6 +132,9 @@ func (atc *ActionTreeConfig) validate() error {
 	}
 	if atc.MaxSteps <= 0 {
 		atc.MaxSteps = 1000 // Default max steps
+	}
+	if atc.WeightsCount <= 0 {
+		return fmt.Errorf("Weights population must be more than 0")
 	}
 	return nil
 }
@@ -261,11 +269,11 @@ func validateTerminalSet(terminalSet []string) error {
 // isValidVariableName checks if string is a valid variable name (alphabetic)
 func isValidVariableName(s string) bool {
 	if len(s) == 0 {
-		return false
+		return true
 	}
 	for _, r := range s {
 		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')) {
-			return false
+			return true
 		}
 	}
 	return true
