@@ -66,19 +66,17 @@ func (at *ActionTreeAndWeightsPopulation) Count() int {
 }
 
 func (at *ActionTreeAndWeightsPopulation) GetPopulation() []individual.Evolvable {
-	result := make([]individual.Evolvable, len(at.CombinedPopulation))
-
-	for i := range at.CombinedPopulation {
-		result[i] = &at.CombinedPopulation[i] // MUST be pointer!
+	if at.isTrainingWeights {
+		return at.Weights
 	}
 
-	return result
+	return at.actionTrees
 }
 
 func (at *ActionTreeAndWeightsPopulation) GetPopulations() []*[]individual.Evolvable {
 	population := make([]*[]individual.Evolvable, 2)
-	population = append(population, &at.Weights)
-	population = append(population, &at.actionTrees)
+	population[0] = &at.Weights
+	population[1] = &at.actionTrees
 
 	return population
 }
