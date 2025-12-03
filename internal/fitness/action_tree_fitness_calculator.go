@@ -19,10 +19,13 @@ type ActionTreeFitnessCalculator struct {
 	weightsPopulation    *[]individual.Evolvable
 	actionTreePopulation *[]individual.Evolvable
 	selectionPercentage  float64
+	connectionPool       *TCPConnectionPool
 }
 
 // NewActionTreeFitnessCalculator creates a new action tree fitness calculator
-func NewActionTreeFitnessCalculator(serverAddr string, opponentType string, actions []string, maxSteps int, populations []*[]individual.Evolvable, selectionPercentage float64) *ActionTreeFitnessCalculator {
+func NewActionTreeFitnessCalculator(serverAddr string, opponentType string, actions []string, maxSteps int, populations []*[]individual.Evolvable, selectionPercentage float64, poolSize int, timeout time.Duration) *ActionTreeFitnessCalculator {
+	pool := NewTCPConnectionPool(serverAddr, poolSize, timeout)
+
 	return &ActionTreeFitnessCalculator{
 		serverAddr:           serverAddr,
 		opponentType:         opponentType,
@@ -31,11 +34,21 @@ func NewActionTreeFitnessCalculator(serverAddr string, opponentType string, acti
 		weightsPopulation:    populations[0],
 		actionTreePopulation: populations[1],
 		selectionPercentage:  selectionPercentage,
+		connectionPool:       pool,
 	}
 }
 
 // CalculateFitness evaluates the fitness of an ActionTree individual
 func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.Evolvable) {
+	// Log connection pool stats periodically
+	if atfc.connectionPool != nil {
+		stats := atfc.connectionPool.GetStats()
+		logmgr.Debug("Connection pool stats",
+			logmgr.Field("active", stats["active_count"]),
+			logmgr.Field("available", stats["available"]),
+			logmgr.Field("total_created", stats["total_created"]))
+	}
+
 	wi, wiok := evolvable.(*individual.WeightsIndividual)
 	at, atok := evolvable.(*individual.ActionTreeIndividual)
 	if !wiok && !atok {
@@ -51,7 +64,13 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 			if !ok {
 				panic("Not action tree in action tree population")
 			}
-			weightsFitnesses = append(weightsFitnesses, atfc.SetupGameAndRun(wi, tree))
+			fitness, err := atfc.SetupGameAndRun(wi, tree)
+			if err != nil {
+				logmgr.Error("Failed to setup game and run", logmgr.Field("error", err.Error()))
+				weightsFitnesses = append(weightsFitnesses, 0.0)
+			} else {
+				weightsFitnesses = append(weightsFitnesses, fitness)
+			}
 		}
 		weightsCount := int(float64(len(weightsFitnesses)) * atfc.selectionPercentage)
 		sort.Float64s(weightsFitnesses)
@@ -71,7 +90,13 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 			if !ok {
 				panic("Not action tree in action tree population")
 			}
-			actionTreeFitnesses = append(actionTreeFitnesses, atfc.SetupGameAndRun(weights, at))
+			fitness, err := atfc.SetupGameAndRun(weights, at)
+			if err != nil {
+				logmgr.Error("Failed to setup game and run", logmgr.Field("error", err.Error()))
+				actionTreeFitnesses = append(actionTreeFitnesses, 0.0)
+			} else {
+				actionTreeFitnesses = append(actionTreeFitnesses, fitness)
+			}
 		}
 		actionTreeCount := int(float64(len(actionTreeFitnesses)) * atfc.selectionPercentage)
 		sort.Float64s(actionTreeFitnesses)
@@ -86,24 +111,26 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 
 }
 
-func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.WeightsIndividual, actionTreeInd *individual.ActionTreeIndividual) float64 {
-	// Create TCP client for this evaluation
-	client := NewTCPClient(atfc.serverAddr)
-	defer func() {
-		if err := client.Disconnect(); err != nil {
-			logmgr.Error("Failed to disconnect client", logmgr.Field("error", err))
-		}
-	}()
-
-	// Connect to server
-	err := client.Connect()
+func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.WeightsIndividual, actionTreeInd *individual.ActionTreeIndividual) (float64, error) {
+	// Get connection from pool
+	client, err := atfc.connectionPool.GetConnection()
 	if err != nil {
-		logmgr.Error("Failed to connect to game server", logmgr.Field("error", err))
-		panic("FAILED")
+		logmgr.Error("Failed to get connection from pool", logmgr.Field("error", err.Error()))
+		return 0.0, fmt.Errorf("connection pool error: %w", err)
 	}
+
+	logmgr.Debug("Got connection for game evaluation",
+		logmgr.Field("client_id", fmt.Sprintf("%p", client)),
+		logmgr.Field("weights_id", fmt.Sprintf("%p", weightsInd)),
+		logmgr.Field("action_tree_id", fmt.Sprintf("%p", actionTreeInd)))
+
+	// Ensure connection is returned to pool
 	defer func() {
-		if err := client.Disconnect(); err != nil {
-			logmgr.Error("Failed to disconnect client", logmgr.Field("error", err))
+		if returnErr := atfc.connectionPool.ReturnConnection(client); returnErr != nil {
+			logmgr.Error("Failed to return connection to pool", logmgr.Field("error", returnErr.Error()))
+		} else {
+			logmgr.Debug("Connection returned to pool successfully",
+				logmgr.Field("client_id", fmt.Sprintf("%p", client)))
 		}
 	}()
 
@@ -114,20 +141,20 @@ func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.
 	connectedResp, err := client.ConnectToGame(atfc.opponentType)
 	if err != nil {
 		logmgr.Error("Failed to connect to game", logmgr.Field("error", err))
-		panic("FAILED")
+		return 0.0, fmt.Errorf("game connection error: %w", err)
 	}
 
 	logmgr.Debug("Connected to game",
 		logmgr.Field("agent_id", connectedResp.AgentID),
 		logmgr.Field("opponent_id", connectedResp.OpponentID))
 
-	// Play the game
+	// Play game
 	fitness := atfc.playGame(client, weightsInd, actionTreeInd)
 
 	logmgr.Debug("Fitness calculated",
 		logmgr.Field("fitness", fitness),
 		logmgr.Field("agent_id", connectedResp.AgentID))
-	return fitness
+	return fitness, nil
 }
 
 // playGame plays a single game and returns the fitness score
@@ -154,8 +181,8 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 
 		if err != nil {
 			logmgr.Error("Failed to execute action trees", logmgr.Field("error", err))
-			// Send a default action
-			panic("Error deciding action")
+			// Send a default action (pass) instead of panicking
+			action = []int{0, 0, 0, 0, 0}
 		}
 
 		// Send action to server
@@ -175,4 +202,12 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 	fitness := math.Log(totalReward+1) * 10
 
 	return fitness
+}
+
+// Close closes the connection pool and cleans up resources
+func (atfc *ActionTreeFitnessCalculator) Close() error {
+	if atfc.connectionPool != nil {
+		return atfc.connectionPool.Close()
+	}
+	return nil
 }

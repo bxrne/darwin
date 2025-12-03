@@ -13,6 +13,7 @@ import (
 	"github.com/bxrne/darwin/internal/population"
 	"github.com/bxrne/darwin/internal/rng"
 	"github.com/bxrne/darwin/internal/selection"
+	"github.com/bxrne/logmgr"
 )
 
 type MetricsHandler func(metrics.GenerationMetrics)
@@ -35,7 +36,19 @@ func getGenomeType(config *cfg.Config) individual.GenomeType {
 // It takes a context, config, and optional metrics handler.
 // Returns the final population, a completion channel, and an error.
 func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandler) ([]individual.Evolvable, MetricsComplete, error) {
-	// Seed the RNG for reproducible results
+	// pre evolution srv heartbeat
+	if config.ActionTree.Enabled {
+		timeout := 5 * time.Second
+		if parsedTimeout, err := time.ParseDuration(config.ActionTree.ConnectionTimeout); err == nil {
+			timeout = parsedTimeout
+		}
+
+		healthChecker := fitness.NewServerHealthChecker(config.ActionTree.ServerAddr, timeout)
+		if err := healthChecker.CheckServerHealthWithRetry(); err != nil {
+			return nil, nil, fmt.Errorf("server health check failed: %w", err)
+		}
+	}
+
 	rng.Seed(config.Evolution.Seed)
 
 	metricsChan := make(chan metrics.GenerationMetrics, 100)
@@ -85,7 +98,7 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	})
 
 	fitnessInfo := fitness.GenerateFitnessInfoFromConfig(config, populationType, grammar, population.GetPopulations())
-	fitnessCalculator := fitness.FitnessCalculatorFactory(fitnessInfo)
+	fitnessCalculator := fitness.FitnessCalculatorFactoryWithConfig(fitnessInfo, config)
 
 	population.CalculateFitnesses(fitnessCalculator)
 
@@ -154,6 +167,13 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	close(cmdChan)
 	evolutionEngine.Wait()
 	metricsStreamer.Stop()
+
+	// Clean up fitness calculator resources
+	if cleanupCalc, ok := fitnessCalculator.(interface{ Close() error }); ok {
+		if err := cleanupCalc.Close(); err != nil {
+			logmgr.Error("Failed to cleanup fitness calculator", logmgr.Field("error", err))
+		}
+	}
 
 	finalPop := evolutionEngine.GetPopulation()
 	return finalPop, metricsComplete, nil

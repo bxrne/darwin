@@ -1,6 +1,8 @@
 package fitness
 
 import (
+	"time"
+
 	"github.com/bxrne/darwin/internal/cfg"
 	"github.com/bxrne/darwin/internal/individual"
 )
@@ -45,6 +47,10 @@ func GenerateFitnessInfoFromConfig(config *cfg.Config, genomeType individual.Gen
 }
 
 func FitnessCalculatorFactory(info FitnessSetupInformation) FitnessCalculator {
+	return FitnessCalculatorFactoryWithConfig(info, nil)
+}
+
+func FitnessCalculatorFactoryWithConfig(info FitnessSetupInformation, config *cfg.Config) FitnessCalculator {
 	switch info.GenomeType {
 	case individual.TreeGenome:
 		calc := &TreeFitnessCalculator{}
@@ -57,6 +63,16 @@ func FitnessCalculatorFactory(info FitnessSetupInformation) FitnessCalculator {
 		calc.SetupEvalFunction(info.EvalFunction, info.VariableSet, info.TestCaseCount)
 		return calc
 	case individual.ActionTreeGenome:
+		// Extract config values with defaults
+		poolSize := 10
+		timeout := 30 * time.Second
+		if config != nil {
+			poolSize = config.ActionTree.ConnectionPoolSize
+			if parsedTimeout, err := time.ParseDuration(config.ActionTree.ConnectionTimeout); err == nil {
+				timeout = parsedTimeout
+			}
+		}
+
 		calc := NewActionTreeFitnessCalculator(
 			info.ServerAddr,
 			info.OpponentType,
@@ -64,6 +80,8 @@ func FitnessCalculatorFactory(info FitnessSetupInformation) FitnessCalculator {
 			info.MaxSteps,
 			info.Population,
 			info.ActionTreeSelectionPercentage,
+			poolSize,
+			timeout,
 		)
 		return calc
 	default:

@@ -24,28 +24,28 @@ max_depth = 12
 initial_depth = 5
 operand_set = ["+", "-", "*", "/"]
 variable_set = [
-    "my_total_army",
-    "opp_total_army",
-    "army_diff",
+  "my_total_army",
+  "opp_total_army",
+  "army_diff",
 
-    "my_land_count",
-    "opp_land_count",
-    "land_diff",
+  "my_land_count",
+  "opp_land_count",
+  "land_diff",
 
-    "neutral_count",
-    "fog_count",
-    "visible_cities_count",
-    "visible_mountains_count",
+  "neutral_count",
+  "fog_count",
+  "visible_cities_count",
+  "visible_mountains_count",
 
-    "army_ratio",
-    "land_ratio",
+  "army_ratio",
+  "land_ratio",
 
-    "border_pressure",
+  "border_pressure",
 
-    "timestep",
+  "timestep",
 
-    "distance_to_enemy_general",
-    "distance_to_nearest_city"
+  "distance_to_enemy_general",
+  "distance_to_nearest_city",
 ]
 terminal_set = ["1.0"]
 
@@ -64,7 +64,10 @@ weights_column_count = 4
 server_addr = "127.0.0.1:5000"
 train_weights_first = false
 fitness_selection_percentage = 0.25
-switch_training_target_step =10
+switch_training_target_step = 10
+connection_pool_size = 20
+connection_timeout = "30s"
+health_check_timeout = "30s"
 
 [metrics]
 csv_enabled = true
