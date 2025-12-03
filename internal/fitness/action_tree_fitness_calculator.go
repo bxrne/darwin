@@ -132,10 +132,7 @@ func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.
 
 // playGame plays a single game and returns the fitness score
 func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd *individual.WeightsIndividual, actionTreeInd *individual.ActionTreeIndividual) float64 {
-	var totalReward float64
-	var survivalTime int
-	var finalScore float64
-	var won bool
+	totalReward := 0.0
 
 	for step := 0; step < atfc.maxSteps; step++ {
 		// Get current observation (first one after connection)
@@ -148,27 +145,17 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 		// Check if game is over
 		if obs.Terminated || obs.Truncated {
 			// Extract final game state
-			finalScore = ExtractGameScore(obs.Observation)
-			totalReward = obs.Reward
-
-			// Try to get winner info
-			if winner, exists := obs.Info["winner"]; exists {
-				if winnerStr, ok := winner.(string); ok {
-					won = (winnerStr == "client_1") // Assuming we're client_1
-				}
-			}
+			totalReward += obs.Reward
 			break
 		}
 
-		// Extract inputs from observation
-		inputs := atfc.extractInputs(obs.Observation)
-
 		// Execute action trees to get action
-		action, err := atfc.actionExecutor.ExecuteActionTrees(actionTreeInd, inputs, weightsInd)
+		action, err := atfc.actionExecutor.ExecuteActionTreesWithSoftmax(actionTreeInd, weightsInd, obs.Observation)
+
 		if err != nil {
 			logmgr.Error("Failed to execute action trees", logmgr.Field("error", err))
 			// Send a default action
-			action = "move" // Default action
+			panic("Error deciding action")
 		}
 
 		// Send action to server
@@ -181,88 +168,11 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 		// Small delay to prevent overwhelming the server
 		time.Sleep(10 * time.Millisecond)
 
-		survivalTime = step + 1
 		totalReward += obs.Reward
+
 	}
 
-	// Calculate fitness based on multiple factors
-	fitness := atfc.calculateFitnessScore(totalReward, survivalTime, finalScore, won)
-
-	return fitness
-}
-
-// extractInputs extracts numeric inputs from observation data
-func (atfc *ActionTreeFitnessCalculator) extractInputs(observation map[string]any) []float64 {
-	inputs := make([]float64, 4) // x, y, z, w (max 4 inputs)
-
-	// Try to extract common input fields
-	inputFields := []string{"x", "y", "z", "w", "score", "reward", "time", "step"}
-
-	for i, field := range inputFields {
-		if i >= len(inputs) {
-			break
-		}
-
-		if value, exists := observation[field]; exists {
-			switch v := value.(type) {
-			case float64:
-				inputs[i] = v
-			case int:
-				inputs[i] = float64(v)
-			case string:
-				if val, err := parseFloat(v); err == nil {
-					inputs[i] = val
-				}
-			}
-		}
-	}
-
-	// If no specific inputs found, use generic values
-	if inputs[0] == 0 && inputs[1] == 0 {
-		// Use some observation data as inputs
-		if score, ok := observation["score"].(float64); ok {
-			inputs[0] = score
-		}
-		if reward, ok := observation["reward"].(float64); ok {
-			inputs[1] = reward
-		}
-		inputs[2] = 1.0 // Constant
-		inputs[3] = 0.5 // Another constant
-	}
-
-	return inputs
-}
-
-// calculateFitnessScore computes the final fitness based on game performance
-func (atfc *ActionTreeFitnessCalculator) calculateFitnessScore(totalReward float64, survivalTime int, finalScore float64, won bool) float64 {
-	// Base fitness from total reward
-	fitness := totalReward
-
-	// Bonus for survival time
-	survivalBonus := float64(survivalTime) * 0.1
-	fitness += survivalBonus
-
-	// Bonus for final score
-	scoreBonus := finalScore * 0.5
-	fitness += scoreBonus
-
-	// Large bonus for winning
-	if won {
-		fitness += 100.0
-	}
-
-	// Penalty for very short games (quick death)
-	if survivalTime < 10 {
-		fitness *= 0.1
-	}
-
-	// Ensure fitness is non-negative
-	if fitness < 0 {
-		fitness = 0
-	}
-
-	// Apply logarithmic scaling to prevent extremely high values
-	fitness = math.Log(fitness+1) * 10
+	fitness := math.Log(totalReward+1) * 10
 
 	return fitness
 }

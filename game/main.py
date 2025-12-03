@@ -13,14 +13,15 @@ def main():
         port=5000,
         render_mode=None  # Set to "human" for visual rendering
     )
-    
+
     bridge.start()
-    
+
     try:
         while True:
             threading.Event().wait(5)
             stats = bridge.get_stats()
-            print(f"\nStatus: {stats['active_clients']} clients, {stats['active_games']} games")
+            print(f"\nStatus: {stats['active_clients']} clients, {
+                  stats['active_games']} games")
 
     except KeyboardInterrupt:
         print("\nShutting down...")

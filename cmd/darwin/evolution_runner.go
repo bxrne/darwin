@@ -60,11 +60,17 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 			fmt.Printf("Creating ActionTree individual\n")
 			// Create random trees for each action
 			initialTrees := make(map[string]*individual.Tree)
+			variableSet := make([]string, config.ActionTree.WeightsColumnCount)
+			for i := range config.ActionTree.WeightsColumnCount {
+				key := fmt.Sprintf("w%d", i)
+				variableSet[i] = key
+			}
+			variableSet = append(variableSet, config.Tree.VariableSet...)
 			for _, action := range config.ActionTree.Actions {
 				tree := individual.NewRandomTree(
 					config.Tree.InitalDepth,
 					config.Tree.OperandSet,
-					config.Tree.VariableSet,
+					variableSet,
 					config.Tree.TerminalSet,
 				)
 				initialTrees[action] = tree
