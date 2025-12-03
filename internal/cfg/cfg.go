@@ -114,6 +114,9 @@ type ActionTreeConfig struct {
 	TrainWeightsFirst          bool     `toml:"train_weights_first"`
 	FitnessSelectionPercentage float64  `toml:"fitness_selection_percentage"`
 	SwitchTrainingTargetStep   int      `toml:"switch_training_target_step"`
+	ConnectionPoolSize         int      `toml:"connection_pool_size"`
+	ConnectionTimeout          string   `toml:"connection_timeout"`
+	HealthCheckTimeout         string   `toml:"health_check_timeout"`
 }
 
 // validate validates the ActionTreeConfig.
@@ -135,6 +138,15 @@ func (atc *ActionTreeConfig) validate() error {
 	}
 	if atc.WeightsCount <= 0 {
 		return fmt.Errorf("Weights population must be more than 0")
+	}
+	if atc.ConnectionPoolSize <= 0 {
+		return fmt.Errorf("connection_pool_size must be greater than 0")
+	}
+	if atc.ConnectionTimeout == "" {
+		return fmt.Errorf("connection_timeout must be specified, e.g., '5s'")
+	}
+	if atc.HealthCheckTimeout == "" {
+		return fmt.Errorf("health_check_timeout must be specified, e.g., '5s'")
 	}
 	return nil
 }
