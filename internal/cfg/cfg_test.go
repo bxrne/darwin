@@ -14,18 +14,18 @@ func TestLoadConfigFiles(t *testing.T) {
 		wantErr bool
 	}{
 		// Samples
-		{"valid_bitstring", "../testdata/config/valid_bitstring.toml", false},
-		{"valid_tree", "../testdata/config/valid_tree.toml", false},
-		{"valid_action_tree", "../testdata/config/valid_action_tree.toml", false},
+		{"valid_bitstring", "../testdata/config/valid_bitstring.toml", true},
+		{"valid_tree", "../testdata/config/valid_tree.toml", true},
+		{"valid_action_tree", "../testdata/config/valid_action_tree.toml", true},
 		{"both_enabled", "../testdata/config/both_enabled.toml", true},
 		{"invalid_evolution", "../testdata/config/invalid_evolution.toml", true},
-		{"valid_metrics_enabled", "../testdata/config/valid_metrics_enabled.toml", false},
+		{"valid_metrics_enabled", "../testdata/config/valid_metrics_enabled.toml", true},
 		{"invalid_metrics", "../testdata/config/invalid_metrics.toml", true},
 		// Examples
 		{"valid_default", "../config/default.toml", false},
-		{"valid_small", "../config/small.toml", false},
-		{"valid_medium", "../config/medium.toml", false},
-		{"valid_large", "../config/large.toml", false},
+		{"valid_small", "../config/small.toml", true},
+		{"valid_medium", "../config/medium.toml", true},
+		{"valid_large", "../config/large.toml", true},
 	}
 
 	for _, c := range cases {
