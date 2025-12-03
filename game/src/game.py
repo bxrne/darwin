@@ -84,14 +84,13 @@ class Game:
         try:
             # Collect actions from all agents
             actions = {}
-            print(client_action)
             for agent in self.env.agents:
                 if agent == self.client_id:
                     pass_turn = True if client_action[0] > 0 else False
                     split = True if client_action[4] > 0 else False
 
                     actions[agent] = Action(
-                        pass_turn, client_action[1], client_action[2], client_action[3], split)
+                        pass_turn, client_action[1], client_action[2], 0, split)
                 else:
                     # Opponent agent decides action
                     actions[agent] = self.opponent.act(
@@ -101,7 +100,6 @@ class Game:
             self.logger.info(actions)
             observations, rewards, terminated, truncated, info = self.env.step(
                 actions)
-            self.logger.info(observations)
 
             # Update state
             self.observations = observations
@@ -113,7 +111,6 @@ class Game:
                 self.env.render()
 
             # Return client's perspective
-            print(extract_features(observations, self.client_id))
             return {
                 "observation": extract_features(observations, self.client_id),
                 "reward": rewards.get(self.client_id, 0.0),
@@ -186,12 +183,6 @@ def manhattan(a, b):
 # -----------------------------------------------------------
 
 
-def print_2d_lens(name, array2d):
-    outer_len = len(array2d)
-    inner_lens = [len(row) for row in array2d]
-    print(f"{name}: outer={outer_len}, inner_lengths={inner_lens}")
-
-
 def extract_features(state, my_id):
     armies = state[my_id]["armies"]
     N = len(armies)
@@ -202,14 +193,6 @@ def extract_features(state, my_id):
     cities_cells = state[my_id]["cities"]
     generals_cells = state[my_id]["generals"]
     fog_cells = state[my_id]["fog_cells"]
-    print_2d_lens("armies", armies)
-    print_2d_lens("owned_cells", owned_cells)
-    print_2d_lens("opponent_cells", opponent_cells)
-    print_2d_lens("mountain_cells", mountain_cells)
-    print_2d_lens("cities_cells", cities_cells)
-    print_2d_lens("generals_cells", generals_cells)
-    print_2d_lens("fog_cells", fog_cells)
-
     my_total_army = 0
     opp_total_army = 0
     my_land_count = 0
@@ -258,7 +241,6 @@ def extract_features(state, my_id):
     # owned cell with at least one non-owned neighbor
     # -----------------------------
     border_pressure = 0
-    print("GETTING HERE")
     for (i, j) in owned_cells_list:
         for (ni, nj) in neighbors(i, j, N, M):
             if opponent_cells[ni][nj]:
