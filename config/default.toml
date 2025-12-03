@@ -1,9 +1,9 @@
 [evolution]
-population_size = 2
+population_size = 10
 crossover_point_count = 1
 crossover_rate = 0.7
 mutation_rate = 0.3
-generations = 1
+generations = 10
 elitism_percentage = 0.01
 selection_size = 7
 selection_type = "tournament"
@@ -20,8 +20,8 @@ genome_size = 200
 
 [tree_individual]
 enabled = false
-max_depth = 8
-initial_depth = 2
+max_depth = 12
+initial_depth = 5
 operand_set = ["+", "-", "*", "/"]
 variable_set = [
     "my_total_army",
@@ -59,8 +59,8 @@ opponent_type = "random"
 max_steps = 500
 actions = ["Pass", "Cell_i", "Cell_j", "Direction", "Split"]
 max_action_size = 5
-weights_count = 20
-weights_column_count = 12
+weights_count = 5
+weights_column_count = 4
 server_addr = "127.0.0.1:5000"
 train_weights_first = false
 fitness_selection_percentage = 0.25

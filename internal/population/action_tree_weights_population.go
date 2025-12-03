@@ -1,6 +1,9 @@
 package population
 
 import (
+	"runtime"
+	"sync"
+
 	"github.com/bxrne/darwin/internal/fitness"
 	"github.com/bxrne/darwin/internal/individual"
 )
@@ -47,13 +50,12 @@ func (at *ActionTreeAndWeightsPopulation) SetPopulation(population []individual.
 		at.Weights = population
 		return
 	}
-	actionTrees := make([]individual.Evolvable, len(population))
 	_, ok := population[0].(*individual.ActionTreeIndividual)
 	if !ok {
 		// element is not a l
 		panic("population is not a ActiontreeIndividual")
 	}
-	at.actionTrees = actionTrees
+	at.actionTrees = population
 }
 
 func (at *ActionTreeAndWeightsPopulation) Count() int {
@@ -80,11 +82,37 @@ func (at *ActionTreeAndWeightsPopulation) GetPopulations() []*[]individual.Evolv
 }
 
 func (at *ActionTreeAndWeightsPopulation) CalculateFitnesses(fitnessCalc fitness.FitnessCalculator) {
-	for _, ind := range at.actionTrees {
-		fitnessCalc.CalculateFitness(ind)
+	var wg sync.WaitGroup
+	numWorkers := runtime.NumCPU()
+
+	treeChunkSize := (len(at.actionTrees) + numWorkers - 1) / numWorkers
+	for i := range numWorkers {
+		start := i * treeChunkSize
+		end := start + treeChunkSize
+		end = min(end, len(at.actionTrees))
+
+		wg.Add(1)
+		go func(start, end int) {
+			defer wg.Done()
+			for j := start; j < end; j++ {
+				fitnessCalc.CalculateFitness(at.actionTrees[j])
+				at.actionTrees[j].Describe()
+			}
+		}(start, end) // chunk to use
+	}
+	weightChunkSize := (len(at.Weights) + numWorkers - 1) / numWorkers
+	for i := range numWorkers {
+		start := i * weightChunkSize
+		end := start + weightChunkSize
+		end = min(end, len(at.Weights))
+
+		wg.Add(1)
+		go func(start, end int) {
+			defer wg.Done()
+			for j := start; j < end; j++ {
+				fitnessCalc.CalculateFitness(at.Weights[j])
+			}
+		}(start, end) // chunk to use
 	}
 
-	for _, ind := range at.Weights {
-		fitnessCalc.CalculateFitness(ind)
-	}
 }
