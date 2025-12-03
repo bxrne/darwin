@@ -46,7 +46,7 @@ type ConnectedResponse struct {
 
 type ObservationResponse struct {
 	Type        string                 `json:"type"`
-	Observation map[string]interface{} `json:"observation"`
+	Observation map[string]float64     `json:"observation"`
 	Reward      float64                `json:"reward"`
 	Terminated  bool                   `json:"terminated"`
 	Truncated   bool                   `json:"truncated"`

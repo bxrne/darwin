@@ -1,9 +1,9 @@
 [evolution]
-population_size = 250
+population_size = 2
 crossover_point_count = 1
 crossover_rate = 0.7
 mutation_rate = 0.3
-generations = 100
+generations = 1
 elitism_percentage = 0.01
 selection_size = 7
 selection_type = "tournament"
@@ -22,8 +22,31 @@ genome_size = 200
 enabled = false
 max_depth = 8
 initial_depth = 2
-operand_set = ["+", "-", "*", "/", ">", "<", "=", "%"]
-variable_set = ["armies","generals","cities","mountains","neutral_cells","owned_cells","opponent_cells","fog_cells","structures_in_fog","owned_land_count","owned_army_count","opponent_land_count","opponent_army_count","timestep","priority"]
+operand_set = ["+", "-", "*", "/"]
+variable_set = [
+    "my_total_army",
+    "opp_total_army",
+    "army_diff",
+
+    "my_land_count",
+    "opp_land_count",
+    "land_diff",
+
+    "neutral_count",
+    "fog_count",
+    "visible_cities_count",
+    "visible_mountains_count",
+
+    "army_ratio",
+    "land_ratio",
+
+    "border_pressure",
+
+    "timestep",
+
+    "distance_to_enemy_general",
+    "distance_to_nearest_city"
+]
 terminal_set = ["1.0"]
 
 [grammar_tree]
@@ -38,7 +61,7 @@ actions = ["Pass", "Cell_i", "Cell_j", "Direction", "Split"]
 max_action_size = 5
 weights_count = 20
 weights_column_count = 12
-server_addr = "127.0.0.1:8080"
+server_addr = "127.0.0.1:5000"
 train_weights_first = false
 fitness_selection_percentage = 0.25
 switch_training_target_step =10

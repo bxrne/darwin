@@ -20,55 +20,6 @@ func NewActionExecutor(actions []string) *ActionExecutor {
 	}
 }
 
-// ExecuteActionTrees evaluates all action trees with given inputs and returns selected action
-func (ae *ActionExecutor) ExecuteActionTrees(actionTreeIndividual *individual.ActionTreeIndividual, inputs []float64, weights *individual.WeightsIndividual) (string, error) {
-
-	// Calculate outputs for each action tree
-	actionOutputs := make([]float64, len(ae.actions))
-
-	for i, actionName := range ae.actions {
-		tree, exists := actionTreeIndividual.Trees[actionName]
-		if !exists {
-			return "", fmt.Errorf("action tree not found: %s", actionName)
-		}
-
-		// Execute tree with inputs
-		output, err := ae.executeTree(tree, inputs)
-		if err != nil {
-			return "", fmt.Errorf("failed to execute tree for action %s: %w", actionName, err)
-		}
-		actionOutputs[i] = output
-	}
-
-	r, c := weights.Weights.Dims()
-	if r != len(ae.actions) || c != len(inputs) {
-		return "", fmt.Errorf("weights matrix dimensions mismatch: expected %dx%d, got %dx%d",
-			len(ae.actions), len(inputs), r, c)
-	}
-
-	// Calculate weighted scores for each action
-	finalScores := make([]float64, len(ae.actions))
-	for actionIdx := range ae.actions {
-		score := 0.0
-		for inputIdx := range inputs {
-			score += weights.Weights.At(actionIdx, inputIdx) * inputs[inputIdx]
-		}
-		finalScores[actionIdx] = score + actionOutputs[actionIdx]
-	}
-
-	// Select action with highest score
-	bestActionIdx := 0
-	bestScore := finalScores[0]
-	for i := 1; i < len(finalScores); i++ {
-		if finalScores[i] > bestScore {
-			bestScore = finalScores[i]
-			bestActionIdx = i
-		}
-	}
-
-	return ae.actions[bestActionIdx], nil
-}
-
 // executeTree recursively evaluates a tree with given inputs
 func (ae *ActionExecutor) executeTree(tree *individual.Tree, inputs []float64) (float64, error) {
 	if tree == nil || tree.Root == nil {
@@ -184,96 +135,107 @@ func (ae *ActionExecutor) applyOperator(operator string, left, right float64) (f
 		return 0.0, fmt.Errorf("unknown operator: %s", operator)
 	}
 }
+func argmax(arr []float64) int {
+	if len(arr) == 0 {
+		return -1 // or panic, depending on your use case
+	}
+
+	maxIdx := 0
+	maxVal := arr[0]
+
+	for i := 1; i < len(arr); i++ {
+		if arr[i] > maxVal {
+			maxVal = arr[i]
+			maxIdx = i
+		}
+	}
+	return maxIdx
+}
 
 // ExecuteActionTreesWithSoftmax evaluates all action trees with given inputs and returns selected action using softmax
-func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *individual.ActionTreeIndividual, weights *individual.WeightsIndividual, inputs []float64) ([]float64, []float64, error) {
+func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *individual.ActionTreeIndividual, weights *individual.WeightsIndividual, inputs map[string]float64) ([]int, error) {
 	// Calculate outputs for each action tree
-	actionOutputs := make([]float64, len(ae.actions))
-
-	for i, actionName := range ae.actions {
-		tree, exists := actionTreeIndividual.Trees[actionName]
-		if !exists {
-			return nil, nil, fmt.Errorf("action tree not found: %s", actionName)
-		}
-
-		// Execute tree with inputs
-		output, err := ae.executeTree(tree, inputs)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to execute tree for action %s: %w", actionName, err)
-		}
-		actionOutputs[i] = output
-	}
-
-	// Apply weights matrix to get final action scores
-
+	actionOutputs := make([][]float64, len(ae.actions))
+	HARDCODED_ACTION_OPTIONS := [5]int{2, 10, 10, 4, 2}
 	r, c := weights.Weights.Dims()
-	if r != len(ae.actions) || c != len(inputs) {
-		return nil, nil, fmt.Errorf("weights matrix dimensions mismatch: expected %dx%d, got %dx%d",
-			len(ae.actions), len(inputs), r, c)
-	}
-
-	// Calculate weighted scores for each action
-	finalScores := make([]float64, len(ae.actions))
-	for actionIdx := range ae.actions {
-		score := 0.0
-		for inputIdx := range inputs {
-			score += weights.Weights.At(actionIdx, inputIdx) * inputs[inputIdx]
+	for row := range r {
+		for column := range c {
+			key := fmt.Sprintf("w%d", column)
+			inputs[key] = weights.Weights.At(row, column)
 		}
-		finalScores[actionIdx] = score + actionOutputs[actionIdx]
+		for i, actionName := range ae.actions {
+			if row > HARDCODED_ACTION_OPTIONS[i] {
+				continue
+			}
+			tree, exists := actionTreeIndividual.Trees[actionName]
+			if !exists {
+				return nil, fmt.Errorf("action tree not found: %s", actionName)
+			}
+
+			// Execute tree with inputs
+			fitness, _ := tree.Root.EvaluateTree(&inputs)
+			actionOutputs[i] = append(actionOutputs[i], fitness)
+		}
 	}
 
 	// Apply softmax to convert scores to probabilities
-	probabilities := ae.calculateSoftmax(finalScores)
+	// probabilities := ae.calculateSoftmax(finalScores)
 
 	// Sample which action tree to use based on probabilities
-	selectedActionIdx := ae.sampleAction(probabilities)
+	// selectedActionIdx := ae.sampleAction(probabilities)
 
 	// Execute the selected action tree to get the action components
-	selectedActionName := ae.actions[selectedActionIdx]
-	selectedTree := actionTreeIndividual.Trees[selectedActionName]
+	// selectedActionName := ae.actions[selectedActionIdx]
+	// selectedTree := actionTreeIndividual.Trees[selectedActionName]
 
 	// Execute the selected tree to get raw component value
-	rawComponent, err := ae.executeTree(selectedTree, inputs)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to execute selected tree %s: %w", selectedActionName, err)
-	}
+	// rawComponent, err := ae.executeTree(selectedTree, inputs)
+
+	// if err != nil {
+	// 	return nil, nil, fmt.Errorf("failed to execute selected tree %s: %w", selectedActionName, err)
+	// }
 
 	// Create the 5-element action array based on which tree was selected
 	// The action array always has 5 components regardless of number of actions
-	selectedAction := make([]float64, 5)
-
-	// Define clamping ranges for each of the 5 action components
-	componentRanges := [][2]float64{
-		{0.0, 1.0},  // pass: [0,1]
-		{0.0, 17.0}, // cell_i: [0,17]
-		{0.0, 21.0}, // cell_j: [0,21]
-		{0.0, 3.0},  // direction: [0,3]
-		{0.0, 1.0},  // split: [0,1]
-	}
-
+	// selectedAction := make([]float64, 5)
+	//
+	// // Define clamping ranges for each of the 5 action components
+	// componentRanges := [][2]float64{
+	// 	{0.0, 1.0},  // pass: [0,1]
+	// 	{0.0, 17.0}, // cell_i: [0,17]
+	// 	{0.0, 21.0}, // cell_j: [0,21]
+	// 	{0.0, 3.0},  // direction: [0,3]
+	// 	{0.0, 1.0},  // split: [0,1]
+	// }
+	//
 	// Generate action components where selected tree determines the primary action
 	// and other components are set to reasonable defaults
 	// Map the selected action index to one of the 5 components using modulo
-	componentIdx := selectedActionIdx % 5
+	// componentIdx := selectedActionIdx % 5
 
-	for i := 0; i < 5; i++ {
-		if i == componentIdx {
-			// Apply clamping for the selected component
-			minVal, maxVal := componentRanges[i][0], componentRanges[i][1]
+	// for i := 0; i < 5; i++ {
+	// 	if i == componentIdx {
+	// 		// Apply clamping for the selected component
+	// 		minVal, maxVal := componentRanges[i][0], componentRanges[i][1]
+	//
+	// 		// Apply appropriate clamping based on component type
+	// 		if i == 0 || i == 4 { // pass and split: simple clamping
+	// 			selectedAction[i] = math.Max(minVal, math.Min(maxVal, rawComponent))
+	// 		} else { // cell_i, cell_j, direction: clamping with modulo for range wrapping
+	// 			selectedAction[i] = math.Max(minVal, math.Min(maxVal, math.Mod(rawComponent, maxVal+1.0)))
+	// 		}
+	// 	} else {
+	// 		// Set non-selected components to defaults
+	// 		selectedAction[i] = 0.0
+	// 	}
+	// }
+	//
 
-			// Apply appropriate clamping based on component type
-			if i == 0 || i == 4 { // pass and split: simple clamping
-				selectedAction[i] = math.Max(minVal, math.Min(maxVal, rawComponent))
-			} else { // cell_i, cell_j, direction: clamping with modulo for range wrapping
-				selectedAction[i] = math.Max(minVal, math.Min(maxVal, math.Mod(rawComponent, maxVal+1.0)))
-			}
-		} else {
-			// Set non-selected components to defaults
-			selectedAction[i] = 0.0
-		}
+	selectedActions := make([]int, 5)
+	for i, actionArray := range actionOutputs {
+		selectedActions[i] = argmax(actionArray)
 	}
-
-	return selectedAction, probabilities, nil
+	return selectedActions, nil
 }
 
 // calculateSoftmax converts scores to probabilities using numerically stable softmax

@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional, Tuple
 from generals.agents import RandomAgent, ExpanderAgent, Agent
 from generals.envs import PettingZooGenerals
 from generals.core.rewards import FrequentAssetRewardFn
+from generals.core.action import Action
 
 
 class Game:
@@ -65,7 +66,7 @@ class Game:
         self.logger.info("Game reset")
 
         # Return client's observation
-        return self.observations.get(self.client_id, {}), self.info
+        return extract_features(self.observations, self.client_id), self.info
 
     def step(self, client_action: Any) -> Dict[str, Any]:
         """
@@ -83,10 +84,14 @@ class Game:
         try:
             # Collect actions from all agents
             actions = {}
-
+            print(client_action)
             for agent in self.env.agents:
                 if agent == self.client_id:
-                    actions[agent] = client_action
+                    pass_turn = True if client_action[0] > 0 else False
+                    split = True if client_action[4] > 0 else False
+
+                    actions[agent] = Action(
+                        pass_turn, client_action[1], client_action[2], client_action[3], split)
                 else:
                     # Opponent agent decides action
                     actions[agent] = self.opponent.act(
@@ -94,7 +99,7 @@ class Game:
 
             # Execute actions
             self.logger.info(actions)
-            observations, rewards, terminated, truncated = self.env.step(
+            observations, rewards, terminated, truncated, info = self.env.step(
                 actions)
             self.logger.info(observations)
 
@@ -108,8 +113,9 @@ class Game:
                 self.env.render()
 
             # Return client's perspective
+            print(extract_features(observations, self.client_id))
             return {
-                "observation": self.observations.get(self.client_id, {}),
+                "observation": extract_features(observations, self.client_id),
                 "reward": rewards.get(self.client_id, 0.0),
                 "terminated": self.terminated,
                 "truncated": self.truncated,
@@ -148,3 +154,168 @@ class Game:
             return self.info["winner"]
 
         return None
+# -----------------------------------------------------------
+# Helpers
+# -----------------------------------------------------------
+
+
+def neighbors(i, j, N, M):
+    if i > 0:
+        yield (i - 1, j)
+    if i < N - 1:
+        yield (i + 1, j)
+    if j > 0:
+        yield (i, j - 1)
+    if j < M - 1:
+        yield (i, j + 1)
+
+
+def manhattan(a, b):
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+# -----------------------------------------------------------
+# MAIN FEATURE EXTRACTION
+# state:
+#  state["terrain"][i][j] → -2 mountain, -1 city, >=0 owner ID
+#  state["armies"][i][j] → int army
+#  state["visible"][i][j] → bool
+#  state["generals"] → list of (i,j) for each player
+#  state["timestep"] → int
+#
+# my_id = player ID you control
+# -----------------------------------------------------------
+
+
+def print_2d_lens(name, array2d):
+    outer_len = len(array2d)
+    inner_lens = [len(row) for row in array2d]
+    print(f"{name}: outer={outer_len}, inner_lengths={inner_lens}")
+
+
+def extract_features(state, my_id):
+    armies = state[my_id]["armies"]
+    N = len(armies)
+    M = len(armies[0])
+    owned_cells = state[my_id]["owned_cells"]
+    opponent_cells = state[my_id]["owned_cells"]
+    mountain_cells = state[my_id]["mountains"]
+    cities_cells = state[my_id]["cities"]
+    generals_cells = state[my_id]["generals"]
+    fog_cells = state[my_id]["fog_cells"]
+    print_2d_lens("armies", armies)
+    print_2d_lens("owned_cells", owned_cells)
+    print_2d_lens("opponent_cells", opponent_cells)
+    print_2d_lens("mountain_cells", mountain_cells)
+    print_2d_lens("cities_cells", cities_cells)
+    print_2d_lens("generals_cells", generals_cells)
+    print_2d_lens("fog_cells", fog_cells)
+
+    my_total_army = 0
+    opp_total_army = 0
+    my_land_count = 0
+    opp_land_count = 0
+    neutral_count = 0
+    fog_count = 0
+    visible_cities = 0
+    visible_mountains = 0
+    owned_cells_list = []
+
+    enemy_general_pos = None
+
+    # -----------------------------
+    # PASS 1: Scan the entire grid
+    # -----------------------------
+    for i in range(N):
+        for j in range(M):
+            if fog_cells[i][j]:
+                fog_count += 1
+                continue
+            # terrain type
+            if cities_cells[i][j]:  # city
+                visible_cities += 1
+            elif mountain_cells[i][j]:  # mountain
+                visible_mountains += 1
+
+            # ownership
+            if owned_cells[i][j]:
+                if generals_cells[i][j]:
+                    my_general_pos = (i, j)
+                my_land_count += 1
+                my_total_army += armies[i][j]
+                owned_cells_list.append((i, j))
+
+            elif opponent_cells[i][j]:
+                if generals_cells[i][j]:
+                    enemy_general_pos = (i, j)
+                opp_land_count += 1
+                opp_total_army += armies[i][j]
+
+            else:
+                neutral_count += 1
+
+    # -----------------------------
+    # PASS 2: Border pressure
+    # owned cell with at least one non-owned neighbor
+    # -----------------------------
+    border_pressure = 0
+    print("GETTING HERE")
+    for (i, j) in owned_cells_list:
+        for (ni, nj) in neighbors(i, j, N, M):
+            if opponent_cells[ni][nj]:
+                border_pressure += 1
+                break  # count each owned cell once
+
+    # -----------------------------
+    # Ratios (+1 denominator to avoid division by zero)
+    # -----------------------------
+    army_ratio = my_total_army / (opp_total_army + 1)
+    land_ratio = my_land_count / (opp_land_count + 1)
+
+    # -----------------------------
+    # Distances (optional)
+    # -----------------------------
+    if enemy_general_pos is not None:
+        distance_to_enemy_general = manhattan(
+            my_general_pos, enemy_general_pos)
+    else:
+        distance_to_enemy_general = N + M  # max distance if unknown
+
+    # nearest visible city
+    min_city_dist = float('inf')
+    for i in range(N):
+        for j in range(M):
+            if not fog_cells[i][j] and cities_cells[i][j]:
+                d = manhattan(my_general_pos, (i, j))
+                if d < min_city_dist:
+                    min_city_dist = d
+
+    if min_city_dist == float('inf'):
+        min_city_dist = N + M  # no visible city
+    # -----------------------------
+    # FINAL FEATURE VECTOR
+    # -----------------------------
+    return {
+        "my_total_army": state[my_id]["owned_army_count"],
+        "opp_total_army": state[my_id]["opponent_army_count"],
+        "army_diff":  state[my_id]["owned_army_count"] - state[my_id]["opponent_army_count"],
+
+        "my_land_count": my_land_count,
+        "opp_land_count": opp_land_count,
+        "land_diff": my_land_count - opp_land_count,
+
+        "neutral_count": neutral_count,
+        "fog_count": fog_count,
+        "visible_cities_count": visible_cities,
+        "visible_mountains_count": visible_mountains,
+
+        "army_ratio": float(army_ratio),
+        "land_ratio": float(land_ratio),
+
+        "border_pressure": border_pressure,
+
+        "timestep": state[my_id]["timestep"],
+
+        # optional
+        "distance_to_enemy_general": distance_to_enemy_general,
+        "distance_to_nearest_city": min_city_dist,
+    }
