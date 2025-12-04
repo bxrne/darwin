@@ -40,14 +40,6 @@ func NewActionTreeFitnessCalculator(serverAddr string, opponentType string, acti
 
 // CalculateFitness evaluates the fitness of an ActionTree individual
 func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.Evolvable) {
-	// Log connection pool stats periodically
-	if atfc.connectionPool != nil {
-		stats := atfc.connectionPool.GetStats()
-		logmgr.Debug("Connection pool stats",
-			logmgr.Field("active", stats["active_count"]),
-			logmgr.Field("available", stats["available"]),
-			logmgr.Field("total_created", stats["total_created"]))
-	}
 
 	wi, wiok := evolvable.(*individual.WeightsIndividual)
 	at, atok := evolvable.(*individual.ActionTreeIndividual)
@@ -161,6 +153,11 @@ func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.
 func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd *individual.WeightsIndividual, actionTreeInd *individual.ActionTreeIndividual) float64 {
 	totalReward := 0.0
 
+	logmgr.Debug("Starting game evaluation",
+		logmgr.Field("max_steps", atfc.maxSteps),
+		logmgr.Field("weights_id", fmt.Sprintf("%p", weightsInd)),
+		logmgr.Field("action_tree_id", fmt.Sprintf("%p", actionTreeInd)))
+
 	for step := 0; step < atfc.maxSteps; step++ {
 		// Get current observation (first one after connection)
 		obs, err := client.ReceiveObservation()
@@ -169,8 +166,24 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 			break
 		}
 
+		// Log game progress every 10 steps
+		if step%10 == 0 {
+			logmgr.Debug("Game progress",
+				logmgr.Field("step", step),
+				logmgr.Field("reward", obs.Reward),
+				logmgr.Field("terminated", obs.Terminated),
+				logmgr.Field("truncated", obs.Truncated),
+				logmgr.Field("total_reward", totalReward))
+		}
+
 		// Check if game is over
 		if obs.Terminated || obs.Truncated {
+			logmgr.Debug("Game ended",
+				logmgr.Field("step", step),
+				logmgr.Field("final_reward", obs.Reward),
+				logmgr.Field("total_reward", totalReward+obs.Reward),
+				logmgr.Field("terminated", obs.Terminated),
+				logmgr.Field("truncated", obs.Truncated))
 			// Extract final game state
 			totalReward += obs.Reward
 			break
@@ -193,11 +206,15 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 		}
 
 		// Small delay to prevent overwhelming the server
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 
 		totalReward += obs.Reward
 
 	}
+
+	logmgr.Debug("Final fitness calculation",
+		logmgr.Field("total_reward", totalReward),
+		logmgr.Field("fitness", math.Log(totalReward+1)*10))
 
 	fitness := math.Log(totalReward+1) * 10
 

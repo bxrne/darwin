@@ -122,6 +122,7 @@ func (tc *TCPClient) SendMessage(message interface{}) error {
 	if err != nil {
 		// Check for broken pipe specifically
 		if strings.Contains(err.Error(), "broken pipe") || strings.Contains(err.Error(), "EPIPE") {
+			logmgr.Debug("Broken pipe detected - server likely closed connection")
 			return fmt.Errorf("broken pipe: server closed connection")
 		}
 		return fmt.Errorf("failed to send message: %w", err)
@@ -138,6 +139,11 @@ func (tc *TCPClient) ReceiveMessage() (map[string]interface{}, error) {
 
 	line, err := tc.reader.ReadString('\n')
 	if err != nil {
+		// Check for connection closed errors
+		if strings.Contains(err.Error(), "use of closed network connection") ||
+			strings.Contains(err.Error(), "connection reset by peer") {
+			logmgr.Debug("Connection closed by peer during read")
+		}
 		return nil, fmt.Errorf("failed to read message: %w", err)
 	}
 
@@ -226,12 +232,19 @@ func (tc *TCPClient) ReceiveObservation() (*ObservationResponse, error) {
 
 		switch MessageType(msgType) {
 		case Observation:
+			// Debug log raw JSON message
+			logmgr.Debug("Raw observation message",
+				logmgr.Field("message", fmt.Sprintf("%+v", msg)))
 			var resp ObservationResponse
 			data, _ := json.Marshal(msg)
 			err = json.Unmarshal(data, &resp)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse observation response: %w", err)
 			}
+			// Debug log received observation
+			logmgr.Debug("Received observation",
+				logmgr.Field("reward", resp.Reward),
+				logmgr.Field("terminated", resp.Terminated))
 			return &resp, nil
 
 		case GameOver:

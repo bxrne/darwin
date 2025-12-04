@@ -112,11 +112,16 @@ def worker_process(
                             continue
                         action = json_data.get("action")
                         result = game.step(action)
+                        reward = result["reward"]
+
+                        # Log reward before sending
+                        if reward != 0:
+                            logger.info(f"Sending non-zero reward: {reward}")
 
                         # Observation response
                         response = ObservationResponse(
                             observation=result["observation"],
-                            reward=result["reward"],
+                            reward=reward,
                             terminated=result["terminated"],
                             truncated=result["truncated"],
                             info=result["info"],
