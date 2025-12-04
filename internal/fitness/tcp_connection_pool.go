@@ -47,24 +47,13 @@ func (p *TCPConnectionPool) GetConnection() (*TCPClient, error) {
 		return nil, fmt.Errorf("connection pool is closed")
 	}
 
-	// Log pool state before attempt
-	stats := map[string]interface{}{
-		"active":        p.activeCount,
-		"available":     len(p.connections),
-		"max":           p.maxConnections,
-		"total_created": p.totalCreated,
-	}
-	logmgr.Debug("Connection pool state", logmgr.Field("stats", stats))
-
 	select {
 	case client := <-p.connections:
 		// Got existing connection, verify it's healthy
 		if err := p.healthCheck(client); err != nil {
-			logmgr.Debug("Connection unhealthy, creating new one", logmgr.Field("error", err))
 			client.Disconnect()
 			return p.createNewConnection()
 		}
-		logmgr.Debug("Reusing existing connection", logmgr.Field("active_count", p.activeCount))
 		return client, nil
 
 	default:
@@ -92,7 +81,6 @@ func (p *TCPConnectionPool) ReturnConnection(client *TCPClient) error {
 
 	// Verify connection is still healthy before returning to pool
 	if err := p.healthCheck(client); err != nil {
-		logmgr.Debug("Connection unhealthy on return, discarding", logmgr.Field("error", err))
 		client.Disconnect()
 		p.activeCount--
 		return nil
@@ -100,13 +88,11 @@ func (p *TCPConnectionPool) ReturnConnection(client *TCPClient) error {
 
 	select {
 	case p.connections <- client:
-		logmgr.Debug("Connection returned to pool", logmgr.Field("active_count", p.activeCount))
 		return nil
 	default:
 		// Pool full, discard connection
 		client.Disconnect()
 		p.activeCount--
-		logmgr.Debug("Pool full, discarding connection", logmgr.Field("active_count", p.activeCount))
 		return nil
 	}
 }
@@ -180,10 +166,6 @@ func (p *TCPConnectionPool) createNewConnection() (*TCPClient, error) {
 
 	p.activeCount++
 	p.totalCreated++
-
-	logmgr.Debug("Created new connection",
-		logmgr.Field("active_count", p.activeCount),
-		logmgr.Field("total_created", p.totalCreated))
 
 	return client, nil
 }

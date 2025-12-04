@@ -8,12 +8,18 @@ from generals.agents import RandomAgent, ExpanderAgent, Agent
 from generals.envs import PettingZooGenerals
 from generals.core.rewards import FrequentAssetRewardFn
 from generals.core.action import Action
+from generals.core.rewards import FrequentAssetRewardFn
 
 
 class Game:
     """Manages a single game instance for a remote client."""
 
-    def __init__(self, client_id: str, opponent_type: str = "random", render_mode: Optional[str] = None):
+    def __init__(
+        self,
+        client_id: str,
+        opponent_type: str = "random",
+        render_mode: Optional[str] = None,
+    ):
         """
         Initialize a game for a client.
 
@@ -31,14 +37,15 @@ class Game:
         elif opponent_type == "expander":
             self.opponent = ExpanderAgent()
         else:
-            self.logger.warning(f"Unknown opponent type: {
-                                opponent_type}, defaulting to random")
+            self.logger.warning(
+                f"Unknown opponent type: {opponent_type}, defaulting to random"
+            )
             self.opponent = RandomAgent()
 
         # Setup agent names
         self.agent_names = [client_id, self.opponent.id]
 
-        # Initialize environment
+        # Initialize environment with frequent asset rewards
         self.env = PettingZooGenerals(
             agents=self.agent_names,
             render_mode=render_mode,
@@ -50,7 +57,10 @@ class Game:
         self.terminated = False
         self.truncated = False
 
-        self.logger.info(f"Game created: {client_id} vs {self.opponent.id}")
+        self.logger.info(
+            f"Game created: {client_id} vs {
+                self.opponent.id} - USING FREQUENT ASSET REWARDS"
+        )
 
     def reset(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """
@@ -90,7 +100,8 @@ class Game:
                     split = True if client_action[4] > 0 else False
 
                     actions[agent] = Action(
-                        pass_turn, client_action[1], client_action[2], 0, split)
+                        pass_turn, client_action[1], client_action[2], 0, split
+                    )
                 else:
                     # Opponent agent decides action
                     actions[agent] = self.opponent.act(
@@ -116,7 +127,7 @@ class Game:
                 "reward": rewards.get(self.client_id, 0.0),
                 "terminated": self.terminated,
                 "truncated": self.truncated,
-                "info": self.info
+                "info": self.info,
             }
 
         except Exception as e:
@@ -126,11 +137,13 @@ class Game:
     def _get_terminal_state(self) -> Dict[str, Any]:
         """Return the terminal state for a finished game."""
         return {
-            "observation": self.observations.get(self.client_id, {}) if self.observations else {},
+            "observation": self.observations.get(self.client_id, {})
+            if self.observations
+            else {},
             "reward": 0.0,
             "terminated": True,
             "truncated": self.truncated,
-            "info": self.info or {}
+            "info": self.info or {},
         }
 
     def close(self):
@@ -151,6 +164,8 @@ class Game:
             return self.info["winner"]
 
         return None
+
+
 # -----------------------------------------------------------
 # Helpers
 # -----------------------------------------------------------
@@ -169,6 +184,7 @@ def neighbors(i, j, N, M):
 
 def manhattan(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
 
 # -----------------------------------------------------------
 # MAIN FEATURE EXTRACTION
@@ -241,8 +257,8 @@ def extract_features(state, my_id):
     # owned cell with at least one non-owned neighbor
     # -----------------------------
     border_pressure = 0
-    for (i, j) in owned_cells_list:
-        for (ni, nj) in neighbors(i, j, N, M):
+    for i, j in owned_cells_list:
+        for ni, nj in neighbors(i, j, N, M):
             if opponent_cells[ni][nj]:
                 border_pressure += 1
                 break  # count each owned cell once
@@ -263,7 +279,7 @@ def extract_features(state, my_id):
         distance_to_enemy_general = N + M  # max distance if unknown
 
     # nearest visible city
-    min_city_dist = float('inf')
+    min_city_dist = float("inf")
     for i in range(N):
         for j in range(M):
             if not fog_cells[i][j] and cities_cells[i][j]:
@@ -271,7 +287,7 @@ def extract_features(state, my_id):
                 if d < min_city_dist:
                     min_city_dist = d
 
-    if min_city_dist == float('inf'):
+    if min_city_dist == float("inf"):
         min_city_dist = N + M  # no visible city
     # -----------------------------
     # FINAL FEATURE VECTOR
@@ -279,24 +295,19 @@ def extract_features(state, my_id):
     return {
         "my_total_army": state[my_id]["owned_army_count"],
         "opp_total_army": state[my_id]["opponent_army_count"],
-        "army_diff":  state[my_id]["owned_army_count"] - state[my_id]["opponent_army_count"],
-
+        "army_diff": state[my_id]["owned_army_count"]
+        - state[my_id]["opponent_army_count"],
         "my_land_count": my_land_count,
         "opp_land_count": opp_land_count,
         "land_diff": my_land_count - opp_land_count,
-
         "neutral_count": neutral_count,
         "fog_count": fog_count,
         "visible_cities_count": visible_cities,
         "visible_mountains_count": visible_mountains,
-
         "army_ratio": float(army_ratio),
         "land_ratio": float(land_ratio),
-
         "border_pressure": border_pressure,
-
         "timestep": state[my_id]["timestep"],
-
         # optional
         "distance_to_enemy_general": distance_to_enemy_general,
         "distance_to_nearest_city": min_city_dist,
