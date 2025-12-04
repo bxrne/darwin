@@ -81,7 +81,7 @@ func TestExecuteActionTreesWithSoftmax_Deterministic(t *testing.T) {
 			actionIndividual.SetFitness(0.0)
 
 			// Create executor
-			actions := []string{"action_0", "action_1", "action_2", "action_3", "action_4"}
+			actions := []individual.ActionTuple{{Name: "action_0", Value: 2}, {Name: "action_1", Value: 3}, {Name: "action_2", Value: 4}, {Name: "action_3", Value: 2}, {Name: "action_4", Value: 0}} // actions
 			executor := fitness.NewActionExecutor(actions)
 
 			// Convert []float64 inputs to map[string]float64
@@ -169,7 +169,7 @@ func TestExecuteActionTreesWithSoftmax_ErrorCases(t *testing.T) {
 			}
 			actionIndividual.SetFitness(0.0)
 
-			actions := []string{"action_0", "action_1", "action_2", "action_3", "action_4"}
+			actions := []individual.ActionTuple{{Name: "action_0", Value: 2}, {Name: "action_1", Value: 3}, {Name: "action_2", Value: 4}, {Name: "action_3", Value: 2}, {Name: "action_4", Value: 0}} // actions
 			executor := fitness.NewActionExecutor(actions)
 
 			// Convert []float64 inputs to map[string]float64
@@ -191,13 +191,4 @@ func TestExecuteActionTreesWithSoftmax_ErrorCases(t *testing.T) {
 // createAllOnesWeights creates a weights matrix filled with 1.0
 func createAllOnesWeights(rows, cols int) *individual.WeightsIndividual {
 	return individual.NewWeightsIndividual(rows, cols)
-}
-
-// sum calculates the sum of a float slice
-func sum(values []float64) float64 {
-	total := 0.0
-	for _, v := range values {
-		total += v
-	}
-	return total
 }

@@ -8,7 +8,7 @@ import (
 )
 
 func TestNewActionTreeIndividual_GIVEN_actions_and_trees_WHEN_created_THEN_has_correct_structure(t *testing.T) {
-	actions := []string{"move_east", "move_west"}
+	actions := []individual.ActionTuple{{Name: "move_east", Value: 1}, {Name: "move_west", Value: 1}}
 
 	// Create test trees
 	operands := []string{"+", "-"}
@@ -37,7 +37,7 @@ func TestNewActionTreeIndividual_GIVEN_actions_and_trees_WHEN_created_THEN_has_c
 }
 
 func TestNewRandomActionTreeIndividual_GIVEN_parameters_WHEN_created_THEN_has_random_trees(t *testing.T) {
-	actions := []string{"action1", "action2"}
+	actions := []individual.ActionTuple{{Name: "action1", Value: 1}, {Name: "action2", Value: 1}}
 	maxDepth := 2
 	operands := []string{"+", "-"}
 	variables := []string{"x", "y"}
@@ -45,7 +45,6 @@ func TestNewRandomActionTreeIndividual_GIVEN_parameters_WHEN_created_THEN_has_ra
 
 	// Create ActionTreeIndividual with random trees
 	ati := individual.NewRandomActionTreeIndividual(actions, maxDepth, operands, variables, terminals)
-
 	// Verify structure
 	assert.NotNil(t, ati)
 	assert.Equal(t, 2, len(ati.Trees))
@@ -61,7 +60,7 @@ func TestNewRandomActionTreeIndividual_GIVEN_parameters_WHEN_created_THEN_has_ra
 }
 
 func TestNewRandomActionTreeIndividual_GIVEN_same_parameters_WHEN_created_multiple_THEN_different_trees(t *testing.T) {
-	actions := []string{"action1"}
+	actions := []individual.ActionTuple{{Name: "action1", Value: 1}}
 	maxDepth := 2
 	operands := []string{"+", "-"}
 	variables := []string{"x"}
@@ -81,7 +80,7 @@ func TestNewRandomActionTreeIndividual_GIVEN_same_parameters_WHEN_created_multip
 }
 
 func TestActionTreeIndividual_Clone_GIVEN_individual_WHEN_cloned_THEN_deep_copy(t *testing.T) {
-	actions := []string{"move_east", "move_west"}
+	actions := []individual.ActionTuple{{Name: "move_east", Value: 1}, {Name: "move_west", Value: 1}}
 	operands := []string{"+"}
 	variables := []string{"x"}
 	terminals := []string{"1"}

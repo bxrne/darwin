@@ -23,7 +23,7 @@ type ActionTreeFitnessCalculator struct {
 }
 
 // NewActionTreeFitnessCalculator creates a new action tree fitness calculator
-func NewActionTreeFitnessCalculator(serverAddr string, opponentType string, actions []string, maxSteps int, populations []*[]individual.Evolvable, selectionPercentage float64, poolSize int, timeout time.Duration) *ActionTreeFitnessCalculator {
+func NewActionTreeFitnessCalculator(serverAddr string, opponentType string, actions []individual.ActionTuple, maxSteps int, populations []*[]individual.Evolvable, selectionPercentage float64, poolSize int, timeout time.Duration) *ActionTreeFitnessCalculator {
 	pool := NewTCPConnectionPool(serverAddr, poolSize, timeout)
 
 	return &ActionTreeFitnessCalculator{

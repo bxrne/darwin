@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/bxrne/darwin/internal/individual"
 )
 
 // BitStringIndividualConfig holds configuration for bitstring individuals.
@@ -103,29 +104,25 @@ func (gtc *GrammarTreeConfig) validate() error {
 
 // ActionTreeConfig holds configuration for action tree individuals.
 type ActionTreeConfig struct {
-	Actions                    []string `toml:"actions"`
-	MaxActionSize              int      `toml:"max_action_size"`
-	WeightsColumnCount         int      `toml:"weights_column_count"`
-	Enabled                    bool     `toml:"enabled"`
-	ServerAddr                 string   `toml:"server_addr"`
-	OpponentType               string   `toml:"opponent_type"`
-	MaxSteps                   int      `toml:"max_steps"`
-	WeightsCount               int      `toml:"weights_count"`
-	TrainWeightsFirst          bool     `toml:"train_weights_first"`
-	FitnessSelectionPercentage float64  `toml:"fitness_selection_percentage"`
-	SwitchTrainingTargetStep   int      `toml:"switch_training_target_step"`
-	ConnectionPoolSize         int      `toml:"connection_pool_size"`
-	ConnectionTimeout          string   `toml:"connection_timeout"`
-	HealthCheckTimeout         string   `toml:"health_check_timeout"`
+	Actions                    []individual.ActionTuple `toml:"actions"`
+	WeightsColumnCount         int                      `toml:"weights_column_count"`
+	Enabled                    bool                     `toml:"enabled"`
+	ServerAddr                 string                   `toml:"server_addr"`
+	OpponentType               string                   `toml:"opponent_type"`
+	MaxSteps                   int                      `toml:"max_steps"`
+	WeightsCount               int                      `toml:"weights_count"`
+	TrainWeightsFirst          bool                     `toml:"train_weights_first"`
+	FitnessSelectionPercentage float64                  `toml:"fitness_selection_percentage"`
+	SwitchTrainingTargetStep   int                      `toml:"switch_training_target_step"`
+	ConnectionPoolSize         int                      `toml:"connection_pool_size"`
+	ConnectionTimeout          string                   `toml:"connection_timeout"`
+	HealthCheckTimeout         string                   `toml:"health_check_timeout"`
 }
 
 // validate validates the ActionTreeConfig.
 func (atc *ActionTreeConfig) validate() error {
 	if len(atc.Actions) == 0 {
 		return fmt.Errorf("actions must not be empty")
-	}
-	if atc.MaxActionSize <= 0 {
-		return fmt.Errorf("num_inputs must be greater than 0")
 	}
 	if atc.ServerAddr == "" {
 		atc.ServerAddr = "localhost:5000" // Default server address

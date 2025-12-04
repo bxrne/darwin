@@ -10,6 +10,11 @@ type ActionTreeIndividual struct {
 	fitness float64
 }
 
+type ActionTuple struct {
+	Name  string `toml:"name"`
+	Value int    `toml:"value"`
+}
+
 // Describe provides a string description of the ActionTreeIndividual
 func (ati *ActionTreeIndividual) Describe() string {
 	description := "ActionTreeIndividual:\n"
@@ -94,7 +99,7 @@ func (ati *ActionTreeIndividual) MultiPointCrossover(i2 Evolvable, crossoverInfo
 }
 
 // NewActionTreeIndividual creates a new ActionTreeIndividual with provided trees
-func NewActionTreeIndividual(actions []string, initialTrees map[string]*Tree) *ActionTreeIndividual {
+func NewActionTreeIndividual(actions []ActionTuple, initialTrees map[string]*Tree) *ActionTreeIndividual {
 	return &ActionTreeIndividual{
 		Trees:   initialTrees,
 		fitness: 0.0,
@@ -102,13 +107,13 @@ func NewActionTreeIndividual(actions []string, initialTrees map[string]*Tree) *A
 }
 
 // NewRandomActionTreeIndividual creates a new ActionTreeIndividual with random trees
-func NewRandomActionTreeIndividual(actions []string, maxDepth int, operands []string, variables []string, terminals []string) *ActionTreeIndividual {
+func NewRandomActionTreeIndividual(actions []ActionTuple, maxDepth int, operands []string, variables []string, terminals []string) *ActionTreeIndividual {
 	trees := make(map[string]*Tree)
 
 	// Create random tree for each action
 	for _, action := range actions {
 		tree := NewRandomTree(maxDepth, operands, variables, terminals)
-		trees[action] = tree
+		trees[action.Name] = tree
 	}
 
 	return NewActionTreeIndividual(actions, trees)
