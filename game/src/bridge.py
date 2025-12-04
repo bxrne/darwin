@@ -1,8 +1,11 @@
-
 from src.payloads import (
-    MessageType, ConnectedResponse,
-    ObservationResponse, ErrorResponse, GameOverResponse,
-    to_dict, NumpyEncoder
+    MessageType,
+    ConnectedResponse,
+    ObservationResponse,
+    ErrorResponse,
+    GameOverResponse,
+    to_dict,
+    NumpyEncoder,
 )
 from src.game import Game
 from typing import Dict, Optional
@@ -18,12 +21,18 @@ import socket
 # ---------------------------------------------------
 
 
-def worker_process(client_id: str, client_socket_fd: int, log_queue: multiprocessing.Queue,
-                   disconnect_queue: multiprocessing.Queue, render_mode=None):
+def worker_process(
+    client_id: str,
+    client_socket_fd: int,
+    log_queue: multiprocessing.Queue,
+    disconnect_queue: multiprocessing.Queue,
+    render_mode=None,
+):
     """
     Handles a single client connection in a separate process.
     """
     import socket
+
     client_socket = socket.socket(fileno=client_socket_fd)
     client_socket.setblocking(True)
 
@@ -38,13 +47,13 @@ def worker_process(client_id: str, client_socket_fd: int, log_queue: multiproces
     game: Optional[Game] = None
     try:
         while True:
-            data = client_socket.recv(4096).decode('utf-8')
+            data = client_socket.recv(4096).decode("utf-8")
             if not data:
                 logger.info(f"Client {client_id} disconnected (reader)")
                 break
             buffer += data
-            while '\n' in buffer:
-                message, buffer = buffer.split('\n', 1)
+            while "\n" in buffer:
+                message, buffer = buffer.split("\n", 1)
                 if not message.strip():
                     continue
                 try:
@@ -52,21 +61,27 @@ def worker_process(client_id: str, client_socket_fd: int, log_queue: multiproces
                     msg_type = json_data.get("type")
 
                     if msg_type == MessageType.CONNECT:
-                        opponent_type = json_data.get(
-                            "opponent_type", "random")
-                        game = Game(client_id, opponent_type=opponent_type,
-                                    render_mode=render_mode)
+                        opponent_type = json_data.get("opponent_type", "random")
+                        game = Game(
+                            client_id,
+                            opponent_type=opponent_type,
+                            render_mode=render_mode,
+                        )
                         observation, info = game.reset()
 
                         # Connected response
                         response = ConnectedResponse(
                             agent_id=client_id,
                             opponent_id=game.opponent.id,
-                            message=f"Connected! Playing as {
-                                client_id} vs {game.opponent.id}"
+                            message=f"Connected! Playing as {client_id} vs {
+                                game.opponent.id
+                            }",
                         )
                         client_socket.sendall(
-                            (json.dumps(to_dict(response), cls=NumpyEncoder) + "\n").encode('utf-8'))
+                            (
+                                json.dumps(to_dict(response), cls=NumpyEncoder) + "\n"
+                            ).encode("utf-8")
+                        )
 
                         # Initial observation
                         obs_response = ObservationResponse(
@@ -74,21 +89,26 @@ def worker_process(client_id: str, client_socket_fd: int, log_queue: multiproces
                             reward=0.0,
                             terminated=False,
                             truncated=False,
-                            info=info
+                            info=info,
                         )
                         client_socket.sendall(
-                            (json.dumps(to_dict(obs_response), cls=NumpyEncoder) + "\n").encode('utf-8'))
+                            (
+                                json.dumps(to_dict(obs_response), cls=NumpyEncoder)
+                                + "\n"
+                            ).encode("utf-8")
+                        )
 
-                        logger.info(f"Game created: {client_id} vs {
-                                    game.opponent.id}")
+                        logger.info(f"Game created: {client_id} vs {game.opponent.id}")
                         logger.info(f"Game reset")
 
                     elif msg_type == MessageType.ACTION:
                         if not game:
-                            err = ErrorResponse(
-                                "No active game", "Send CONNECT first")
+                            err = ErrorResponse("No active game", "Send CONNECT first")
                             client_socket.sendall(
-                                (json.dumps(to_dict(err), cls=NumpyEncoder) + "\n").encode('utf-8'))
+                                (
+                                    json.dumps(to_dict(err), cls=NumpyEncoder) + "\n"
+                                ).encode("utf-8")
+                            )
                             continue
                         action = json_data.get("action")
                         result = game.step(action)
@@ -99,28 +119,36 @@ def worker_process(client_id: str, client_socket_fd: int, log_queue: multiproces
                             reward=result["reward"],
                             terminated=result["terminated"],
                             truncated=result["truncated"],
-                            info=result["info"]
+                            info=result["info"],
                         )
                         client_socket.sendall(
-                            (json.dumps(to_dict(response), cls=NumpyEncoder) + "\n").encode('utf-8'))
+                            (
+                                json.dumps(to_dict(response), cls=NumpyEncoder) + "\n"
+                            ).encode("utf-8")
+                        )
 
                         # Game over
                         if result["terminated"] or result["truncated"]:
                             game_over = GameOverResponse(
                                 winner=game.get_winner(),
-                                final_rewards={
-                                    game.client_id: result["reward"]},
-                                reason="Game completed"
+                                final_rewards={game.client_id: result["reward"]},
+                                reason="Game completed",
                             )
                             client_socket.sendall(
-                                (json.dumps(to_dict(game_over), cls=NumpyEncoder) + "\n").encode('utf-8'))
+                                (
+                                    json.dumps(to_dict(game_over), cls=NumpyEncoder)
+                                    + "\n"
+                                ).encode("utf-8")
+                            )
 
                     elif msg_type == MessageType.RESET:
                         if not game:
-                            err = ErrorResponse(
-                                "No active game", "Send CONNECT first")
+                            err = ErrorResponse("No active game", "Send CONNECT first")
                             client_socket.sendall(
-                                (json.dumps(to_dict(err), cls=NumpyEncoder) + "\n").encode('utf-8'))
+                                (
+                                    json.dumps(to_dict(err), cls=NumpyEncoder) + "\n"
+                                ).encode("utf-8")
+                            )
                             continue
                         observation, info = game.reset()
                         response = ObservationResponse(
@@ -128,21 +156,29 @@ def worker_process(client_id: str, client_socket_fd: int, log_queue: multiproces
                             reward=0.0,
                             terminated=False,
                             truncated=False,
-                            info=info
+                            info=info,
                         )
                         client_socket.sendall(
-                            (json.dumps(to_dict(response), cls=NumpyEncoder) + "\n").encode('utf-8'))
+                            (
+                                json.dumps(to_dict(response), cls=NumpyEncoder) + "\n"
+                            ).encode("utf-8")
+                        )
 
                     else:
-                        err = ErrorResponse(
-                            "Unknown message type", f"Type: {msg_type}")
+                        err = ErrorResponse("Unknown message type", f"Type: {msg_type}")
                         client_socket.sendall(
-                            (json.dumps(to_dict(err), cls=NumpyEncoder) + "\n").encode('utf-8'))
+                            (json.dumps(to_dict(err), cls=NumpyEncoder) + "\n").encode(
+                                "utf-8"
+                            )
+                        )
 
                 except Exception as e:
                     err = ErrorResponse("Processing error", str(e))
                     client_socket.sendall(
-                        (json.dumps(to_dict(err), cls=NumpyEncoder) + "\n").encode('utf-8'))
+                        (json.dumps(to_dict(err), cls=NumpyEncoder) + "\n").encode(
+                            "utf-8"
+                        )
+                    )
                     logger.error(f"Error processing message: {e}")
 
     except ConnectionResetError:
@@ -189,8 +225,8 @@ class Bridge:
 
         # Start server socket
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.setsockopt(
-            socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server_socket.settimeout(1.0)  # Add timeout to allow clean shutdown
         self.server_socket.bind((self.address, self.port))
         self.server_socket.listen(self.backlog)
         self.running = True
@@ -205,6 +241,8 @@ class Bridge:
     def _accept_connections(self):
         while self.running:
             try:
+                if self.server_socket is None:
+                    break
                 client_socket, client_address = self.server_socket.accept()
                 with self.lock:
                     self.client_counter += 1
@@ -214,17 +252,27 @@ class Bridge:
                 # Spawn worker process
                 p = multiprocessing.Process(
                     target=worker_process,
-                    args=(client_id, client_socket.fileno(), self.log_queue,
-                          self.disconnect_queue, self.render_mode),
-                    daemon=False
+                    args=(
+                        client_id,
+                        client_socket.fileno(),
+                        self.log_queue,
+                        self.disconnect_queue,
+                        self.render_mode,
+                    ),
+                    daemon=False,
                 )
                 p.start()
                 self.workers[client_id] = p
-                logging.info(f"Accepted connection from {
-                             client_address} as {client_id}")
+                logging.info(
+                    f"Accepted connection from {client_address} as {client_id}"
+                )
 
+            except socket.timeout:
+                # Timeout is expected, allows checking self.running
+                continue
             except Exception as e:
-                logging.error(f"Error accepting connection: {e}")
+                if self.running:  # Only log errors if we're still running
+                    logging.error(f"Error accepting connection: {e}")
 
     def _handle_disconnects(self):
         """Clean up workers when they notify disconnection."""
@@ -237,7 +285,7 @@ class Bridge:
                     p = self.workers.pop(client_id, None)
                     if p and p.is_alive():
                         p.terminate()
-                    p.join()
+                        p.join(timeout=5)  # Wait for graceful shutdown
                     # close socket
                     sock = self.clients.pop(client_id, None)
                     if sock:
@@ -260,10 +308,15 @@ class Bridge:
                 except:
                     pass
             self.clients.clear()
-            # Terminate workers
+            # Terminate workers and wait for them to exit
             for p in self.workers.values():
-                if p.is_alive():
+                if p is not None and p.is_alive():
                     p.terminate()
+                    p.join(timeout=5)  # Wait up to 5 seconds for graceful shutdown
+                    if p.is_alive():
+                        # Force kill if still alive
+                        p.kill()
+                        p.join(timeout=2)
             self.workers.clear()
         if self.server_socket:
             try:
@@ -276,12 +329,11 @@ class Bridge:
         """Return current number of active clients and workers."""
         with self.lock:
             # Remove dead workers automatically
-            dead_workers = [cid for cid,
-                            p in self.workers.items() if not p.is_alive()]
+            dead_workers = [cid for cid, p in self.workers.items() if not p.is_alive()]
             for cid in dead_workers:
                 self.workers.pop(cid, None)
                 self.clients.pop(cid, None)
             return {
                 "active_clients": len(self.clients),
-                "active_workers": len(self.workers)
+                "active_workers": len(self.workers),
             }

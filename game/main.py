@@ -2,6 +2,7 @@
 Entry point for the Generals game bridge server (multiprocess version).
 """
 
+import time
 from src.bridge import Bridge
 
 
@@ -11,9 +12,20 @@ def main():
     bridge.start()
 
     try:
+        counter = 0
         while True:
             stats = bridge.get_stats()
-            print(f"\nStatus: {stats['active_clients']} clients, {stats['active_workers']} active workers (games)")
+            # Only print if there's activity or every 30 seconds
+            if (
+                stats["active_clients"] > 0
+                or stats["active_workers"] > 0
+                or counter % 6 == 0
+            ):
+                print(
+                    f"\nStatus: {stats['active_clients']} clients, {stats['active_workers']} active workers (games)"
+                )
+            time.sleep(5)  # Check every 5 seconds, print every 30 seconds when idle
+            counter += 1
 
     except KeyboardInterrupt:
         print("\nShutting down...")
