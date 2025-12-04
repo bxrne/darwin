@@ -20,7 +20,7 @@ type FitnessSetupInformation struct {
 	ServerAddr                    string
 	OpponentType                  string
 	MaxSteps                      int
-	Actions                       []string
+	Actions                       []individual.ActionTuple
 	Population                    []*[]individual.Evolvable
 	ActionTreeSelectionPercentage float64
 }

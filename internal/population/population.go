@@ -30,13 +30,19 @@ type PopulationInfo struct {
 }
 
 func NewPopulationInfo(config *cfg.Config, genomeType individual.GenomeType) PopulationInfo {
+	maxValue := config.ActionTree.Actions[0].Value // start with first value
+	for _, a := range config.ActionTree.Actions[1:] {
+		if a.Value > maxValue {
+			maxValue = a.Value
+		}
+	}
 	return PopulationInfo{
 		Size:                 config.Evolution.PopulationSize,
 		weightsCount:         config.ActionTree.WeightsCount,
-		maxNumInputs:         config.ActionTree.MaxActionSize,
 		numColumns:           config.ActionTree.WeightsColumnCount,
 		trainWeightsFirst:    config.ActionTree.TrainWeightsFirst,
 		SwitchPopulationStep: config.ActionTree.SwitchTrainingTargetStep,
+		maxNumInputs:         maxValue,
 		GenomeType:           genomeType,
 	}
 }

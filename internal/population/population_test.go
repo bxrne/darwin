@@ -50,7 +50,7 @@ func TestPopulationBuilder_BuildPopulation_GIVEN_various_genome_types_WHEN_build
 			genomeType: individual.ActionTreeGenome,
 			initFunc: func() individual.Evolvable {
 				return individual.NewActionTreeIndividual(
-					[]string{"move", "jump", "turn"}, // actions
+					[]individual.ActionTuple{{Name: "move", Value: 2}, {Name: "jump", Value: 3}, {Name: "turn", Value: 4}}, // actions
 					map[string]*individual.Tree{ // initialTrees
 						"move": individual.NewRandomTree(3,
 							[]string{"+", "-", "*"},
