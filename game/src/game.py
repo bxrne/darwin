@@ -8,7 +8,6 @@ from generals.agents import RandomAgent, ExpanderAgent, Agent
 from generals.envs import PettingZooGenerals
 from generals.core.rewards import FrequentAssetRewardFn
 from generals.core.action import Action
-from generals.core.rewards import FrequentAssetRewardFn
 from generals import GridFactory
 
 
@@ -60,7 +59,7 @@ class Game:
             agents=self.agent_names,
             grid_factory=grid_factory,
             render_mode=render_mode,
-            reward_fn=FrequentAssetRewardFn
+            reward_fn=FrequentAssetRewardFn()
         )
 
         self.observations = None
