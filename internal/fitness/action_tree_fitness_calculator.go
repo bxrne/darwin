@@ -2,7 +2,6 @@ package fitness
 
 import (
 	"fmt"
-	"math"
 	"sort"
 	"time"
 
@@ -213,10 +212,9 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 	}
 
 	logmgr.Debug("Final fitness calculation",
-		logmgr.Field("total_reward", totalReward),
-		logmgr.Field("fitness", math.Log(totalReward+1)*10))
+		logmgr.Field("total_reward", totalReward))
 
-	fitness := math.Log(totalReward+1) * 10
+	fitness := totalReward
 
 	return fitness
 }

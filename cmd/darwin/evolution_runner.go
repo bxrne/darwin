@@ -56,7 +56,6 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	metricsComplete := make(chan struct{})
 
 	populationType := getGenomeType(config)
-	fmt.Printf("Population type: %v\n", populationType)
 	grammar := individual.CreateGrammar(config.Tree.TerminalSet, config.Tree.VariableSet, config.Tree.OperandSet)
 
 	popBuilder := population.NewPopulationBuilder()
@@ -70,7 +69,6 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 		case individual.GrammarTreeGenome:
 			return individual.NewGrammarTree(config.GrammarTree.GenomeSize)
 		case individual.ActionTreeGenome:
-			fmt.Printf("Creating ActionTree individual\n")
 			// Create random trees for each action
 			initialTrees := make(map[string]*individual.Tree)
 			variableSet := make([]string, config.ActionTree.WeightsColumnCount)
@@ -89,7 +87,6 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 				initialTrees[action.Name] = tree
 			}
 			result := individual.NewActionTreeIndividual(config.ActionTree.Actions, initialTrees)
-			fmt.Printf("ActionTree individual created: %v\n", result != nil)
 			return result
 		default:
 			fmt.Printf("Unknown genome type: %v\n", populationType)

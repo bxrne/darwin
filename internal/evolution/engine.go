@@ -115,11 +115,10 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 // processGeneration performs one generation of evolution
 func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	start := time.Now()
-	logmgr.Info("Starting Generation")
-	// Sort population by fitness (descending)
+	logmgr.Info("Starting generation", logmgr.Field("generation", cmd.Generation))
 	ee.sortPopulation()
-	// Create new population
 	newPop := make([]individual.Evolvable, 0, ee.population.Count())
+
 	// Elitism: keep best individuals
 	elitismCount := int(float64(ee.population.Count()) * cmd.ElitismPct)
 	for i := 0; i < elitismCount && i < ee.population.Count(); i++ {
@@ -128,8 +127,9 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	offspringNeeded := ee.population.Count() - len(newPop)
 	offspringChan := make(chan individual.Evolvable, ee.population.Count()-elitismCount+1)
 	var wg sync.WaitGroup
+
 	// Generate offspring
-	for i := 0; i < offspringNeeded; i++ {
+	for range offspringNeeded {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -153,6 +153,8 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	default:
 		// Skip if metrics channel is full (non-blocking)
 	}
+
+	logmgr.Info("Completed generation", logmgr.Field("generation", cmd.Generation), logmgr.Field("duration_ms", duration.Milliseconds()), logmgr.Field("best_fitness", genMetrics.BestFitness))
 }
 
 // sortPopulation sorts the population by fitness (descending)
