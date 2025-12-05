@@ -4,18 +4,21 @@ import (
 	"fmt"
 	"github.com/bxrne/darwin/internal/individual"
 	"github.com/bxrne/darwin/internal/rng"
+	"github.com/bxrne/logmgr"
 	"math"
 )
 
 // ActionExecutor evaluates action trees and converts outputs to game actions
 type ActionExecutor struct {
-	actions []individual.ActionTuple
+	actions   []individual.ActionTuple
+	validator *ActionValidator
 }
 
 // NewActionExecutor creates a new action executor
 func NewActionExecutor(actions []individual.ActionTuple) *ActionExecutor {
 	return &ActionExecutor{
-		actions: actions,
+		actions:   actions,
+		validator: NewActionValidator(),
 	}
 }
 
@@ -49,6 +52,20 @@ func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *in
 	for i, actionArray := range actionOutputs {
 		probabilities := ae.calculateSoftmax(actionArray)
 		selectedActions[i] = ae.sampleAction(probabilities)
+	}
+
+	// Convert inputs to interface{} map for validation
+	observationInputs := make(map[string]interface{})
+	for k, v := range inputs {
+		observationInputs[k] = v
+	}
+
+	// Validate the selected action
+	if !ae.validator.ValidateAction(selectedActions, observationInputs) {
+		// If action is invalid, return a safe default action (pass turn)
+		logmgr.Debug("Invalid action detected, using default pass action",
+			logmgr.Field("invalid_action", selectedActions))
+		return []int{1, 0, 0, 0, 0}, nil // pass_turn=1, others=0
 	}
 
 	return selectedActions, nil
