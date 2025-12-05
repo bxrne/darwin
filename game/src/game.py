@@ -80,15 +80,15 @@ class Game:
         Returns:
             Tuple of (observation, info) for the client agent
         """
-        self.observations = self.env.reset()
-        self.info = self.observations["mountains"].tolist()
+
+        observations, info = self.env.reset()
+        self.observations = observations
+        self.info = self.observations[self.client_id]["mountains"].tolist()
         self.terminated = False
         self.truncated = False
 
-        self.logger.info("Game reset")
-
         # Return client's observation
-        return extract_features(self.observations, self.client_id), self.info
+        return extract_features(self.observations, self.client_id), {"info": self.info}
 
     def step(self, client_action: Any) -> Dict[str, Any]:
         """
@@ -106,6 +106,7 @@ class Game:
         try:
             # Collect actions from all agents
             actions = {}
+            print(client_action)
             for agent in self.env.agents:
                 if agent == self.client_id:
                     pass_turn = True if client_action[0] > 0 else False
@@ -139,7 +140,7 @@ class Game:
                 "reward": rewards.get(self.client_id, 0.0),
                 "terminated": self.terminated,
                 "truncated": self.truncated,
-                "info": self.info,
+                "info": self.observations["owned_cells"].tolist(),
             }
 
         except Exception as e:
