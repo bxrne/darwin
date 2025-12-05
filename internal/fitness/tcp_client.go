@@ -220,7 +220,7 @@ func (tc *TCPClient) ReceiveObservation() (*ObservationResponse, error) {
 	for {
 		msg, err := tc.ReceiveMessage()
 		if err != nil {
-			return nil, fmt.Errorf("failed to receive observation: %w", err)
+			return nil, fmt.Errorf("failed to receive observation2: %w", err)
 		}
 
 		msgType, ok := msg["type"].(string)
@@ -231,8 +231,8 @@ func (tc *TCPClient) ReceiveObservation() (*ObservationResponse, error) {
 		switch MessageType(msgType) {
 		case Observation:
 			// Debug log raw JSON message
-			logmgr.Debug("Raw observation message",
-				logmgr.Field("message", fmt.Sprintf("%+v", msg)))
+			// logmgr.Debug("Raw observation message",
+			// 	logmgr.Field("message", fmt.Sprintf("%+v", msg)))
 			var resp ObservationResponse
 			data, _ := json.Marshal(msg)
 			err = json.Unmarshal(data, &resp)

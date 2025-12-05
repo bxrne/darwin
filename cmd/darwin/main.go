@@ -13,7 +13,7 @@ import (
 func main() {
 	defer logmgr.Shutdown()
 	logmgr.AddSink(logmgr.DefaultConsoleSink)
-	logmgr.SetLevel(logmgr.DebugLevel)
+	logmgr.SetLevel(logmgr.InfoLevel)
 
 	configPath := flag.String("config", "config/default.toml", "Path to config file")
 	csvOutput := flag.String("csv-output", "", "Path to CSV file for metrics output")

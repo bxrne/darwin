@@ -89,7 +89,7 @@ class Game:
         self.truncated = False
 
         # Return client's observation
-        return extract_features(self.observations, self.client_id), {"info": self.info}
+        return extract_features(self.observations, self.client_id), self.info
 
     def step(self, client_action: Any) -> Dict[str, Any]:
         """
@@ -107,7 +107,10 @@ class Game:
         try:
             # Collect actions from all agents
             actions = {}
+<<<<<<< Updated upstream
             self.logger.debug("Received client action: %s", str(client_action))
+=======
+>>>>>>> Stashed changes
             for agent in self.env.agents:
                 if agent == self.client_id:
                     pass_turn = True if client_action[0] > 0 else False

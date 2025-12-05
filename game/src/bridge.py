@@ -70,9 +70,12 @@ def worker_process(
                         )
                         observation, info = game.reset()
 
+<<<<<<< Updated upstream
                         logger.debug(
                             "Game connection established, sending initial observation"
                         )
+=======
+>>>>>>> Stashed changes
                         # Connected response
                         response = ConnectedResponse(
                             agent_id=client_id,
@@ -117,10 +120,6 @@ def worker_process(
                         action = json_data.get("action")
                         result = game.step(action)
                         reward = result["reward"]
-
-                        # Log reward before sending
-                        if reward != 0:
-                            logger.info(f"Sending non-zero reward: {reward}")
 
                         # Observation response
                         response = ObservationResponse(
