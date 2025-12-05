@@ -109,7 +109,6 @@ func (tc *TCPClient) SendMessage(message interface{}) error {
 	if tc.conn == nil {
 		return fmt.Errorf("not connected to server")
 	}
-
 	data, err := json.Marshal(message)
 	if err != nil {
 		return fmt.Errorf("failed to marshal message: %w", err)
@@ -163,7 +162,6 @@ func (tc *TCPClient) ConnectToGame(opponentType string) (*ConnectedResponse, err
 		AgentType:    "human",
 		OpponentType: opponentType,
 	}
-
 	err := tc.SendMessage(connectReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send connect request: %w", err)
