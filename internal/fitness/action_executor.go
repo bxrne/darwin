@@ -55,9 +55,17 @@ func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *in
 	}
 
 	// Convert inputs to interface{} map for validation
-	observationInputs := make(map[string]interface{})
+	observationInputs := make(map[string]any)
 	for k, v := range inputs {
 		observationInputs[k] = v
+	}
+
+	// Validate selected action
+	if !ae.validator.ValidateAction(selectedActions, observationInputs) {
+		// If action is invalid, return a safe default action (pass turn)
+		logmgr.Debug("Invalid action detected, using default pass action",
+			logmgr.Field("invalid_action", selectedActions))
+		return []int{1, 0, 0, 0, 0}, nil // pass_turn=1, others=0
 	}
 
 	// Validate the selected action

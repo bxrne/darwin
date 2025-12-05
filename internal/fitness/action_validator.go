@@ -15,23 +15,55 @@ func NewActionValidator() *ActionValidator {
 	return &ActionValidator{}
 }
 
+// validateBasicAction performs basic validation without game state
+func (av *ActionValidator) validateBasicAction(action []int) bool {
+	// Check basic action format
+	if len(action) != 5 {
+		return false
+	}
+
+	// pass_turn (0 or 1)
+	if action[0] < 0 || action[0] > 1 {
+		return false
+	}
+
+	// target_x and target_y should be non-negative
+	if action[1] < 0 || action[2] < 0 {
+		return false
+	}
+
+	// split (0 or 1)
+	if action[4] < 0 || action[4] > 1 {
+		return false
+	}
+
+	return true
+}
+
 // ValidateAction validates a single action and returns whether it's valid
 func (av *ActionValidator) ValidateAction(action []int, observation map[string]any) bool {
 	if len(action) != 5 {
 		return false
 	}
 
+	// If no observation info provided, fall back to basic validation
+	if len(observation) == 0 {
+		return av.validateBasicAction(action)
+	}
+
 	// Extract grid info from observation
 	// observation["info"]["info"] contains the mountain grid
 	outerInfo, ok := observation["info"].(map[string]any)
 	if !ok {
-		return false
+		// If no info structure, fall back to basic validation
+		return av.validateBasicAction(action)
 	}
 
 	// Extract mountain data from nested info
 	mountains, ok := outerInfo["info"].([]any)
 	if !ok {
-		return false
+		// If no mountain data, fall back to basic validation
+		return av.validateBasicAction(action)
 	}
 
 	av.setGridDimensions(mountains)
