@@ -9,6 +9,7 @@ from generals.envs import PettingZooGenerals
 from generals.core.rewards import FrequentAssetRewardFn
 from generals.core.action import Action
 from generals.core.rewards import FrequentAssetRewardFn
+from generals import GridFactory
 
 
 class Game:
@@ -44,10 +45,20 @@ class Game:
 
         # Setup agent names
         self.agent_names = [client_id, self.opponent.id]
-
+        grid_factory = GridFactory(
+            mode="uniform",                        # Either "generalsio" or "uniform"
+            # Grid height and width are randomly selected
+            min_grid_dims=(10, 10),
+            max_grid_dims=(15, 15),
+            mountain_density=0.2,                  # Probability of a mountain in a cell
+            city_density=0.05,                     # Probability of a city in a cell
+            # Positions of generals (i, j)
+            general_positions=[(0, 3), (5, 7)],
+        )
         # Initialize environment with frequent asset rewards
         self.env = PettingZooGenerals(
             agents=self.agent_names,
+            grid_factory=grid_factory,
             render_mode=render_mode,
             reward_fn=FrequentAssetRewardFn
         )
@@ -69,7 +80,8 @@ class Game:
         Returns:
             Tuple of (observation, info) for the client agent
         """
-        self.observations, self.info = self.env.reset()
+        self.observations = self.env.reset()
+        self.info = self.observations["mountains"].tolist()
         self.terminated = False
         self.truncated = False
 
