@@ -12,6 +12,7 @@ import (
 	"github.com/bxrne/darwin/internal/population"
 	"github.com/bxrne/darwin/internal/rng"
 	"github.com/bxrne/darwin/internal/selection"
+	"github.com/bxrne/logmgr"
 )
 
 // EvolutionEngine manages the evolution process using channels
@@ -114,7 +115,7 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 // processGeneration performs one generation of evolution
 func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	start := time.Now()
-
+	logmgr.Info("Starting Generation")
 	// Sort population by fitness (descending)
 	ee.sortPopulation()
 	// Create new population

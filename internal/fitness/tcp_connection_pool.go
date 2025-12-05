@@ -8,68 +8,79 @@ import (
 	"github.com/bxrne/logmgr"
 )
 
-// TCPConnectionPool manages a pool of TCP connections to the game server
 type TCPConnectionPool struct {
 	serverAddr     string
 	maxConnections int
 	timeout        time.Duration
-	mu             sync.RWMutex
-	connections    chan *TCPClient
-	activeCount    int
-	totalCreated   int
-	closed         bool
+
+	mu          sync.Mutex
+	cond        *sync.Cond
+	connections chan *TCPClient
+
+	activeCount  int
+	totalCreated int
+	closed       bool
 }
 
-// NewTCPConnectionPool creates a new connection pool
 func NewTCPConnectionPool(serverAddr string, maxConnections int, timeout time.Duration) *TCPConnectionPool {
-	pool := &TCPConnectionPool{
+	p := &TCPConnectionPool{
 		serverAddr:     serverAddr,
 		maxConnections: maxConnections,
 		timeout:        timeout,
 		connections:    make(chan *TCPClient, maxConnections),
-		closed:         false,
 	}
+	p.cond = sync.NewCond(&p.mu)
 
 	logmgr.Info("Created TCP connection pool",
 		logmgr.Field("server", serverAddr),
 		logmgr.Field("max_connections", maxConnections),
 		logmgr.Field("timeout", timeout))
 
-	return pool
+	return p
 }
 
-// GetConnection retrieves a connection from the pool or creates a new one
+// ─────────────────────────────
+//
+//	BLOCKING GetConnection()
+//
+// ─────────────────────────────
 func (p *TCPConnectionPool) GetConnection() (*TCPClient, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	if p.closed {
-		return nil, fmt.Errorf("connection pool is closed")
-	}
-
-	select {
-	case client := <-p.connections:
-		// Got existing connection, verify it's healthy
-		if err := p.healthCheck(client); err != nil {
-			client.Disconnect()
-			return p.createNewConnection()
+	for {
+		if p.closed {
+			return nil, fmt.Errorf("connection pool is closed")
 		}
-		return client, nil
 
-	default:
-		// No available connections, create new one if under limit
-		if p.activeCount >= p.maxConnections {
-			logmgr.Error("Connection pool exhausted",
-				logmgr.Field("active", p.activeCount),
-				logmgr.Field("max", p.maxConnections),
-				logmgr.Field("server", p.serverAddr))
-			return nil, fmt.Errorf("connection pool exhausted: %d active connections (max: %d)", p.activeCount, p.maxConnections)
+		// 1. Try grab an available connection
+		select {
+		case client := <-p.connections:
+			if err := p.healthCheckUnlocked(client); err != nil {
+				client.Disconnect()
+				p.activeCount--
+				continue
+			}
+			return client, nil
+
+		default:
 		}
-		return p.createNewConnection()
+
+		// 2. Create new if below limit
+		if p.activeCount < p.maxConnections {
+			return p.createNewConnectionUnlocked()
+		}
+
+		// 3. Otherwise block until a connection is returned
+		p.cond.Wait()
 	}
 }
 
-// ReturnConnection returns a connection to the pool
+// ─────────────────────────────
+//
+//	ReturnConnection
+//
+// ─────────────────────────────
 func (p *TCPConnectionPool) ReturnConnection(client *TCPClient) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -79,8 +90,8 @@ func (p *TCPConnectionPool) ReturnConnection(client *TCPClient) error {
 		return fmt.Errorf("connection pool is closed")
 	}
 
-	// Verify connection is still healthy before returning to pool
-	if err := p.healthCheck(client); err != nil {
+	// Check validity before returning
+	if err := p.healthCheckUnlocked(client); err != nil {
 		client.Disconnect()
 		p.activeCount--
 		return nil
@@ -88,16 +99,21 @@ func (p *TCPConnectionPool) ReturnConnection(client *TCPClient) error {
 
 	select {
 	case p.connections <- client:
-		return nil
+		p.cond.Signal() // wake up one blocked getter
 	default:
-		// Pool full, discard connection
+		// Pool full → destroy connection
 		client.Disconnect()
 		p.activeCount--
-		return nil
 	}
+
+	return nil
 }
 
-// Close closes all connections and shuts down the pool
+// ─────────────────────────────
+//
+//	Close()
+//
+// ─────────────────────────────
 func (p *TCPConnectionPool) Close() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -109,11 +125,12 @@ func (p *TCPConnectionPool) Close() error {
 	p.closed = true
 	close(p.connections)
 
-	// Close all connections in the pool
 	for client := range p.connections {
 		client.Disconnect()
 		p.activeCount--
 	}
+
+	p.cond.Broadcast()
 
 	logmgr.Info("TCP connection pool closed",
 		logmgr.Field("total_created", p.totalCreated),
@@ -122,29 +139,30 @@ func (p *TCPConnectionPool) Close() error {
 	return nil
 }
 
-// HealthCheck performs a basic health check on a connection
+// ─────────────────────────────
+//
+//	HealthCheck() external API
+//
+// ─────────────────────────────
 func (p *TCPConnectionPool) HealthCheck() error {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-
-	if p.closed {
-		return fmt.Errorf("connection pool is closed")
-	}
-
-	// Try to get a connection and check it
 	client, err := p.GetConnection()
 	if err != nil {
-		return fmt.Errorf("failed to get connection for health check: %w", err)
+		return fmt.Errorf("failed to get connection: %w", err)
 	}
 	defer p.ReturnConnection(client)
 
-	return p.healthCheck(client)
+	// No lock needed; function is pure
+	return p.healthCheckUnlocked(client)
 }
 
-// GetStats returns pool statistics
+// ─────────────────────────────
+//
+//	Stats
+//
+// ─────────────────────────────
 func (p *TCPConnectionPool) GetStats() map[string]interface{} {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
 	return map[string]interface{}{
 		"server_addr":     p.serverAddr,
@@ -156,8 +174,13 @@ func (p *TCPConnectionPool) GetStats() map[string]interface{} {
 	}
 }
 
-// createNewConnection creates a new TCP client and connects it
-func (p *TCPConnectionPool) createNewConnection() (*TCPClient, error) {
+//
+// ─────────────────────────────
+//   Internal helpers
+// ─────────────────────────────
+//
+
+func (p *TCPConnectionPool) createNewConnectionUnlocked() (*TCPClient, error) {
 	client := NewTCPClient(p.serverAddr)
 
 	if err := client.Connect(); err != nil {
@@ -166,27 +189,15 @@ func (p *TCPConnectionPool) createNewConnection() (*TCPClient, error) {
 
 	p.activeCount++
 	p.totalCreated++
-
 	return client, nil
 }
 
-// healthCheck verifies a connection is still valid
-func (p *TCPConnectionPool) healthCheck(client *TCPClient) error {
+func (p *TCPConnectionPool) healthCheckUnlocked(client *TCPClient) error {
 	if client == nil || client.conn == nil {
-		return fmt.Errorf("connection is nil")
+		return fmt.Errorf("nil connection")
 	}
-
-	// Simple check: verify the connection is still active
-	// We can do a more sophisticated check if needed
-	conn := client.conn
-	if conn == nil {
-		return fmt.Errorf("underlying connection is nil")
+	if client.conn.RemoteAddr() == nil {
+		return fmt.Errorf("connection closed")
 	}
-
-	// Check if connection is closed by checking remote addr
-	if conn.RemoteAddr() == nil {
-		return fmt.Errorf("connection is closed")
-	}
-
 	return nil
 }
