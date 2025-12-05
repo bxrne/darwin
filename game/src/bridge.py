@@ -70,12 +70,9 @@ def worker_process(
                         )
                         observation, info = game.reset()
 
-<<<<<<< Updated upstream
                         logger.debug(
                             "Game connection established, sending initial observation"
                         )
-=======
->>>>>>> Stashed changes
                         # Connected response
                         response = ConnectedResponse(
                             agent_id=client_id,

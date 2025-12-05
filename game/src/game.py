@@ -107,10 +107,7 @@ class Game:
         try:
             # Collect actions from all agents
             actions = {}
-<<<<<<< Updated upstream
             self.logger.debug("Received client action: %s", str(client_action))
-=======
->>>>>>> Stashed changes
             for agent in self.env.agents:
                 if agent == self.client_id:
                     pass_turn = True if client_action[0] > 0 else False
