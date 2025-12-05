@@ -86,7 +86,6 @@ func (suite *EvolutionEngineTestSuite) TestEvolutionEngine_Start_GIVEN_running_e
 
 	suite.engine.Start(ctx)
 	suite.cmdChan <- cmd
-	time.Sleep(10 * time.Millisecond) // allow processing
 	cancel()
 	suite.engine.Wait()
 

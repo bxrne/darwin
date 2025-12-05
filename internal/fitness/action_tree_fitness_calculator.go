@@ -125,9 +125,6 @@ func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.
 		}
 	}()
 
-	// Small delay to ensure connection is stable
-	time.Sleep(100 * time.Millisecond)
-
 	// Connect to game
 	connectedResp, err := client.ConnectToGame(atfc.opponentType)
 	if err != nil {
@@ -204,11 +201,7 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 			break
 		}
 
-		// Small delay to prevent overwhelming the server
-		time.Sleep(50 * time.Millisecond)
-
 		totalReward += obs.Reward
-
 	}
 
 	logmgr.Debug("Final fitness calculation",
