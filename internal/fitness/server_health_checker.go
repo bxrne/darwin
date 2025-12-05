@@ -42,7 +42,9 @@ func (shc *ServerHealthChecker) CheckServerHealth() error {
 	}
 
 	if err := client.SendMessage(connectReq); err != nil {
-		client.Disconnect()
+		if err := client.Disconnect(); err != nil {
+			logmgr.Warn("Failed to disconnect client", logmgr.Field("err", err))
+		}
 		return fmt.Errorf("server health check failed: unable to send health check message: %w", err)
 	}
 
