@@ -119,13 +119,15 @@ class Game:
                 else:
                     # Opponent agent decides action
                     opponent_obs = (
-                        self.observations.get(agent, {}) if self.observations else {}
+                        self.observations.get(
+                            agent, {}) if self.observations else {}
                     )
                     actions[agent] = self.opponent.act(opponent_obs)
 
             # Execute actions
             self.logger.info(actions)
-            observations, rewards, terminated, truncated, info = self.env.step(actions)
+            observations, rewards, terminated, truncated, info = self.env.step(
+                actions)
 
             # Update state
             self.observations = observations
@@ -288,7 +290,8 @@ def extract_features(state, my_id):
     # Distances (optional)
     # -----------------------------
     if enemy_general_pos is not None:
-        distance_to_enemy_general = manhattan(my_general_pos, enemy_general_pos)
+        distance_to_enemy_general = manhattan(
+            my_general_pos, enemy_general_pos)
     else:
         distance_to_enemy_general = N + M  # max distance if unknown
 

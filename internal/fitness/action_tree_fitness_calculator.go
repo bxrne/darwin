@@ -162,7 +162,7 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 		// Get current observation (first one after connection)
 		obs, err := client.ReceiveObservation()
 		if err != nil {
-			logmgr.Error("Failed to receive observation", logmgr.Field("error", err))
+			logmgr.Error("Failed to receive observation", logmgr.Field("error", err.Error()))
 			break
 		}
 
