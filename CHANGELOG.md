@@ -1,3 +1,38 @@
+## [1.14.0](https://github.com/bxrne/darwin/compare/v1.13.0...v1.14.0) (2025-12-05)
+
+
+### Features
+
+* Bridge fully working ([1108f9e](https://github.com/bxrne/darwin/commit/1108f9e2d32e4e99e3dc7bd31d09f184e31dc0e8))
+* **bridge:** WIP Add procssors to allow concurrent games to bridge ([365285c](https://github.com/bxrne/darwin/commit/365285c2a0ff42caf3e19360b3dffd3b2274c1be))
+* **game:** Game working from go to python loop ([57fe9c6](https://github.com/bxrne/darwin/commit/57fe9c61068b506dae119c693c7cfd6b846eed1a))
+* **integration:** integrate code to run properly ([a8db93d](https://github.com/bxrne/darwin/commit/a8db93d08acf62b7a79fb1f0f36ff68f54b671f0))
+
+
+### Bug Fixes
+
+* **bridge:** Fix the bridge ([a2eaa04](https://github.com/bxrne/darwin/commit/a2eaa04e5bf18a66b0c66458d9631ae4f2fcb52b))
+* **fitness:** Mask actions. mountain no-op and adjacency and bounds ([a785319](https://github.com/bxrne/darwin/commit/a785319275a39e6b05a905a13e9ba44bfd74c40a))
+* **game, fitness:** better logging for game and fitness fixes ([55251bd](https://github.com/bxrne/darwin/commit/55251bd701a1fe6edaf2d09803639a1aaecfb6b0))
+* **game, internal:** fix encodign nyumpy values ([88b1ca8](https://github.com/bxrne/darwin/commit/88b1ca8fdf1f5b5c4c69a8a34b6ca6f5029684bb))
+* **game:** Add set map size and return bool arr for info ([bdfa669](https://github.com/bxrne/darwin/commit/bdfa669e14e193e66dc77fd1ba877fd8c476d2f1))
+* **game:** owned cells marshalling ([a750ba3](https://github.com/bxrne/darwin/commit/a750ba385b2aa956a4038ca0a80b2ea0c7c1ee53))
+* **game:** reduce logging noise and better cleanup ([1747e2d](https://github.com/bxrne/darwin/commit/1747e2d99ef765d4a925d1941a8fc730f3df949d))
+* **lint:** Fix lint issues ([290048a](https://github.com/bxrne/darwin/commit/290048acf6fab92fdb30364d577fa63e608bdc7c))
+* **population:** not waiting for fitness goroutines fixed ([42f8e8c](https://github.com/bxrne/darwin/commit/42f8e8c5b3e792cfcae5b18ec500bb8cdd578e0b))
+* reuse tcp conns w pool, added healthcheck, better error handling ([b19510b](https://github.com/bxrne/darwin/commit/b19510b22618e5ac14fa19486c893bbd2373fa0f))
+
+
+### Code Refactoring
+
+* **cfg:** Change actions to tuple array to allow for action counts to be stored ([903c990](https://github.com/bxrne/darwin/commit/903c99000ae40e9a7518ce98af4767fe840746f3))
+
+
+### Miscellaneous Chores
+
+* **cfg, fitness:** update test expectations and signature fixes ([35d3f11](https://github.com/bxrne/darwin/commit/35d3f11955d6387cf491a29b8a595fd3c9e26227))
+* **fitness:** remove unneeded func ([d060235](https://github.com/bxrne/darwin/commit/d06023567c117467e996df90112fbb87716bcdd9))
+
 ## [1.13.0](https://github.com/bxrne/darwin/compare/v1.12.4...v1.13.0) (2025-12-02)
 
 
