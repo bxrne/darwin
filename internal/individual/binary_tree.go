@@ -44,7 +44,8 @@ func applyOperator(opStr string, left, right float64, dividedByZero *bool) float
 	case Divide:
 		if right == 0 {
 			*dividedByZero = true
-			return 0
+			// Return a meaningful penalty value instead of 0 to avoid cascading errors
+			return -1000.0
 		}
 		return left / right
 	default:

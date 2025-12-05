@@ -60,6 +60,10 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 				logmgr.Error("Failed to setup game and run", logmgr.Field("error", err.Error()))
 				weightsFitnesses = append(weightsFitnesses, 0.0)
 			} else {
+				logmgr.Debug("Game fitness calculated",
+					logmgr.Field("fitness", fitness),
+					logmgr.Field("weights_id", fmt.Sprintf("%p", wi)),
+					logmgr.Field("tree_id", fmt.Sprintf("%p", tree)))
 				weightsFitnesses = append(weightsFitnesses, fitness)
 			}
 		}
@@ -86,6 +90,10 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 				logmgr.Error("Failed to setup game and run", logmgr.Field("error", err.Error()))
 				actionTreeFitnesses = append(actionTreeFitnesses, 0.0)
 			} else {
+				logmgr.Debug("Game fitness calculated",
+					logmgr.Field("fitness", fitness),
+					logmgr.Field("weights_id", fmt.Sprintf("%p", weights)),
+					logmgr.Field("tree_id", fmt.Sprintf("%p", at)))
 				actionTreeFitnesses = append(actionTreeFitnesses, fitness)
 			}
 		}
@@ -132,14 +140,14 @@ func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.
 		return 0.0, fmt.Errorf("game connection error: %w", err)
 	}
 
-	logmgr.Debug("Connected to game",
+	logmgr.Info("Connected to game",
 		logmgr.Field("agent_id", connectedResp.AgentID),
 		logmgr.Field("opponent_id", connectedResp.OpponentID))
 
 	// Play game
 	fitness := atfc.playGame(client, weightsInd, actionTreeInd)
 
-	logmgr.Debug("Fitness calculated",
+	logmgr.Info("Fitness calculated",
 		logmgr.Field("fitness", fitness),
 		logmgr.Field("agent_id", connectedResp.AgentID))
 	return fitness, nil
@@ -148,6 +156,7 @@ func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.
 // playGame plays a single game and returns the fitness score
 func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd *individual.WeightsIndividual, actionTreeInd *individual.ActionTreeIndividual) float64 {
 	totalReward := 0.0
+	finalStep := 0
 
 	logmgr.Debug("Starting game evaluation",
 		logmgr.Field("max_steps", atfc.maxSteps),
@@ -159,7 +168,24 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 		obs, err := client.ReceiveObservation()
 		if err != nil {
 			logmgr.Error("Failed to receive observation", logmgr.Field("error", err.Error()))
+			logmgr.Error("Game failed due to observation error",
+				logmgr.Field("step", step),
+				logmgr.Field("weights_id", fmt.Sprintf("%p", weightsInd)),
+				logmgr.Field("action_tree_id", fmt.Sprintf("%p", actionTreeInd)))
 			break
+		}
+
+		// Log first observation to debug
+		if step == 0 {
+			keys := make([]string, 0, len(obs.Observation))
+			for k := range obs.Observation {
+				keys = append(keys, k)
+			}
+			logmgr.Info("First observation received",
+				logmgr.Field("reward", obs.Reward),
+				logmgr.Field("terminated", obs.Terminated),
+				logmgr.Field("truncated", obs.Truncated),
+				logmgr.Field("observation_keys", fmt.Sprintf("%v", keys)))
 		}
 
 		// Log game progress every 10 steps
@@ -182,6 +208,7 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 				logmgr.Field("truncated", obs.Truncated))
 			// Extract final game state
 			totalReward += obs.Reward
+			finalStep = step
 			break
 		}
 
@@ -205,9 +232,15 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 	}
 
 	logmgr.Debug("Final fitness calculation",
-		logmgr.Field("total_reward", totalReward))
+		logmgr.Field("total_reward", totalReward),
+		logmgr.Field("steps_completed", finalStep))
 
 	fitness := totalReward
+
+	logmgr.Info("Game completed",
+		logmgr.Field("fitness", fitness),
+		logmgr.Field("steps", finalStep),
+		logmgr.Field("max_steps", atfc.maxSteps))
 
 	return fitness
 }

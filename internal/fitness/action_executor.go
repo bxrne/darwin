@@ -42,7 +42,13 @@ func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *in
 			}
 
 			// Execute tree with inputs
-			fitness, _ := tree.Root.EvaluateTree(&inputs)
+			fitness, dividedByZero := tree.Root.EvaluateTree(&inputs)
+			if dividedByZero {
+				// Apply penalty for division by zero to avoid invalid fitness calculations
+				fitness = -1000.0
+				logmgr.Debug("Division by zero detected in tree evaluation, applying penalty",
+					logmgr.Field("penalty", fitness))
+			}
 			actionOutputs[i] = append(actionOutputs[i], fitness)
 		}
 	}
@@ -61,6 +67,9 @@ func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *in
 	}
 
 	// Validate selected action
+	logmgr.Debug("Generated action before validation",
+		logmgr.Field("selected_actions", selectedActions),
+		logmgr.Field("observation_inputs", observationInputs))
 	if !ae.validator.ValidateAction(selectedActions, observationInputs) {
 		// If action is invalid, return a safe default action (pass turn)
 		logmgr.Debug("Invalid action detected, using default pass action",
