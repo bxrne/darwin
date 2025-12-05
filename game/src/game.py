@@ -46,12 +46,12 @@ class Game:
         # Setup agent names
         self.agent_names = [client_id, self.opponent.id]
         grid_factory = GridFactory(
-            mode="uniform",                        # Either "generalsio" or "uniform"
+            mode="uniform",  # Either "generalsio" or "uniform"
             # Grid height and width are randomly selected
             min_grid_dims=(10, 10),
             max_grid_dims=(15, 15),
-            mountain_density=0.2,                  # Probability of a mountain in a cell
-            city_density=0.05,                     # Probability of a city in a cell
+            mountain_density=0.2,  # Probability of a mountain in a cell
+            city_density=0.05,  # Probability of a city in a cell
             # Positions of generals (i, j)
             general_positions=[(0, 3), (5, 7)],
         )
@@ -70,7 +70,8 @@ class Game:
 
         self.logger.info(
             f"Game created: {client_id} vs {
-                self.opponent.id} - USING FREQUENT ASSET REWARDS"
+                self.opponent.id
+            } - USING FREQUENT ASSET REWARDS"
         )
 
     def reset(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
@@ -106,7 +107,7 @@ class Game:
         try:
             # Collect actions from all agents
             actions = {}
-            print(client_action)
+            self.logger.debug("Received client action: %s", str(client_action))
             for agent in self.env.agents:
                 if agent == self.client_id:
                     pass_turn = True if client_action[0] > 0 else False
@@ -117,13 +118,11 @@ class Game:
                     )
                 else:
                     # Opponent agent decides action
-                    actions[agent] = self.opponent.act(
-                        self.observations[agent])
+                    actions[agent] = self.opponent.act(self.observations[agent])
 
             # Execute actions
             self.logger.info(actions)
-            observations, rewards, terminated, truncated, info = self.env.step(
-                actions)
+            observations, rewards, terminated, truncated, info = self.env.step(actions)
 
             # Update state
             self.observations = observations
@@ -286,8 +285,7 @@ def extract_features(state, my_id):
     # Distances (optional)
     # -----------------------------
     if enemy_general_pos is not None:
-        distance_to_enemy_general = manhattan(
-            my_general_pos, enemy_general_pos)
+        distance_to_enemy_general = manhattan(my_general_pos, enemy_general_pos)
     else:
         distance_to_enemy_general = N + M  # max distance if unknown
 
