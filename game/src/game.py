@@ -118,7 +118,10 @@ class Game:
                     )
                 else:
                     # Opponent agent decides action
-                    actions[agent] = self.opponent.act(self.observations[agent])
+                    opponent_obs = (
+                        self.observations.get(agent, {}) if self.observations else {}
+                    )
+                    actions[agent] = self.opponent.act(opponent_obs)
 
             # Execute actions
             self.logger.info(actions)
@@ -139,7 +142,7 @@ class Game:
                 "reward": rewards.get(self.client_id, 0.0),
                 "terminated": self.terminated,
                 "truncated": self.truncated,
-                "info": self.observations["owned_cells"].tolist(),
+                "info": self.observations[self.client_id]["owned_cells"].tolist(),
             }
 
         except Exception as e:
