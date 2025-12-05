@@ -53,11 +53,12 @@ func (p *TCPConnectionPool) GetConnection() (*TCPClient, error) {
 			return nil, fmt.Errorf("connection pool is closed")
 		}
 
-		// 1. Try grab an available connection
 		select {
 		case client := <-p.connections:
 			if err := p.healthCheckUnlocked(client); err != nil {
-				client.Disconnect()
+				if err := client.Disconnect(); err != nil {
+					logmgr.Warn("Failed to disconnect client", logmgr.Field("err", err))
+				}
 				p.activeCount--
 				continue
 			}
@@ -66,12 +67,10 @@ func (p *TCPConnectionPool) GetConnection() (*TCPClient, error) {
 		default:
 		}
 
-		// 2. Create new if below limit
 		if p.activeCount < p.maxConnections {
 			return p.createNewConnectionUnlocked()
 		}
 
-		// 3. Otherwise block until a connection is returned
 		p.cond.Wait()
 	}
 }
@@ -86,23 +85,27 @@ func (p *TCPConnectionPool) ReturnConnection(client *TCPClient) error {
 	defer p.mu.Unlock()
 
 	if p.closed {
-		client.Disconnect()
+		if err := client.Disconnect(); err != nil {
+			logmgr.Warn("Failed to disconnect client", logmgr.Field("err", err))
+		}
 		return fmt.Errorf("connection pool is closed")
 	}
 
-	// Check validity before returning
 	if err := p.healthCheckUnlocked(client); err != nil {
-		client.Disconnect()
+		if err := client.Disconnect(); err != nil {
+			logmgr.Warn("Failed to disconnect client", logmgr.Field("err", err))
+		}
 		p.activeCount--
 		return nil
 	}
 
 	select {
 	case p.connections <- client:
-		p.cond.Signal() // wake up one blocked getter
+		p.cond.Signal()
 	default:
-		// Pool full → destroy connection
-		client.Disconnect()
+		if err := client.Disconnect(); err != nil {
+			logmgr.Warn("Failed to disconnect client", logmgr.Field("err", err))
+		}
 		p.activeCount--
 	}
 
@@ -126,7 +129,9 @@ func (p *TCPConnectionPool) Close() error {
 	close(p.connections)
 
 	for client := range p.connections {
-		client.Disconnect()
+		if err := client.Disconnect(); err != nil {
+			logmgr.Warn("Failed to disconnect client during close", logmgr.Field("err", err))
+		}
 		p.activeCount--
 	}
 
@@ -149,9 +154,12 @@ func (p *TCPConnectionPool) HealthCheck() error {
 	if err != nil {
 		return fmt.Errorf("failed to get connection: %w", err)
 	}
-	defer p.ReturnConnection(client)
+	defer func() {
+		if err := p.ReturnConnection(client); err != nil {
+			logmgr.Warn("Failed to return client to pool", logmgr.Field("err", err))
+		}
+	}()
 
-	// No lock needed; function is pure
 	return p.healthCheckUnlocked(client)
 }
 
@@ -174,12 +182,11 @@ func (p *TCPConnectionPool) GetStats() map[string]interface{} {
 	}
 }
 
-//
-// ─────────────────────────────
-//   Internal helpers
 // ─────────────────────────────
 //
-
+//	Internal helpers
+//
+// ─────────────────────────────
 func (p *TCPConnectionPool) createNewConnectionUnlocked() (*TCPClient, error) {
 	client := NewTCPClient(p.serverAddr)
 
