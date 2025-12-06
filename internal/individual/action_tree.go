@@ -82,17 +82,18 @@ func (ati *ActionTreeIndividual) MultiPointCrossover(i2 Evolvable, crossoverInfo
 		panic("MultiPointCrossover called with non-ActionTreeIndividual type")
 	}
 
-	// Crossover trees
-	child1Trees := make(map[string]*Tree)
-	child2Trees := make(map[string]*Tree)
 	for action := range ati.Trees {
-		if rng.Float64() < 0.5 {
-			child1Trees[action] = ati.Trees[action]
-			child2Trees[action] = other.Trees[action]
-		} else {
-			child1Trees[action] = other.Trees[action]
-			child2Trees[action] = ati.Trees[action]
+		child1Tree, child2Tree := ati.Trees[action].MultiPointCrossover(other.Trees[action], crossoverInformation)
+		cTree1, ok := child1Tree.(*Tree)
+		if !ok {
+			panic("MultiPointCrossover called with non-ActionTreeIndividual type")
 		}
+		cTree2, ok := child2Tree.(*Tree)
+		if !ok {
+			panic("MultiPointCrossover called with non-ActionTreeIndividual type")
+		}
+		ati.Trees[action] = cTree1
+		other.Trees[action] = cTree2
 	}
 
 	return ati, other
