@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"sync"
+
 	"github.com/bxrne/darwin/internal/rng"
 	"strconv"
 )
@@ -17,9 +19,10 @@ type TreeNode struct {
 
 // Tree represents the entire expression tree
 type Tree struct {
-	Root    *TreeNode
-	Fitness float64
-	depth   int
+	Root      *TreeNode
+	Fitness   float64
+	fitnessMu sync.RWMutex  // Protects Fitness field from concurrent access
+	depth     int
 }
 
 // Operand represents the type of operation in the tree nodes
@@ -319,11 +322,15 @@ func (tn *TreeNode) NavigateTreeNode(vars *map[string]float64, dividedByZero *bo
 }
 
 func (t *Tree) SetFitness(fitness float64) {
+	t.fitnessMu.Lock()
+	defer t.fitnessMu.Unlock()
 	t.Fitness = fitness
 }
 
 // GetFitness returns the fitness of the tree
 func (t *Tree) GetFitness() float64 {
+	t.fitnessMu.RLock()
+	defer t.fitnessMu.RUnlock()
 	return t.Fitness
 }
 
@@ -395,9 +402,12 @@ func (tn *TreeNode) mutateRecursive(rate float64, primitiveSet []string, termina
 // Clone creates a deep copy of the tree
 func (t *Tree) Clone() Evolvable {
 	clonedRoot := t.Root.cloneNode()
+	t.fitnessMu.RLock()
+	fitness := t.Fitness
+	t.fitnessMu.RUnlock()
 	return &Tree{
 		Root:    clonedRoot,
-		Fitness: t.Fitness,
+		Fitness: fitness,
 		depth:   t.depth,
 	}
 }

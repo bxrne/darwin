@@ -1,13 +1,16 @@
 package individual
 
 import (
+	"sync"
+
 	"github.com/bxrne/darwin/internal/rng"
 )
 
 // ActionTreeIndividual implements an individual composed of action trees and a weights matrix for action selection
 type ActionTreeIndividual struct {
-	Trees   map[string]*Tree // action name -> action tree
-	fitness float64
+	Trees     map[string]*Tree // action name -> action tree
+	fitness   float64
+	fitnessMu sync.RWMutex // Protects fitness field from concurrent access
 }
 
 type ActionTuple struct {
@@ -28,6 +31,8 @@ func (ati *ActionTreeIndividual) Describe() string {
 
 // GetFitness returns the fitness of the ActionTreeIndividual
 func (ati *ActionTreeIndividual) GetFitness() float64 {
+	ati.fitnessMu.RLock()
+	defer ati.fitnessMu.RUnlock()
 	return ati.fitness
 }
 
@@ -43,14 +48,19 @@ func (ati *ActionTreeIndividual) Clone() Evolvable {
 		}
 	}
 
+	ati.fitnessMu.RLock()
+	fitness := ati.fitness
+	ati.fitnessMu.RUnlock()
 	return &ActionTreeIndividual{
 		Trees:   clonedTrees,
-		fitness: ati.fitness,
+		fitness: fitness,
 	}
 }
 
-// SetFitness sets the fitness of the ActionTreeIndividual
+// SetFitness sets the fitness of the ActionTreeIndividual (thread-safe)
 func (ati *ActionTreeIndividual) SetFitness(fitness float64) {
+	ati.fitnessMu.Lock()
+	defer ati.fitnessMu.Unlock()
 	ati.fitness = fitness
 }
 
@@ -69,7 +79,13 @@ func (ati *ActionTreeIndividual) Max(i2 Evolvable) Evolvable {
 	if !ok {
 		panic("Max called with non-ActionTreeIndividual type")
 	}
-	if ati.fitness >= other.fitness {
+	ati.fitnessMu.RLock()
+	other.fitnessMu.RLock()
+	atiFitness := ati.fitness
+	otherFitness := other.fitness
+	ati.fitnessMu.RUnlock()
+	other.fitnessMu.RUnlock()
+	if atiFitness >= otherFitness {
 		return ati
 	}
 	return other
