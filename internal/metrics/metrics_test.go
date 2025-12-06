@@ -104,7 +104,6 @@ func (suite *MetricsStreamerTestSuite) TestMetricsStreamer_Start_GIVEN_done_chan
 	<-started // wait for Start to begin
 
 	go func() {
-		time.Sleep(10 * time.Millisecond)
 		streamer.Stop()
 	}()
 
@@ -135,8 +134,7 @@ func (suite *MetricsStreamerTestSuite) TestMetricsStreamer_Stop_GIVEN_running_st
 		streamer.Start(ctx)
 	}()
 
-	<-started                         // wait for Start to begin
-	time.Sleep(10 * time.Millisecond) // let it run a bit
+	<-started // wait for Start to begin
 
 	streamer.Stop()
 

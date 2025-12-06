@@ -3,22 +3,28 @@ package individual
 import (
 	"fmt"
 	"sort"
+	"sync"
 
 	"github.com/bxrne/darwin/internal/rng"
 	"gonum.org/v1/gonum/mat"
 )
 
 type WeightsIndividual struct {
-	Weights *mat.Dense
-	fitness float64
-	minVal  float64
-	maxVal  float64
+	Weights  *mat.Dense
+	fitness  float64
+	fitnessMu sync.RWMutex  // Protects fitness field from concurrent access
+	minVal   float64
+	maxVal   float64
 }
 
 func NewWeightsIndividual(height int, width int) *WeightsIndividual {
+	return NewWeightsIndividualWithRange(height, width, -5.0, 5.0)
+}
+
+// NewWeightsIndividualWithRange creates a new WeightsIndividual with weights initialized in the specified range
+func NewWeightsIndividualWithRange(height int, width int, minVal float64, maxVal float64) *WeightsIndividual {
 	Weights := mat.NewDense(height, width, nil)
 
-	minVal, maxVal := -5.0, 5.0
 	for i := range height {
 		for j := range make([]int, width) {
 			Weights.Set(i, j, minVal+rng.Float64()*(maxVal-minVal))
@@ -28,7 +34,10 @@ func NewWeightsIndividual(height int, width int) *WeightsIndividual {
 }
 
 func (wi *WeightsIndividual) Max(i2 Evolvable) Evolvable {
-	if wi.fitness > i2.GetFitness() {
+	wi.fitnessMu.RLock()
+	wiFitness := wi.fitness
+	wi.fitnessMu.RUnlock()
+	if wiFitness > i2.GetFitness() {
 		return wi
 	}
 	return i2
@@ -48,10 +57,12 @@ func (wi *WeightsIndividual) Describe() string {
 }
 
 func (wi *WeightsIndividual) GetFitness() float64 {
+	wi.fitnessMu.RLock()
+	defer wi.fitnessMu.RUnlock()
 	return wi.fitness
 }
 
-func (wi WeightsIndividual) Clone() Evolvable {
+func (wi *WeightsIndividual) Clone() Evolvable {
 
 	// Clone Weights
 	r, c := wi.Weights.Dims()
@@ -61,9 +72,12 @@ func (wi WeightsIndividual) Clone() Evolvable {
 			clonedWeights.Set(i, j, wi.Weights.At(i, j))
 		}
 	}
+	wi.fitnessMu.RLock()
+	fitness := wi.fitness
+	wi.fitnessMu.RUnlock()
 	return &WeightsIndividual{
 		Weights: clonedWeights,
-		fitness: wi.fitness,
+		fitness: fitness,
 	}
 }
 
@@ -111,5 +125,7 @@ func (wi *WeightsIndividual) Mutate(rate float64, mutateInformation *MutateInfor
 }
 
 func (wi *WeightsIndividual) SetFitness(fitness float64) {
+	wi.fitnessMu.Lock()
+	defer wi.fitnessMu.Unlock()
 	wi.fitness = fitness
 }

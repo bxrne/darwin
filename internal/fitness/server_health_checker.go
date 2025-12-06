@@ -62,7 +62,6 @@ func (shc *ServerHealthChecker) CheckServerHealthWithRetry() error {
 	err := shc.CheckServerHealth()
 	if err != nil {
 		logmgr.Warn("Server health check failed, retrying once", logmgr.Field("error", err))
-		time.Sleep(1 * time.Second) // Brief delay before retry
 		return shc.CheckServerHealth()
 	}
 	return nil

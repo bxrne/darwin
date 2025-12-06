@@ -40,7 +40,7 @@ func GenerateFitnessInfoFromConfig(config *cfg.Config, genomeType individual.Gen
 		fitnessInfo.MaxSteps = config.ActionTree.MaxSteps
 		fitnessInfo.Actions = config.ActionTree.Actions
 		fitnessInfo.Population = populations
-		fitnessInfo.ActionTreeSelectionPercentage = 0.3
+		fitnessInfo.ActionTreeSelectionPercentage = config.ActionTree.FitnessSelectionPercentage
 	}
 
 	return fitnessInfo

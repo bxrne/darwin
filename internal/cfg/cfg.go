@@ -117,6 +117,9 @@ type ActionTreeConfig struct {
 	ConnectionPoolSize         int                      `toml:"connection_pool_size"`
 	ConnectionTimeout          string                   `toml:"connection_timeout"`
 	HealthCheckTimeout         string                   `toml:"health_check_timeout"`
+	WeightsMinValue            float64                  `toml:"weights_min_value"`
+	WeightsMaxValue            float64                  `toml:"weights_max_value"`
+	WeightsUseRampedRange      bool                     `toml:"weights_use_ramped_range"`
 }
 
 // validate validates the ActionTreeConfig.
@@ -144,6 +147,15 @@ func (atc *ActionTreeConfig) validate() error {
 	}
 	if atc.HealthCheckTimeout == "" {
 		return fmt.Errorf("health_check_timeout must be specified, e.g., '5s'")
+	}
+	// Set default weight range if not specified
+	if atc.WeightsMinValue == 0.0 && atc.WeightsMaxValue == 0.0 {
+		atc.WeightsMinValue = -5.0
+		atc.WeightsMaxValue = 5.0
+	}
+	// Validate weight range
+	if atc.WeightsMinValue >= atc.WeightsMaxValue {
+		return fmt.Errorf("weights_min_value must be less than weights_max_value")
 	}
 	return nil
 }
@@ -254,6 +266,7 @@ func validateOperandSet(primitiveSet []string) error {
 	validPrimitives := map[string]bool{
 		"+": true, "-": true, "*": true, "/": true,
 		">": true, "<": true, "=": true, "%": true,
+		"pow": true, "abs": true, "min": true, "max": true,
 	}
 
 	for _, prim := range primitiveSet {

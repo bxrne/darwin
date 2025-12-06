@@ -60,6 +60,7 @@ func (p *TCPConnectionPool) GetConnection() (*TCPClient, error) {
 					logmgr.Warn("Failed to disconnect client", logmgr.Field("err", err))
 				}
 				p.activeCount--
+				p.cond.Broadcast() // Signal waiting goroutines that a connection slot is available
 				continue
 			}
 			return client, nil
@@ -96,6 +97,7 @@ func (p *TCPConnectionPool) ReturnConnection(client *TCPClient) error {
 			logmgr.Warn("Failed to disconnect client", logmgr.Field("err", err))
 		}
 		p.activeCount--
+		p.cond.Broadcast() // Signal waiting goroutines that a connection slot is available
 		return nil
 	}
 
@@ -107,6 +109,7 @@ func (p *TCPConnectionPool) ReturnConnection(client *TCPClient) error {
 			logmgr.Warn("Failed to disconnect client", logmgr.Field("err", err))
 		}
 		p.activeCount--
+		p.cond.Broadcast() // Signal waiting goroutines that a connection slot is available
 	}
 
 	return nil

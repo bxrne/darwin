@@ -93,9 +93,15 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 	// Create copies of parents to avoid mutating the original population
 	parentCopy1 := parent1.Clone()
 	parentCopy2 := parent2.Clone()
-	if 1 > rng.Float64() {
-
+	
+	// CRITICAL BUG FIX: Check crossover rate correctly
+	if cmd.CrossoverRate > rng.Float64() {
+		// Perform crossover
 		child1, child2 := parentCopy1.MultiPointCrossover(parentCopy2, &ee.crossoverInformation)
+
+		// Mutate children after crossover
+		child1.Mutate(cmd.MutationRate, &ee.mutateInformation)
+		child2.Mutate(cmd.MutationRate, &ee.mutateInformation)
 
 		ee.fitnessCalculator.CalculateFitness(child1)
 		ee.fitnessCalculator.CalculateFitness(child2)
@@ -103,6 +109,7 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 		return
 	}
 
+	// No crossover, just mutation
 	parentCopy1.Mutate(cmd.MutationRate, &ee.mutateInformation)
 	ee.fitnessCalculator.CalculateFitness(parentCopy1)
 
@@ -115,11 +122,10 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 // processGeneration performs one generation of evolution
 func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	start := time.Now()
-	logmgr.Info("Starting Generation")
-	// Sort population by fitness (descending)
+	logmgr.Info("Starting generation", logmgr.Field("generation", cmd.Generation))
 	ee.sortPopulation()
-	// Create new population
 	newPop := make([]individual.Evolvable, 0, ee.population.Count())
+
 	// Elitism: keep best individuals
 	elitismCount := int(float64(ee.population.Count()) * cmd.ElitismPct)
 	for i := 0; i < elitismCount && i < ee.population.Count(); i++ {
@@ -128,8 +134,9 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	offspringNeeded := ee.population.Count() - len(newPop)
 	offspringChan := make(chan individual.Evolvable, ee.population.Count()-elitismCount+1)
 	var wg sync.WaitGroup
+
 	// Generate offspring
-	for i := 0; i < offspringNeeded; i++ {
+	for range offspringNeeded {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -153,6 +160,8 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	default:
 		// Skip if metrics channel is full (non-blocking)
 	}
+
+	logmgr.Info("Completed generation", logmgr.Field("generation", cmd.Generation), logmgr.Field("duration_ms", duration.Milliseconds()), logmgr.Field("best_fitness", genMetrics.BestFitness))
 }
 
 // sortPopulation sorts the population by fitness (descending)
@@ -193,9 +202,28 @@ func (ee *EvolutionEngine) calculateMetrics(generation int, duration time.Durati
 	minDepth := -1
 	maxDepth := -1
 	totalDepth := 0.0
+	depthCount := 0
 	for citizenIndex := range ee.population.Count() {
+		var depth int
+		var found bool
+		
+		// Check for regular Tree
 		if tree, ok := ee.population.Get(citizenIndex).(*individual.Tree); ok {
-			depth := tree.GetDepth()
+			depth = tree.GetDepth()
+			found = true
+		} else if ati, ok := ee.population.Get(citizenIndex).(*individual.ActionTreeIndividual); ok {
+			// For ActionTreeIndividual, calculate average depth across all action trees
+			if len(ati.Trees) > 0 {
+				sumDepth := 0
+				for _, tree := range ati.Trees {
+					sumDepth += tree.GetDepth()
+				}
+				depth = sumDepth / len(ati.Trees)
+				found = true
+			}
+		}
+		
+		if found {
 			if minDepth == -1 || depth < minDepth {
 				minDepth = depth
 			}
@@ -203,11 +231,12 @@ func (ee *EvolutionEngine) calculateMetrics(generation int, duration time.Durati
 				maxDepth = depth
 			}
 			totalDepth += float64(depth)
+			depthCount++
 		}
 	}
 	avgDepth := 0.0
-	if minDepth != -1 && maxDepth != -1 {
-		avgDepth = totalDepth / float64(ee.population.Count())
+	if depthCount > 0 {
+		avgDepth = totalDepth / float64(depthCount)
 	}
 
 	return metrics.GenerationMetrics{

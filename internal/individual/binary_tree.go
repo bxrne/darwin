@@ -3,6 +3,9 @@ package individual
 import (
 	"encoding/json"
 	"fmt"
+	"math"
+	"sync"
+
 	"github.com/bxrne/darwin/internal/rng"
 	"strconv"
 )
@@ -16,9 +19,10 @@ type TreeNode struct {
 
 // Tree represents the entire expression tree
 type Tree struct {
-	Root    *TreeNode
-	Fitness float64
-	depth   int
+	Root      *TreeNode
+	Fitness   float64
+	fitnessMu sync.RWMutex  // Protects Fitness field from concurrent access
+	depth     int
 }
 
 // Operand represents the type of operation in the tree nodes
@@ -29,6 +33,11 @@ const (
 	Subtract Operand = "-"
 	Multiply Operand = "*"
 	Divide   Operand = "/"
+	Modulo   Operand = "%"
+	Pow      Operand = "pow"
+	Abs      Operand = "abs"
+	Min      Operand = "min"
+	Max      Operand = "max"
 )
 
 func applyOperator(opStr string, left, right float64, dividedByZero *bool) float64 {
@@ -44,9 +53,30 @@ func applyOperator(opStr string, left, right float64, dividedByZero *bool) float
 	case Divide:
 		if right == 0 {
 			*dividedByZero = true
-			return 0
+			// Return a meaningful penalty value instead of 0 to avoid cascading errors
+			return -1000.0
 		}
 		return left / right
+	case Modulo:
+		if right == 0 {
+			*dividedByZero = true
+			return -1000.0
+		}
+		return math.Mod(left, right)
+	case Pow:
+		// Handle edge cases for pow
+		if left == 0 && right < 0 {
+			*dividedByZero = true
+			return -1000.0
+		}
+		return math.Pow(left, right)
+	case Abs:
+		// abs only uses left operand
+		return math.Abs(left)
+	case Min:
+		return math.Min(left, right)
+	case Max:
+		return math.Max(left, right)
 	default:
 		panic(fmt.Sprintf("unknown operator: %s", op))
 	}
@@ -292,11 +322,15 @@ func (tn *TreeNode) NavigateTreeNode(vars *map[string]float64, dividedByZero *bo
 }
 
 func (t *Tree) SetFitness(fitness float64) {
+	t.fitnessMu.Lock()
+	defer t.fitnessMu.Unlock()
 	t.Fitness = fitness
 }
 
 // GetFitness returns the fitness of the tree
 func (t *Tree) GetFitness() float64 {
+	t.fitnessMu.RLock()
+	defer t.fitnessMu.RUnlock()
 	return t.Fitness
 }
 
@@ -368,9 +402,12 @@ func (tn *TreeNode) mutateRecursive(rate float64, primitiveSet []string, termina
 // Clone creates a deep copy of the tree
 func (t *Tree) Clone() Evolvable {
 	clonedRoot := t.Root.cloneNode()
+	t.fitnessMu.RLock()
+	fitness := t.Fitness
+	t.fitnessMu.RUnlock()
 	return &Tree{
 		Root:    clonedRoot,
-		Fitness: t.Fitness,
+		Fitness: fitness,
 		depth:   t.depth,
 	}
 }
