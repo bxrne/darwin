@@ -346,15 +346,19 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 
 	logmgr.Info("About to return from playGame",
 		logmgr.Field("total_reward", totalReward),
-		logmgr.Field("steps_completed", finalStep))
+		logmgr.Field("steps_completed", finalStep),
+		logmgr.Field("tree_id", fmt.Sprintf("%p", actionTreeInd)),
+		logmgr.Field("weights_id", fmt.Sprintf("%p", weightsInd)))
 
 	fitness := totalReward
 
-	logmgr.Info("Game completed",
+	logmgr.Info("Game completed - RETURNING FITNESS",
 		logmgr.Field("fitness", fitness),
+		logmgr.Field("total_reward", totalReward),
 		logmgr.Field("steps", finalStep),
 		logmgr.Field("max_steps", atfc.maxSteps),
-		logmgr.Field("total_reward_before_return", totalReward))
+		logmgr.Field("tree_id", fmt.Sprintf("%p", actionTreeInd)),
+		logmgr.Field("weights_id", fmt.Sprintf("%p", weightsInd)))
 
 	return fitness
 }
