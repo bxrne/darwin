@@ -3,8 +3,6 @@ package fitness
 import (
 	"fmt"
 	"github.com/bxrne/darwin/internal/individual"
-	"github.com/bxrne/darwin/internal/rng"
-	"github.com/bxrne/logmgr"
 	"math"
 )
 
@@ -23,7 +21,7 @@ func NewActionExecutor(actions []individual.ActionTuple) *ActionExecutor {
 }
 
 // ExecuteActionTreesWithSoftmax evaluates all action trees with given inputs and returns selected action using softmax
-func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *individual.ActionTreeIndividual, weights *individual.WeightsIndividual, inputs map[string]float64) ([]int, error) {
+func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *individual.ActionTreeIndividual, weights *individual.WeightsIndividual, inputs map[string]float64, owned_cells [][]bool) ([]int, error) {
 	// Calculate outputs for each action tree
 	actionOutputs := make([][]float64, len(ae.actions))
 	r, c := weights.Weights.Dims()
@@ -48,39 +46,16 @@ func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *in
 	}
 
 	// Apply softmax to convert scores to probabilities
-	selectedActions := make([]int, len(actionOutputs))
-	for i, actionArray := range actionOutputs {
-		probabilities := ae.calculateSoftmax(actionArray)
-		selectedActions[i] = ae.sampleAction(probabilities)
+	selectedActions, err := ae.validator.SelectValidAction(actionOutputs, owned_cells)
+	if err != nil {
+		//Pass if no vlaid acitons(need more troops)
+		return []int{1, 0, 0, 0, 0}, nil
 	}
-
-	// Convert inputs to interface{} map for validation
-	observationInputs := make(map[string]any)
-	for k, v := range inputs {
-		observationInputs[k] = v
-	}
-
-	// Validate selected action
-	if !ae.validator.ValidateAction(selectedActions, observationInputs) {
-		// If action is invalid, return a safe default action (pass turn)
-		logmgr.Debug("Invalid action detected, using default pass action",
-			logmgr.Field("invalid_action", selectedActions))
-		return []int{1, 0, 0, 0, 0}, nil // pass_turn=1, others=0
-	}
-
-	// Validate the selected action
-	if !ae.validator.ValidateAction(selectedActions, observationInputs) {
-		// If action is invalid, return a safe default action (pass turn)
-		logmgr.Debug("Invalid action detected, using default pass action",
-			logmgr.Field("invalid_action", selectedActions))
-		return []int{1, 0, 0, 0, 0}, nil // pass_turn=1, others=0
-	}
-
 	return selectedActions, nil
 }
 
 // calculateSoftmax converts scores to probabilities using numerically stable softmax
-func (ae *ActionExecutor) calculateSoftmax(scores []float64) []float64 {
+func CalculateSoftmax(scores []float64) []float64 {
 	if len(scores) == 0 {
 		return []float64{}
 	}
@@ -120,25 +95,42 @@ func (ae *ActionExecutor) calculateSoftmax(scores []float64) []float64 {
 
 	return probabilities
 }
-
-// sampleAction selects an action index based on probabilities
-func (ae *ActionExecutor) sampleAction(probabilities []float64) int {
-	if len(probabilities) == 0 {
-		return 0
+func SampleAction(probabilties []float64) int {
+	if len(probabilties) == 0 {
+		return -1 // or panic, depending on your use case
 	}
 
-	// Generate random number between 0 and 1
-	rand := rng.Float64()
+	maxIdx := 0
+	maxVal := probabilties[0]
 
-	// Find which probability interval the random number falls into
-	cumulative := 0.0
-	for i, prob := range probabilities {
-		cumulative += prob
-		if rand < cumulative {
-			return i
+	for i := 1; i < len(probabilties); i++ {
+		if probabilties[i] > maxVal {
+			maxVal = probabilties[i]
+			maxIdx = i
 		}
 	}
 
-	// Due to floating point precision, return last index
-	return len(probabilities) - 1
+	return maxIdx
 }
+
+// sampleAction selects an action index based on probabilities
+// func SampleAction(probabilities []float64) int {
+// 	if len(probabilities) == 0 {
+// 		return 0
+// 	}
+//
+// 	// Generate random number between 0 and 1
+// 	rand := rng.Float64()
+//
+// 	// Find which probability interval the random number falls into
+// 	cumulative := 0.0
+// 	for i, prob := range probabilities {
+// 		cumulative += prob
+// 		if rand < cumulative {
+// 			return i
+// 		}
+// 	}
+//
+// 	// Due to floating point precision, return last index
+// 	return len(probabilities) - 1
+// }

@@ -4,11 +4,12 @@ Game wrapper that manages a single PettingZoo Generals game instance.
 
 import logging
 from typing import Dict, Any, Optional, Tuple
-from generals.agents import RandomAgent, ExpanderAgent, Agent
+from generals.agents import RandomAgent, ExpanderAgent
 from generals.envs import PettingZooGenerals
-from generals.core.rewards import FrequentAssetRewardFn
-from generals.core.action import Action
+from generals.core.action import Action, compute_valid_move_mask
 from generals import GridFactory
+from generals.core.observation import Observation
+from src.correct_frequent_reward_func import FrequentAssetRewardFn
 
 
 class Game:
@@ -109,11 +110,11 @@ class Game:
             self.logger.debug("Received client action: %s", str(client_action))
             for agent in self.env.agents:
                 if agent == self.client_id:
-                    pass_turn = True if client_action[0] > 0 else False
-                    split = True if client_action[4] > 0 else False
+                    pass_turn = 1 if client_action[0] > 0 else 0
+                    split = 1 if client_action[4] > 0 else 0
 
                     actions[agent] = Action(
-                        pass_turn, client_action[1], client_action[2], 0, split
+                        pass_turn, client_action[1], client_action[2], client_action[3], split
                     )
                 else:
                     # Opponent agent decides action
@@ -124,26 +125,21 @@ class Game:
                     actions[agent] = self.opponent.act(opponent_obs)
 
             # Execute actions
-            self.logger.info(actions)
             observations, rewards, terminated, truncated, info = self.env.step(
                 actions)
-
             # Update state
-            self.observations = observations
             self.terminated = terminated
             self.truncated = truncated
-
             # Render if enabled
-            if self.env.render_mode:
-                self.env.render()
 
+            self.observations = observations
             # Return client's perspective
             return {
                 "observation": extract_features(observations, self.client_id),
                 "reward": rewards.get(self.client_id, 0.0),
                 "terminated": self.terminated,
                 "truncated": self.truncated,
-                "info": self.observations[self.client_id]["owned_cells"].tolist(),
+                "info": valid_start_point_map(observations, self.client_id)
             }
 
         except Exception as e:
@@ -328,3 +324,11 @@ def extract_features(state, my_id):
         "distance_to_enemy_general": distance_to_enemy_general,
         "distance_to_nearest_city": min_city_dist,
     }
+
+
+def valid_start_point_map(state, my_id):
+    owned_cells = state[my_id]["owned_cells"]
+    army_cells = state[my_id]["armies"]
+
+    proper_mask = owned_cells & (army_cells >= 2)
+    return proper_mask.tolist()

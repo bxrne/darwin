@@ -77,7 +77,7 @@ func main() {
 
 	finalPop, metricsComplete, err := RunEvolution(ctx, cfg, handler)
 	if err != nil {
-		logmgr.Fatal("Evolution failed", logmgr.Field("error", err))
+		logmgr.Fatal("Evolution failed", logmgr.Field("error", err.Error()))
 	}
 
 	// Wait for metrics to finish processing before calculating final stats
