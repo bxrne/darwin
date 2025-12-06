@@ -30,6 +30,7 @@ class Game:
         """
         self.client_id = client_id
         self.logger = logging.getLogger(f"Game-{client_id}")
+        self.logger.setLevel(logging.WARNING)
 
         # Create opponent agent
         if opponent_type == "random":
@@ -37,9 +38,6 @@ class Game:
         elif opponent_type == "expander":
             self.opponent = ExpanderAgent()
         else:
-            self.logger.warning(
-                f"Unknown opponent type: {opponent_type}, defaulting to random"
-            )
             self.opponent = RandomAgent()
 
         # Setup agent names
@@ -59,19 +57,13 @@ class Game:
             agents=self.agent_names,
             grid_factory=grid_factory,
             render_mode=render_mode,
-            reward_fn=FrequentAssetRewardFn()
+            reward_fn=FrequentAssetRewardFn(),
         )
 
         self.observations = None
         self.info = None
         self.terminated = False
         self.truncated = False
-
-        self.logger.info(
-            f"Game created: {client_id} vs {
-                self.opponent.id
-            } - USING FREQUENT ASSET REWARDS"
-        )
 
     def reset(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """
@@ -106,7 +98,6 @@ class Game:
         try:
             # Collect actions from all agents
             actions = {}
-            self.logger.debug("Received client action: %s", str(client_action))
             for agent in self.env.agents:
                 if agent == self.client_id:
                     pass_turn = True if client_action[0] > 0 else False
@@ -118,15 +109,18 @@ class Game:
                 else:
                     # Opponent agent decides action
                     opponent_obs = (
-                        self.observations.get(
-                            agent, {}) if self.observations else {}
+                        self.observations.get(agent, None)
+                        if self.observations
+                        else None
                     )
-                    actions[agent] = self.opponent.act(opponent_obs)
+                    if opponent_obs is not None:
+                        actions[agent] = self.opponent.act(opponent_obs)
+                    else:
+                        # Default action if no observation available
+                        actions[agent] = Action(True, 0, 0, 0, False)
 
             # Execute actions
-            self.logger.info(actions)
-            observations, rewards, terminated, truncated, info = self.env.step(
-                actions)
+            observations, rewards, terminated, truncated, info = self.env.step(actions)
 
             # Update state
             self.observations = observations
@@ -137,17 +131,23 @@ class Game:
             if self.env.render_mode:
                 self.env.render()
 
+            # Get reward for client
+            client_reward = rewards.get(self.client_id, 0.0)
+            self.logger.warning(
+                f"GAME REWARD: {client_reward} for client {self.client_id}"
+            )
+
             # Return client's perspective
             return {
                 "observation": extract_features(observations, self.client_id),
-                "reward": rewards.get(self.client_id, 0.0),
+                "reward": client_reward,
                 "terminated": self.terminated,
                 "truncated": self.truncated,
                 "info": self.observations[self.client_id]["owned_cells"].tolist(),
             }
 
         except Exception as e:
-            self.logger.error(f"Error during step: {e}")
+            self.logger.warning(f"Error during step: {e}")
             raise
 
     def _get_terminal_state(self) -> Dict[str, Any]:
@@ -166,9 +166,8 @@ class Game:
         """Clean up game resources."""
         try:
             self.env.close()
-            self.logger.info("Game closed")
         except Exception as e:
-            self.logger.error(f"Error closing game: {e}")
+            self.logger.warning(f"Error closing game: {e}")
 
     def get_winner(self) -> Optional[str]:
         """Get the winner if game is over."""
@@ -236,6 +235,7 @@ def extract_features(state, my_id):
     owned_cells_list = []
 
     enemy_general_pos = None
+    my_general_pos = None
 
     # -----------------------------
     # PASS 1: Scan the entire grid
@@ -288,20 +288,20 @@ def extract_features(state, my_id):
     # -----------------------------
     # Distances (optional)
     # -----------------------------
-    if enemy_general_pos is not None:
-        distance_to_enemy_general = manhattan(
-            my_general_pos, enemy_general_pos)
+    if enemy_general_pos is not None and my_general_pos is not None:
+        distance_to_enemy_general = manhattan(my_general_pos, enemy_general_pos)
     else:
         distance_to_enemy_general = N + M  # max distance if unknown
 
     # nearest visible city
     min_city_dist = float("inf")
-    for i in range(N):
-        for j in range(M):
-            if not fog_cells[i][j] and cities_cells[i][j]:
-                d = manhattan(my_general_pos, (i, j))
-                if d < min_city_dist:
-                    min_city_dist = d
+    if my_general_pos is not None:
+        for i in range(N):
+            for j in range(M):
+                if not fog_cells[i][j] and cities_cells[i][j]:
+                    d = manhattan(my_general_pos, (i, j))
+                    if d < min_city_dist:
+                        min_city_dist = d
 
     if min_city_dist == float("inf"):
         min_city_dist = N + M  # no visible city

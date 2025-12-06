@@ -56,8 +56,8 @@ genome_size = 20
 [action_tree]
 enabled = true
 opponent_type = "random"
-max_steps = 200
-weights_count = 1
+max_steps = 20
+weights_count = 10
 weights_column_count = 4
 server_addr = "127.0.0.1:5000"
 train_weights_first = false

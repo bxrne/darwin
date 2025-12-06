@@ -49,7 +49,7 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 	}
 
 	if wiok {
-		weightsFitnesses := make([]float64, len(*atfc.weightsPopulation))
+		weightsFitnesses := make([]float64, 0, len(*atfc.actionTreePopulation))
 		for _, evolvable := range *atfc.actionTreePopulation {
 			tree, ok := (evolvable).(*individual.ActionTreeIndividual)
 			if !ok {
@@ -60,27 +60,52 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 				logmgr.Error("Failed to setup game and run", logmgr.Field("error", err.Error()))
 				weightsFitnesses = append(weightsFitnesses, 0.0)
 			} else {
-				logmgr.Debug("Game fitness calculated",
+				logmgr.Info("Game fitness calculated",
 					logmgr.Field("fitness", fitness),
 					logmgr.Field("weights_id", fmt.Sprintf("%p", wi)),
-					logmgr.Field("tree_id", fmt.Sprintf("%p", tree)))
+					logmgr.Field("tree_id", fmt.Sprintf("%p", tree)),
+					logmgr.Field("game_index", len(weightsFitnesses)))
 				weightsFitnesses = append(weightsFitnesses, fitness)
 			}
 		}
+		if len(weightsFitnesses) == 0 {
+			wi.SetFitness(0.0)
+			return
+		}
 		weightsCount := int(float64(len(weightsFitnesses)) * atfc.selectionPercentage)
+		if weightsCount == 0 {
+			weightsCount = 1
+		}
 		sort.Float64s(weightsFitnesses)
+		// Take the best (largest) fitnesses - for negative fitnesses, largest = best
 		total_fitness := 0.0
-		for i := range weightsCount {
+		startIdx := len(weightsFitnesses) - weightsCount
+		for i := startIdx; i < len(weightsFitnesses); i++ {
 			total_fitness = total_fitness + weightsFitnesses[i]
 		}
-		wi.SetFitness(total_fitness / float64(weightsCount))
+		finalFitness := total_fitness / float64(weightsCount)
+		logmgr.Info("Weights fitness aggregation",
+			logmgr.Field("total_fitness", total_fitness),
+			logmgr.Field("weights_count", weightsCount),
+			logmgr.Field("final_fitness", finalFitness),
+			logmgr.Field("fitnesses", weightsFitnesses))
+		wi.SetFitness(finalFitness)
 		return
 
 	}
 
 	if atok {
-		actionTreeFitnesses := make([]float64, len(*atfc.actionTreePopulation))
-		for _, evolvable := range *atfc.weightsPopulation {
+		actionTreeFitnesses := make([]float64, 0, len(*atfc.weightsPopulation))
+		desc := at.Describe()
+		descLen := len(desc)
+		if descLen > 100 {
+			descLen = 100
+		}
+		logmgr.Info("Starting ActionTree fitness calculation",
+			logmgr.Field("tree_id", fmt.Sprintf("%p", at)),
+			logmgr.Field("weights_population_size", len(*atfc.weightsPopulation)),
+			logmgr.Field("action_tree_description", desc[:descLen])) // Log first 100 chars of description
+		for idx, evolvable := range *atfc.weightsPopulation {
 			weights, ok := (evolvable).(*individual.WeightsIndividual)
 			if !ok {
 				panic("Not action tree in action tree population")
@@ -89,21 +114,87 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 			if err != nil {
 				logmgr.Error("Failed to setup game and run", logmgr.Field("error", err.Error()))
 				actionTreeFitnesses = append(actionTreeFitnesses, 0.0)
+				logmgr.Info("Added 0.0 fitness due to error",
+					logmgr.Field("tree_id", fmt.Sprintf("%p", at)),
+					logmgr.Field("weight_index", idx),
+					logmgr.Field("error", err.Error()))
 			} else {
-				logmgr.Debug("Game fitness calculated",
+				logmgr.Info("Game fitness calculated for ActionTree",
 					logmgr.Field("fitness", fitness),
 					logmgr.Field("weights_id", fmt.Sprintf("%p", weights)),
-					logmgr.Field("tree_id", fmt.Sprintf("%p", at)))
+					logmgr.Field("tree_id", fmt.Sprintf("%p", at)),
+					logmgr.Field("weight_index", idx),
+					logmgr.Field("total_games_so_far", len(actionTreeFitnesses)),
+					logmgr.Field("raw_fitness_value", fitness))
 				actionTreeFitnesses = append(actionTreeFitnesses, fitness)
+				logmgr.Info("Appended fitness to slice",
+					logmgr.Field("fitness", fitness),
+					logmgr.Field("slice_length", len(actionTreeFitnesses)),
+					logmgr.Field("all_fitnesses_so_far", fmt.Sprintf("%v", actionTreeFitnesses)))
 			}
 		}
-		actionTreeCount := int(float64(len(actionTreeFitnesses)) * atfc.selectionPercentage)
-		sort.Float64s(actionTreeFitnesses)
-		total_fitness := 0.0
-		for i := range actionTreeCount {
-			total_fitness = total_fitness + actionTreeFitnesses[i]
+		if len(actionTreeFitnesses) == 0 {
+			at.SetFitness(0.0)
+			return
 		}
-		at.SetFitness(total_fitness / float64(actionTreeCount))
+		actionTreeCount := int(float64(len(actionTreeFitnesses)) * atfc.selectionPercentage)
+		if actionTreeCount == 0 {
+			actionTreeCount = 1
+		}
+		// Ensure we don't select more than available
+		if actionTreeCount > len(actionTreeFitnesses) {
+			actionTreeCount = len(actionTreeFitnesses)
+		}
+		sort.Float64s(actionTreeFitnesses)
+		// Take the best (largest) fitnesses - for negative fitnesses, largest = best
+		total_fitness := 0.0
+		startIdx := len(actionTreeFitnesses) - actionTreeCount
+		if startIdx < 0 {
+			startIdx = 0
+		}
+		// CRITICAL: Only sum the selected fitnesses, not all of them!
+		selectedFitnesses := actionTreeFitnesses[startIdx:]
+		for i := 0; i < len(selectedFitnesses); i++ {
+			total_fitness = total_fitness + selectedFitnesses[i]
+		}
+		if actionTreeCount == 0 {
+			logmgr.Error("actionTreeCount is 0, this should not happen!")
+			at.SetFitness(0.0)
+			return
+		}
+		// Double-check: total_fitness should be sum of only actionTreeCount values
+		if len(selectedFitnesses) != actionTreeCount {
+			logmgr.Error("SELECTED FITNESSES COUNT MISMATCH!",
+				logmgr.Field("expected_count", actionTreeCount),
+				logmgr.Field("actual_count", len(selectedFitnesses)),
+				logmgr.Field("start_idx", startIdx),
+				logmgr.Field("total_fitnesses", len(actionTreeFitnesses)))
+		}
+		finalFitness := total_fitness / float64(actionTreeCount)
+		logmgr.Info("ActionTree fitness aggregation",
+			logmgr.Field("tree_id", fmt.Sprintf("%p", at)),
+			logmgr.Field("total_fitnesses", len(actionTreeFitnesses)),
+			logmgr.Field("selection_percentage", atfc.selectionPercentage),
+			logmgr.Field("action_tree_count", actionTreeCount),
+			logmgr.Field("start_idx", startIdx),
+			logmgr.Field("total_fitness", total_fitness),
+			logmgr.Field("final_fitness", finalFitness),
+			logmgr.Field("all_fitnesses", fmt.Sprintf("%v", actionTreeFitnesses)),
+			logmgr.Field("selected_fitnesses", fmt.Sprintf("%v", actionTreeFitnesses[startIdx:])))
+		at.SetFitness(finalFitness)
+		verifiedFitness := at.GetFitness()
+		if verifiedFitness != finalFitness {
+			logmgr.Error("FITNESS MISMATCH!",
+				logmgr.Field("tree_id", fmt.Sprintf("%p", at)),
+				logmgr.Field("calculated_fitness", finalFitness),
+				logmgr.Field("verified_fitness", verifiedFitness))
+		}
+		logmgr.Info("ActionTree fitness SET",
+			logmgr.Field("tree_id", fmt.Sprintf("%p", at)),
+			logmgr.Field("fitness", finalFitness),
+			logmgr.Field("verified_fitness", verifiedFitness),
+			logmgr.Field("num_games", len(actionTreeFitnesses)),
+			logmgr.Field("selected_count", actionTreeCount))
 		return
 
 	}
@@ -150,6 +241,9 @@ func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.
 	logmgr.Info("Fitness calculated",
 		logmgr.Field("fitness", fitness),
 		logmgr.Field("agent_id", connectedResp.AgentID))
+	logmgr.Info("RETURNING FITNESS",
+		logmgr.Field("fitness", fitness),
+		logmgr.Field("agent_id", connectedResp.AgentID))
 	return fitness, nil
 }
 
@@ -186,6 +280,8 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 				logmgr.Field("terminated", obs.Terminated),
 				logmgr.Field("truncated", obs.Truncated),
 				logmgr.Field("observation_keys", fmt.Sprintf("%v", keys)))
+			logmgr.Info("FULL OBSERVATION STRUCTURE",
+				logmgr.Field("observation", fmt.Sprintf("%+v", obs.Observation)))
 		}
 
 		// Log game progress every 10 steps
@@ -200,10 +296,11 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 
 		// Check if game is over
 		if obs.Terminated || obs.Truncated {
-			logmgr.Debug("Game ended",
+			logmgr.Info("Game ended immediately",
 				logmgr.Field("step", step),
 				logmgr.Field("final_reward", obs.Reward),
-				logmgr.Field("total_reward", totalReward+obs.Reward),
+				logmgr.Field("total_reward_before_final", totalReward),
+				logmgr.Field("total_reward_after_final", totalReward+obs.Reward),
 				logmgr.Field("terminated", obs.Terminated),
 				logmgr.Field("truncated", obs.Truncated))
 			// Extract final game state
@@ -221,6 +318,10 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 			action = []int{0, 0, 0, 0, 0}
 		}
 
+		logmgr.Info("Sending action",
+			logmgr.Field("step", step),
+			logmgr.Field("action", action))
+
 		// Send action to server
 		err = client.SendAction(action)
 		if err != nil {
@@ -228,10 +329,19 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 			break
 		}
 
+		logmgr.Info("Step reward received",
+			logmgr.Field("step", step),
+			logmgr.Field("obs_reward", obs.Reward),
+			logmgr.Field("current_total_reward", totalReward))
+
 		totalReward += obs.Reward
+		logmgr.Info("After adding reward",
+			logmgr.Field("step", step),
+			logmgr.Field("obs_reward", obs.Reward),
+			logmgr.Field("new_total_reward", totalReward))
 	}
 
-	logmgr.Debug("Final fitness calculation",
+	logmgr.Info("About to return from playGame",
 		logmgr.Field("total_reward", totalReward),
 		logmgr.Field("steps_completed", finalStep))
 
@@ -240,7 +350,8 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 	logmgr.Info("Game completed",
 		logmgr.Field("fitness", fitness),
 		logmgr.Field("steps", finalStep),
-		logmgr.Field("max_steps", atfc.maxSteps))
+		logmgr.Field("max_steps", atfc.maxSteps),
+		logmgr.Field("total_reward_before_return", totalReward))
 
 	return fitness
 }

@@ -40,7 +40,7 @@ def worker_process(
     logger = logging.getLogger(f"Game-{client_id}")
     qh = QueueHandler(log_queue)
     logger.addHandler(qh)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.WARNING)
     logger.propagate = False
 
     buffer = ""
@@ -70,9 +70,6 @@ def worker_process(
                         )
                         observation, info = game.reset()
 
-                        logger.debug(
-                            "Game connection established, sending initial observation"
-                        )
                         # Connected response
                         response = ConnectedResponse(
                             agent_id=client_id,
@@ -102,9 +99,6 @@ def worker_process(
                             ).encode("utf-8")
                         )
 
-                        logger.info(f"Game created: {client_id} vs {game.opponent.id}")
-                        logger.info(f"Game reset")
-
                     elif msg_type == MessageType.ACTION:
                         if not game:
                             err = ErrorResponse("No active game", "Send CONNECT first")
@@ -117,6 +111,7 @@ def worker_process(
                         action = json_data.get("action")
                         result = game.step(action)
                         reward = result["reward"]
+                        logger.warning(f"REWARD SENT: {reward} for client {client_id}")
 
                         # Observation response
                         response = ObservationResponse(
@@ -184,12 +179,12 @@ def worker_process(
                             "utf-8"
                         )
                     )
-                    logger.error(f"Error processing message: {e}")
+                    logger.warning(f"Error processing message: {e}")
 
     except ConnectionResetError:
-        logger.info(f"Connection reset by {client_id}")
+        logger.warning(f"Connection reset by {client_id}")
     except Exception as e:
-        logger.error(f"Worker error: {e}")
+        logger.warning(f"Worker error: {e}")
     finally:
         try:
             if game:
@@ -199,7 +194,6 @@ def worker_process(
             pass
         # Notify main process about disconnect
         disconnect_queue.put({"client_id": client_id})
-        logger.info(f"Worker for {client_id} exited")
 
 
 # ---------------------------------------------------
@@ -242,7 +236,7 @@ class Bridge:
 
         # Accept connections
         threading.Thread(target=self._accept_connections, daemon=True).start()
-        logging.info(f"Bridge started on {self.address}:{self.port}")
+        logging.warning(f"Bridge started on {self.address}:{self.port}")
 
     def _accept_connections(self):
         while self.running:
@@ -269,16 +263,13 @@ class Bridge:
                 )
                 p.start()
                 self.workers[client_id] = p
-                logging.info(
-                    f"Accepted connection from {client_address} as {client_id}"
-                )
 
             except socket.timeout:
                 # Timeout is expected, allows checking self.running
                 continue
             except Exception as e:
                 if self.running:  # Only log errors if we're still running
-                    logging.error(f"Error accepting connection: {e}")
+                    logging.warning(f"Error accepting connection: {e}")
 
     def _handle_disconnects(self):
         """Clean up workers when they notify disconnection."""
@@ -299,12 +290,12 @@ class Bridge:
                             sock.close()
                         except:
                             pass
-                logging.info(f"Cleaned up client {client_id} (disconnect)")
+
             except Exception:
                 continue
 
     def stop(self):
-        logging.info("Stopping bridge...")
+        logging.warning("Stopping bridge...")
         self.running = False
         # Close all client sockets
         with self.lock:
@@ -330,7 +321,7 @@ class Bridge:
                 self.server_socket.close()
             except:
                 pass
-        logging.info("Bridge stopped")
+        logging.warning("Bridge stopped")
 
     def get_stats(self):
         """Return current number of active clients and workers."""

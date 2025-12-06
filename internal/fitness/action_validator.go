@@ -2,6 +2,8 @@ package fitness
 
 import (
 	"fmt"
+
+	"github.com/bxrne/logmgr"
 )
 
 // ActionValidator validates actions based on game observations
@@ -51,23 +53,44 @@ func (av *ActionValidator) ValidateAction(action []int, observation map[string]a
 		return av.validateBasicAction(action)
 	}
 
-	// Extract grid info from observation
-	// observation["info"]["info"] contains the mountain grid
-	outerInfo, ok := observation["info"].(map[string]any)
-	if !ok {
-		// If no info structure, fall back to basic validation
+	// Check if grid dimensions are already set from observation data
+	if av.gridWidth > 0 && av.gridHeight > 0 {
+		// Grid dimensions already known, validate with current bounds
+		return av.validateGameAction(action, nil, observation)
+	}
+
+	// Try to extract grid dimensions from observation data
+	// Method 1: Check for direct grid dimension fields
+	if gridWidth, ok := observation["grid_width"].(int); ok {
+		av.gridWidth = gridWidth
+	}
+	if gridHeight, ok := observation["grid_height"].(int); ok {
+		av.gridHeight = gridHeight
+	}
+
+	// Method 2: Check for max coordinate values in observation
+	if maxX, ok := observation["max_x"].(int); ok {
+		if av.gridWidth == 0 {
+			av.gridWidth = maxX + 1
+		}
+	}
+	if maxY, ok := observation["max_y"].(int); ok {
+		if av.gridHeight == 0 {
+			av.gridHeight = maxY + 1
+		}
+	}
+
+	// If we still don't have grid dimensions, fall back to basic validation
+	if av.gridWidth == 0 || av.gridHeight == 0 {
+		logmgr.Info("NO GRID DIMENSIONS AVAILABLE, using basic validation")
 		return av.validateBasicAction(action)
 	}
 
-	// Extract mountain data from nested info
-	mountains, ok := outerInfo["info"].([]any)
-	if !ok {
-		// If no mountain data, fall back to basic validation
-		return av.validateBasicAction(action)
-	}
+	logmgr.Info("GRID DIMENSIONS DETECTED",
+		logmgr.Field("grid_width", av.gridWidth),
+		logmgr.Field("grid_height", av.gridHeight))
 
-	av.setGridDimensions(mountains)
-	return av.validateGameAction(action, mountains, observation)
+	return av.validateGameAction(action, nil, observation)
 }
 
 // validateGameAction validates action based on current game state
@@ -79,16 +102,16 @@ func (av *ActionValidator) validateGameAction(action []int, mountains []any, obs
 	}
 
 	// For movement actions, validate target coordinates
-	targetX := action[1]
-	targetY := action[2]
+	targetXCoord := action[1]
+	targetYCoord := action[2]
 
 	// Check bounds
-	if targetX < 0 || targetX >= av.gridWidth || targetY < 0 || targetY >= av.gridHeight {
-		return false
-	}
-
-	// Check if target is a mountain
-	if av.isMountain(targetX, targetY, mountains) {
+	if targetXCoord < 0 || targetXCoord >= av.gridWidth || targetYCoord < 0 || targetYCoord >= av.gridHeight {
+		logmgr.Error("ACTION VALIDATION FAILED: target out of bounds",
+			logmgr.Field("target_x", targetXCoord),
+			logmgr.Field("target_y", targetYCoord),
+			logmgr.Field("grid_width", av.gridWidth),
+			logmgr.Field("grid_height", av.gridHeight))
 		return false
 	}
 
@@ -96,10 +119,19 @@ func (av *ActionValidator) validateGameAction(action []int, mountains []any, obs
 	ownedCells, ok := observation["owned_cells"].([]any)
 	if ok {
 		// Can only move to adjacent cells from owned territory
-		if !av.isAdjacentToOwned(targetX, targetY, ownedCells) {
+		if !av.isAdjacentToOwned(targetXCoord, targetYCoord, ownedCells) {
+			logmgr.Error("ACTION VALIDATION FAILED: target not adjacent to owned territory",
+				logmgr.Field("target_x", targetXCoord),
+				logmgr.Field("target_y", targetYCoord))
 			return false
 		}
 	}
+
+	logmgr.Info("ACTION VALIDATION PASSED",
+		logmgr.Field("target_x", targetXCoord),
+		logmgr.Field("target_y", targetYCoord),
+		logmgr.Field("grid_width", av.gridWidth),
+		logmgr.Field("grid_height", av.gridHeight))
 
 	return true
 }
@@ -116,9 +148,15 @@ func (av *ActionValidator) setGridDimensions(mountains []any) {
 		case []any:
 			av.gridWidth = len(row)
 			av.gridHeight = len(mountains)
+			logmgr.Info("GRID DIMENSIONS SET from []any mountains",
+				logmgr.Field("grid_width", av.gridWidth),
+				logmgr.Field("grid_height", av.gridHeight))
 		case []bool:
 			av.gridWidth = len(row)
 			av.gridHeight = len(mountains)
+			logmgr.Info("GRID DIMENSIONS SET from []bool mountains",
+				logmgr.Field("grid_width", av.gridWidth),
+				logmgr.Field("grid_height", av.gridHeight))
 		default:
 			// Try to convert to []any
 			if rowSlice, ok := mountains[0].([]any); ok {
@@ -130,24 +168,24 @@ func (av *ActionValidator) setGridDimensions(mountains []any) {
 }
 
 // isMountain checks if a coordinate contains a mountain
-func (av *ActionValidator) isMountain(x, y int, mountains []any) bool {
-	if y < 0 || y >= len(mountains) {
+func (av *ActionValidator) isMountain(xCoord, yCoord int, mountains []any) bool {
+	if yCoord < 0 || yCoord >= len(mountains) {
 		return false
 	}
 
 	// Handle different row types
-	switch row := mountains[y].(type) {
+	switch row := mountains[yCoord].(type) {
 	case []any:
-		if x < 0 || x >= len(row) {
+		if xCoord < 0 || xCoord >= len(row) {
 			return false
 		}
-		mountain, ok := row[x].(bool)
+		mountain, ok := row[xCoord].(bool)
 		return ok && mountain
 	case []bool:
-		if x < 0 || x >= len(row) {
+		if xCoord < 0 || xCoord >= len(row) {
 			return false
 		}
-		return row[x]
+		return row[xCoord]
 	default:
 		return false
 	}
