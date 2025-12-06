@@ -321,7 +321,9 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 
 		logmgr.Info("Sending action",
 			logmgr.Field("step", step),
-			logmgr.Field("action", action))
+			logmgr.Field("action", action),
+			logmgr.Field("tree_id", fmt.Sprintf("%p", actionTreeInd)),
+			logmgr.Field("weights_id", fmt.Sprintf("%p", weightsInd)))
 
 		// Send action to server
 		err = client.SendAction(action)

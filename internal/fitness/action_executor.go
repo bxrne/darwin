@@ -24,13 +24,19 @@ func NewActionExecutor(actions []individual.ActionTuple) *ActionExecutor {
 
 // ExecuteActionTreesWithSoftmax evaluates all action trees with given inputs and returns selected action using softmax
 func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *individual.ActionTreeIndividual, weights *individual.WeightsIndividual, inputs map[string]float64) ([]int, error) {
+	// CRITICAL: Clone inputs to avoid modifying the original map (prevents race conditions)
+	inputsCopy := make(map[string]float64, len(inputs))
+	for k, v := range inputs {
+		inputsCopy[k] = v
+	}
+	
 	// Calculate outputs for each action tree
 	actionOutputs := make([][]float64, len(ae.actions))
 	r, c := weights.Weights.Dims()
 	for row := range r {
 		for column := range c {
 			key := fmt.Sprintf("w%d", column)
-			inputs[key] = weights.Weights.At(row, column)
+			inputsCopy[key] = weights.Weights.At(row, column)
 		}
 		for i, actionName := range ae.actions {
 			if actionName.Value <= row {
@@ -41,8 +47,8 @@ func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *in
 				return nil, fmt.Errorf("action tree not found: %s", actionName.Name)
 			}
 
-			// Execute tree with inputs
-			fitness, dividedByZero := tree.Root.EvaluateTree(&inputs)
+			// Execute tree with inputs copy
+			fitness, dividedByZero := tree.Root.EvaluateTree(&inputsCopy)
 			if dividedByZero {
 				// Apply penalty for division by zero to avoid invalid fitness calculations
 				fitness = -1000.0
@@ -60,9 +66,9 @@ func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *in
 		selectedActions[i] = ae.sampleAction(probabilities)
 	}
 
-	// Convert inputs to interface{} map for validation
+	// Convert inputs copy to interface{} map for validation
 	observationInputs := make(map[string]any)
-	for k, v := range inputs {
+	for k, v := range inputsCopy {
 		observationInputs[k] = v
 	}
 
