@@ -15,14 +15,61 @@ type ActionTreeAndWeightsPopulation struct {
 }
 
 func NewActionTreeAndWeightsPopulation(populationInfo *PopulationInfo, creator func() individual.Evolvable) *ActionTreeAndWeightsPopulation {
+	return NewActionTreeAndWeightsPopulationWithWeightRange(populationInfo, creator, -5.0, 5.0, false)
+}
+
+// NewActionTreeAndWeightsPopulationWithWeightRange creates population with configurable weight initialization
+func NewActionTreeAndWeightsPopulationWithWeightRange(populationInfo *PopulationInfo, creator func() individual.Evolvable, weightsMinVal float64, weightsMaxVal float64, useRampedRange bool) *ActionTreeAndWeightsPopulation {
 	actionTreePopulation := make([]individual.Evolvable, populationInfo.Size)
 	weightsPopulation := make([]individual.Evolvable, populationInfo.weightsCount)
 	for i := range populationInfo.Size {
 		actionTreePopulation[i] = creator()
 	}
 
-	for i := range populationInfo.weightsCount {
-		weightsPopulation[i] = individual.NewWeightsIndividual(populationInfo.maxNumInputs, populationInfo.numColumns)
+	// Initialize weights with ramped ranges if enabled
+	if useRampedRange {
+		// Distribute weights across different ranges (ramped)
+		// Create ranges from small to large
+		numRanges := populationInfo.weightsCount
+		if numRanges > 10 {
+			numRanges = 10 // Limit to 10 different ranges
+		}
+		
+		rangeStep := (weightsMaxVal - weightsMinVal) / float64(numRanges)
+		weightsPerRange := populationInfo.weightsCount / numRanges
+		remaining := populationInfo.weightsCount % numRanges
+		
+		weightIndex := 0
+		for r := 0; r < numRanges; r++ {
+			// Calculate range for this group
+			rangeMin := weightsMinVal + float64(r)*rangeStep
+			rangeMax := weightsMinVal + float64(r+1)*rangeStep
+			
+			count := weightsPerRange
+			if r < remaining {
+				count++
+			}
+			
+			for i := 0; i < count && weightIndex < populationInfo.weightsCount; i++ {
+				weightsPopulation[weightIndex] = individual.NewWeightsIndividualWithRange(
+					populationInfo.maxNumInputs,
+					populationInfo.numColumns,
+					rangeMin,
+					rangeMax,
+				)
+				weightIndex++
+			}
+		}
+	} else {
+		// Use same range for all weights
+		for i := range populationInfo.weightsCount {
+			weightsPopulation[i] = individual.NewWeightsIndividualWithRange(
+				populationInfo.maxNumInputs,
+				populationInfo.numColumns,
+				weightsMinVal,
+				weightsMaxVal,
+			)
+		}
 	}
 
 	return &ActionTreeAndWeightsPopulation{actionTrees: actionTreePopulation,

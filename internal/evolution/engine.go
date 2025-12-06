@@ -195,9 +195,28 @@ func (ee *EvolutionEngine) calculateMetrics(generation int, duration time.Durati
 	minDepth := -1
 	maxDepth := -1
 	totalDepth := 0.0
+	depthCount := 0
 	for citizenIndex := range ee.population.Count() {
+		var depth int
+		var found bool
+		
+		// Check for regular Tree
 		if tree, ok := ee.population.Get(citizenIndex).(*individual.Tree); ok {
-			depth := tree.GetDepth()
+			depth = tree.GetDepth()
+			found = true
+		} else if ati, ok := ee.population.Get(citizenIndex).(*individual.ActionTreeIndividual); ok {
+			// For ActionTreeIndividual, calculate average depth across all action trees
+			if len(ati.Trees) > 0 {
+				sumDepth := 0
+				for _, tree := range ati.Trees {
+					sumDepth += tree.GetDepth()
+				}
+				depth = sumDepth / len(ati.Trees)
+				found = true
+			}
+		}
+		
+		if found {
 			if minDepth == -1 || depth < minDepth {
 				minDepth = depth
 			}
@@ -205,11 +224,12 @@ func (ee *EvolutionEngine) calculateMetrics(generation int, duration time.Durati
 				maxDepth = depth
 			}
 			totalDepth += float64(depth)
+			depthCount++
 		}
 	}
 	avgDepth := 0.0
-	if minDepth != -1 && maxDepth != -1 {
-		avgDepth = totalDepth / float64(ee.population.Count())
+	if depthCount > 0 {
+		avgDepth = totalDepth / float64(depthCount)
 	}
 
 	return metrics.GenerationMetrics{

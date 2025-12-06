@@ -3,6 +3,7 @@ package individual
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"github.com/bxrne/darwin/internal/rng"
 	"strconv"
 )
@@ -29,6 +30,11 @@ const (
 	Subtract Operand = "-"
 	Multiply Operand = "*"
 	Divide   Operand = "/"
+	Modulo   Operand = "%"
+	Pow      Operand = "pow"
+	Abs      Operand = "abs"
+	Min      Operand = "min"
+	Max      Operand = "max"
 )
 
 func applyOperator(opStr string, left, right float64, dividedByZero *bool) float64 {
@@ -48,6 +54,26 @@ func applyOperator(opStr string, left, right float64, dividedByZero *bool) float
 			return -1000.0
 		}
 		return left / right
+	case Modulo:
+		if right == 0 {
+			*dividedByZero = true
+			return -1000.0
+		}
+		return math.Mod(left, right)
+	case Pow:
+		// Handle edge cases for pow
+		if left == 0 && right < 0 {
+			*dividedByZero = true
+			return -1000.0
+		}
+		return math.Pow(left, right)
+	case Abs:
+		// abs only uses left operand
+		return math.Abs(left)
+	case Min:
+		return math.Min(left, right)
+	case Max:
+		return math.Max(left, right)
 	default:
 		panic(fmt.Sprintf("unknown operator: %s", op))
 	}

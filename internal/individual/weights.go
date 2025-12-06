@@ -16,9 +16,13 @@ type WeightsIndividual struct {
 }
 
 func NewWeightsIndividual(height int, width int) *WeightsIndividual {
+	return NewWeightsIndividualWithRange(height, width, -5.0, 5.0)
+}
+
+// NewWeightsIndividualWithRange creates a new WeightsIndividual with weights initialized in the specified range
+func NewWeightsIndividualWithRange(height int, width int, minVal float64, maxVal float64) *WeightsIndividual {
 	Weights := mat.NewDense(height, width, nil)
 
-	minVal, maxVal := -5.0, 5.0
 	for i := range height {
 		for j := range make([]int, width) {
 			Weights.Set(i, j, minVal+rng.Float64()*(maxVal-minVal))

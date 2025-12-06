@@ -16,6 +16,81 @@ import (
 	"github.com/bxrne/logmgr"
 )
 
+// buildActionTreePopulationWithRampedHalfAndHalf creates a population using ramped half-and-half initialization
+// This ensures diversity by distributing trees across different depths and using both grow and full methods
+func buildActionTreePopulationWithRampedHalfAndHalf(popInfo *population.PopulationInfo, config *cfg.Config) population.Population {
+	// Use the existing population builder but with a custom creator that uses ramped half-and-half
+	popBuilder := population.NewPopulationBuilder()
+	
+	// Track which individual we're creating to determine depth and method
+	individualCounter := 0
+	
+	// Ramped half-and-half: distribute across depths from 1 to initialDepth
+	minDepth := 1
+	maxDepth := config.Tree.InitalDepth
+	if maxDepth < minDepth {
+		maxDepth = minDepth
+	}
+	
+	// Calculate how many individuals per depth
+	depthRange := maxDepth - minDepth + 1
+	individualsPerDepth := popInfo.Size / depthRange
+	remaining := popInfo.Size % depthRange
+	
+	// Helper to get depth and method for current individual
+	getDepthAndMethod := func(index int) (depth int, useGrow bool) {
+		// Find which depth this individual belongs to
+		currentCount := 0
+		for d := minDepth; d <= maxDepth; d++ {
+			count := individualsPerDepth
+			if d-minDepth < remaining {
+				count++
+			}
+			// Half grow, half full for each depth
+			growCount := count / 2
+			
+			if index < currentCount+growCount {
+				return d, true // grow
+			}
+			if index < currentCount+count {
+				return d, false // full
+			}
+			currentCount += count
+		}
+		// Fallback
+		return maxDepth, rng.Float64() < 0.5
+	}
+	
+	creator := func() individual.Evolvable {
+		depth, useGrow := getDepthAndMethod(individualCounter)
+		individualCounter++
+		
+		// Prepare variable set
+		variableSet := make([]string, config.ActionTree.WeightsColumnCount)
+		for i := range config.ActionTree.WeightsColumnCount {
+			key := fmt.Sprintf("w%d", i)
+			variableSet[i] = key
+		}
+		variableSet = append(variableSet, config.Tree.VariableSet...)
+		
+		// Create trees for each action using ramped half-and-half
+		initialTrees := make(map[string]*individual.Tree)
+		for _, action := range config.ActionTree.Actions {
+			tree := individual.NewRampedHalfAndHalfTree(
+				depth,
+				useGrow,
+				config.Tree.OperandSet,
+				variableSet,
+				config.Tree.TerminalSet,
+			)
+			initialTrees[action.Name] = tree
+		}
+		return individual.NewActionTreeIndividual(config.ActionTree.Actions, initialTrees)
+	}
+	
+	return popBuilder.BuildPopulation(popInfo, creator)
+}
+
 type MetricsHandler func(metrics.GenerationMetrics)
 type MetricsComplete chan struct{}
 
@@ -60,39 +135,26 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 
 	popBuilder := population.NewPopulationBuilder()
 	popinfo := population.NewPopulationInfo(config, populationType)
-	population := popBuilder.BuildPopulation(&popinfo, func() individual.Evolvable {
-		switch populationType {
-		case individual.BitStringGenome:
-			return individual.NewBinaryIndividual(config.BitString.GenomeSize)
-		case individual.TreeGenome:
-			return individual.NewRandomTree(config.Tree.InitalDepth, config.Tree.OperandSet, config.Tree.VariableSet, config.Tree.TerminalSet)
-		case individual.GrammarTreeGenome:
-			return individual.NewGrammarTree(config.GrammarTree.GenomeSize)
-		case individual.ActionTreeGenome:
-			// Create random trees for each action
-			initialTrees := make(map[string]*individual.Tree)
-			variableSet := make([]string, config.ActionTree.WeightsColumnCount)
-			for i := range config.ActionTree.WeightsColumnCount {
-				key := fmt.Sprintf("w%d", i)
-				variableSet[i] = key
+	
+	// For ActionTree, use ramped half-and-half initialization
+	var population population.Population
+	if populationType == individual.ActionTreeGenome {
+		population = buildActionTreePopulationWithRampedHalfAndHalf(&popinfo, config)
+	} else {
+		population = popBuilder.BuildPopulation(&popinfo, func() individual.Evolvable {
+			switch populationType {
+			case individual.BitStringGenome:
+				return individual.NewBinaryIndividual(config.BitString.GenomeSize)
+			case individual.TreeGenome:
+				return individual.NewRandomTree(config.Tree.InitalDepth, config.Tree.OperandSet, config.Tree.VariableSet, config.Tree.TerminalSet)
+			case individual.GrammarTreeGenome:
+				return individual.NewGrammarTree(config.GrammarTree.GenomeSize)
+			default:
+				fmt.Printf("Unknown genome type: %v\n", populationType)
+				return nil
 			}
-			variableSet = append(variableSet, config.Tree.VariableSet...)
-			for _, action := range config.ActionTree.Actions {
-				tree := individual.NewRandomTree(
-					config.Tree.InitalDepth,
-					config.Tree.OperandSet,
-					variableSet,
-					config.Tree.TerminalSet,
-				)
-				initialTrees[action.Name] = tree
-			}
-			result := individual.NewActionTreeIndividual(config.ActionTree.Actions, initialTrees)
-			return result
-		default:
-			fmt.Printf("Unknown genome type: %v\n", populationType)
-			return nil
-		}
-	})
+		})
+	}
 
 	fitnessInfo := fitness.GenerateFitnessInfoFromConfig(config, populationType, grammar, population.GetPopulations())
 	fitnessCalculator := fitness.FitnessCalculatorFactoryWithConfig(fitnessInfo, config)

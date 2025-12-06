@@ -27,6 +27,9 @@ type PopulationInfo struct {
 	trainWeightsFirst    bool
 	GenomeType           individual.GenomeType
 	SwitchPopulationStep int
+	weightsMinVal        float64
+	weightsMaxVal        float64
+	weightsUseRampedRange bool
 }
 
 func NewPopulationInfo(config *cfg.Config, genomeType individual.GenomeType) PopulationInfo {
@@ -44,6 +47,9 @@ func NewPopulationInfo(config *cfg.Config, genomeType individual.GenomeType) Pop
 		SwitchPopulationStep: config.ActionTree.SwitchTrainingTargetStep,
 		maxNumInputs:         maxValue,
 		GenomeType:           genomeType,
+		weightsMinVal:        config.ActionTree.WeightsMinValue,
+		weightsMaxVal:        config.ActionTree.WeightsMaxValue,
+		weightsUseRampedRange: config.ActionTree.WeightsUseRampedRange,
 	}
 }
 
@@ -63,7 +69,13 @@ func (pb *PopulationBuilder) BuildPopulation(popInfo *PopulationInfo, creator fu
 	chunkSize := (popInfo.Size + numWorkers - 1) / numWorkers
 	switch popInfo.GenomeType {
 	case individual.ActionTreeGenome:
-		return NewActionTreeAndWeightsPopulation(popInfo, creator)
+		return NewActionTreeAndWeightsPopulationWithWeightRange(
+			popInfo,
+			creator,
+			popInfo.weightsMinVal,
+			popInfo.weightsMaxVal,
+			popInfo.weightsUseRampedRange,
+		)
 	default:
 		population := make([]individual.Evolvable, popInfo.Size)
 		for i := range numWorkers {

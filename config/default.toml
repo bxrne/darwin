@@ -1,8 +1,8 @@
 [evolution]
 population_size = 10
 crossover_point_count = 1
-crossover_rate = 0.7
-mutation_rate = 0.3
+crossover_rate = 0.9
+mutation_rate = 0.5
 generations = 10
 elitism_percentage = 0.01
 selection_size = 7
@@ -22,7 +22,7 @@ genome_size = 200
 enabled = false
 max_depth = 12
 initial_depth = 5
-operand_set = ["+", "-", "*", "/"]
+operand_set = ["+", "-", "*", "/", "%", "pow", "abs", "min", "max"]
 variable_set = [
   "my_total_army",
   "opp_total_army",
@@ -56,7 +56,7 @@ genome_size = 20
 [action_tree]
 enabled = true
 opponent_type = "random"
-max_steps = 20
+max_steps = 100
 weights_count = 10
 weights_column_count = 4
 server_addr = "127.0.0.1:5000"
@@ -66,6 +66,15 @@ switch_training_target_step = 10
 connection_pool_size = 100
 connection_timeout = "30s"
 health_check_timeout = "30s"
+# Weight initialization range
+weights_min_value = -10.0
+weights_max_value = 10.0
+weights_use_ramped_range = true
+# Note: Action trees use ramped half-and-half initialization
+# Trees are distributed across depths from 1 to initial_depth (from [tree_individual] section)
+# For each depth, half use "grow" method and half use "full" method
+# If weights_use_ramped_range = true, weights are also initialized with ramped ranges
+# This ensures diverse initial population to avoid constant fitness values
 
 
 [[action_tree.actions]]

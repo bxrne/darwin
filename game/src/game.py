@@ -327,4 +327,7 @@ def extract_features(state, my_id):
         # optional
         "distance_to_enemy_general": distance_to_enemy_general,
         "distance_to_nearest_city": min_city_dist,
+        # Grid dimensions for action validation
+        "grid_width": int(M),
+        "grid_height": int(N),
     }

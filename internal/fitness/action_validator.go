@@ -60,23 +60,23 @@ func (av *ActionValidator) ValidateAction(action []int, observation map[string]a
 	}
 
 	// Try to extract grid dimensions from observation data
-	// Method 1: Check for direct grid dimension fields
-	if gridWidth, ok := observation["grid_width"].(int); ok {
-		av.gridWidth = gridWidth
+	// Method 1: Check for direct grid dimension fields (as float64, since observations are map[string]float64)
+	if gridWidthFloat, ok := observation["grid_width"].(float64); ok {
+		av.gridWidth = int(gridWidthFloat)
 	}
-	if gridHeight, ok := observation["grid_height"].(int); ok {
-		av.gridHeight = gridHeight
+	if gridHeightFloat, ok := observation["grid_height"].(float64); ok {
+		av.gridHeight = int(gridHeightFloat)
 	}
 
 	// Method 2: Check for max coordinate values in observation
-	if maxX, ok := observation["max_x"].(int); ok {
+	if maxXFloat, ok := observation["max_x"].(float64); ok {
 		if av.gridWidth == 0 {
-			av.gridWidth = maxX + 1
+			av.gridWidth = int(maxXFloat) + 1
 		}
 	}
-	if maxY, ok := observation["max_y"].(int); ok {
+	if maxYFloat, ok := observation["max_y"].(float64); ok {
 		if av.gridHeight == 0 {
-			av.gridHeight = maxY + 1
+			av.gridHeight = int(maxYFloat) + 1
 		}
 	}
 
