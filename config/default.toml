@@ -56,7 +56,7 @@ genome_size = 20
 [action_tree]
 enabled = true
 opponent_type = "random"
-max_steps = 100
+max_steps = 50  # Reduced to see if games end naturally
 weights_count = 10
 weights_column_count = 4
 server_addr = "127.0.0.1:5000"

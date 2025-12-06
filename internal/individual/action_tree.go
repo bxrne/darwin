@@ -98,20 +98,30 @@ func (ati *ActionTreeIndividual) MultiPointCrossover(i2 Evolvable, crossoverInfo
 		panic("MultiPointCrossover called with non-ActionTreeIndividual type")
 	}
 
-	// Crossover trees
+	// CRITICAL: Clone trees before crossover to avoid sharing references
 	child1Trees := make(map[string]*Tree)
 	child2Trees := make(map[string]*Tree)
 	for action := range ati.Trees {
 		if rng.Float64() < 0.5 {
-			child1Trees[action] = ati.Trees[action]
-			child2Trees[action] = other.Trees[action]
+			// Clone trees to create new individuals
+			cloned1, _ := ati.Trees[action].Clone().(*Tree)
+			cloned2, _ := other.Trees[action].Clone().(*Tree)
+			child1Trees[action] = cloned1
+			child2Trees[action] = cloned2
 		} else {
-			child1Trees[action] = other.Trees[action]
-			child2Trees[action] = ati.Trees[action]
+			// Clone trees to create new individuals
+			cloned1, _ := other.Trees[action].Clone().(*Tree)
+			cloned2, _ := ati.Trees[action].Clone().(*Tree)
+			child1Trees[action] = cloned1
+			child2Trees[action] = cloned2
 		}
 	}
 
-	return ati, other
+	// Create new ActionTreeIndividuals with crossed-over trees
+	child1 := NewActionTreeIndividual(nil, child1Trees) // actions not needed for existing trees
+	child2 := NewActionTreeIndividual(nil, child2Trees)
+
+	return child1, child2
 }
 
 // NewActionTreeIndividual creates a new ActionTreeIndividual with provided trees
