@@ -1,9 +1,5 @@
 package individual
 
-import (
-	"github.com/bxrne/darwin/internal/rng"
-)
-
 // ActionTreeIndividual implements an individual composed of action trees and a weights matrix for action selection
 type ActionTreeIndividual struct {
 	Trees   map[string]*Tree // action name -> action tree
