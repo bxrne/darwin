@@ -47,7 +47,7 @@ variable_set = [
   "distance_to_enemy_general",
   "distance_to_nearest_city",
 ]
-terminal_set = ["1.0"]
+terminal_set = []
 
 [grammar_tree]
 enabled = false
