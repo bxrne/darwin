@@ -2,7 +2,6 @@ package fitness
 
 import (
 	"fmt"
-	"math"
 	"sort"
 	"time"
 
@@ -15,7 +14,7 @@ type ActionTreeFitnessCalculator struct {
 	serverAddr           string
 	opponentType         string
 	maxSteps             int
-	actionExecutor       *ActionExecutor
+	actions              []individual.ActionTuple
 	weightsPopulation    *[]individual.Evolvable
 	actionTreePopulation *[]individual.Evolvable
 	selectionPercentage  float64
@@ -30,7 +29,7 @@ func NewActionTreeFitnessCalculator(serverAddr string, opponentType string, acti
 		serverAddr:           serverAddr,
 		opponentType:         opponentType,
 		maxSteps:             maxSteps,
-		actionExecutor:       NewActionExecutor(actions),
+		actions:              actions,
 		weightsPopulation:    populations[0],
 		actionTreePopulation: populations[1],
 		selectionPercentage:  selectionPercentage,
@@ -94,8 +93,9 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 		sort.Float64s(actionTreeFitnesses)
 		total_fitness := 0.0
 		for i := range actionTreeCount {
-			total_fitness = total_fitness + actionTreeFitnesses[i]
+			total_fitness = total_fitness + actionTreeFitnesses[len(actionTreeFitnesses)-i-1]
 		}
+		fmt.Println(total_fitness)
 		at.SetFitness(total_fitness / float64(actionTreeCount))
 		return
 
@@ -158,14 +158,26 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 		logmgr.Field("weights_id", fmt.Sprintf("%p", weightsInd)),
 		logmgr.Field("action_tree_id", fmt.Sprintf("%p", actionTreeInd)))
 
-	for step := 0; step < atfc.maxSteps; step++ {
-		// Get current observation (first one after connection)
-		obs, err := client.ReceiveObservation()
+	// Get observation from conncetion (Reset)
+	obs, err := client.ReceiveObservation()
+	if err != nil {
+		logmgr.Error("Failed to receive observation", logmgr.Field("error", err.Error()))
+	}
+	actionExecutor := NewActionExecutor(atfc.actions)
+	actionExecutor.validator.SetMountains(obs.Info)
+
+	// Send action to server
+	err = client.SendAction([]int{1, 0, 0, 0, 0})
+	if err != nil {
+		logmgr.Error("Failed to send action", logmgr.Field("error", err))
+	}
+	for step := range atfc.maxSteps {
+		totalReward += obs.Reward
+		obs, err = client.ReceiveObservation()
 		if err != nil {
 			logmgr.Error("Failed to receive observation", logmgr.Field("error", err.Error()))
 			break
 		}
-
 		// Log game progress every 10 steps
 		if step%10 == 0 {
 			logmgr.Debug("Game progress",
@@ -190,12 +202,12 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 		}
 
 		// Execute action trees to get action
-		action, err := atfc.actionExecutor.ExecuteActionTreesWithSoftmax(actionTreeInd, weightsInd, obs.Observation)
+		action, err := actionExecutor.ExecuteActionTreesWithSoftmax(actionTreeInd, weightsInd, obs.Observation, obs.Info)
 
 		if err != nil {
-			logmgr.Error("Failed to execute action trees", logmgr.Field("error", err))
+			logmgr.Error("Failed to execute action trees", logmgr.Field("error", err.Error()))
 			// Send a default action (pass) instead of panicking
-			action = []int{0, 0, 0, 0, 0}
+
 		}
 
 		// Send action to server
@@ -204,21 +216,15 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 			logmgr.Error("Failed to send action", logmgr.Field("error", err))
 			break
 		}
-
 		// Small delay to prevent overwhelming the server
-		time.Sleep(50 * time.Millisecond)
 
 		totalReward += obs.Reward
-
 	}
 
 	logmgr.Debug("Final fitness calculation",
-		logmgr.Field("total_reward", totalReward),
-		logmgr.Field("fitness", math.Log(totalReward+1)*10))
+		logmgr.Field("total_reward", totalReward))
 
-	fitness := math.Log(totalReward+1) * 10
-
-	return fitness
+	return totalReward
 }
 
 // Close closes the connection pool and cleans up resources

@@ -2,6 +2,7 @@ package evolution
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -116,6 +117,7 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	start := time.Now()
 	logmgr.Info("Starting Generation")
+	fmt.Println("Starting Generation")
 	// Sort population by fitness (descending)
 	ee.sortPopulation()
 	// Create new population
