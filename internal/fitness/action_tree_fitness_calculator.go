@@ -258,6 +258,7 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 		logmgr.Field("action_tree_id", fmt.Sprintf("%p", actionTreeInd)))
 
 	for step := 0; step < atfc.maxSteps; step++ {
+		finalStep = step // Track the step we're on
 		// Get current observation (first one after connection)
 		obs, err := client.ReceiveObservation()
 		if err != nil {
@@ -296,7 +297,7 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 
 		// Check if game is over
 		if obs.Terminated || obs.Truncated {
-			logmgr.Info("Game ended immediately",
+			logmgr.Info("Game ended early",
 				logmgr.Field("step", step),
 				logmgr.Field("final_reward", obs.Reward),
 				logmgr.Field("total_reward_before_final", totalReward),
