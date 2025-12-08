@@ -139,11 +139,17 @@ func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.
 	time.Sleep(100 * time.Millisecond)
 
 	// Connect to game with timeout
+	logmgr.Debug("Attempting to connect to game",
+		logmgr.Field("opponent_type", atfc.opponentType),
+		logmgr.Field("client_id", fmt.Sprintf("%p", client)))
 	connectedResp, err := client.ConnectToGameWithTimeout(atfc.opponentType, 5*time.Second)
 	if err != nil {
 		logmgr.Error("Failed to connect to game", logmgr.Field("error", err))
 		return 0.0, fmt.Errorf("game connection error: %w", err)
 	}
+	logmgr.Debug("Successfully connected to game",
+		logmgr.Field("agent_id", connectedResp.AgentID),
+		logmgr.Field("opponent_id", connectedResp.OpponentID))
 
 	logmgr.Debug("Connected to game",
 		logmgr.Field("agent_id", connectedResp.AgentID),
@@ -168,11 +174,15 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 		logmgr.Field("action_tree_id", fmt.Sprintf("%p", actionTreeInd)))
 
 	// Get observation from connection (Reset)
+	logmgr.Debug("Attempting to receive initial observation")
 	obs, err := client.ReceiveObservationWithTimeout(2 * time.Second)
 	if err != nil {
 		logmgr.Error("Failed to receive observation", logmgr.Field("error", err.Error()))
 		return 0.0
 	}
+	logmgr.Debug("Received initial observation successfully",
+		logmgr.Field("reward", obs.Reward),
+		logmgr.Field("terminated", obs.Terminated))
 	actionExecutor := NewActionExecutor(atfc.actions)
 	actionExecutor.validator.SetMountains(obs.Info)
 
