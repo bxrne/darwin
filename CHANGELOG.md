@@ -1,3 +1,16 @@
+## [1.17.0](https://github.com/bxrne/darwin/compare/v1.16.1...v1.17.0) (2025-12-08)
+
+
+### Features
+
+* **cmd:** Add test cases to fitness facade (n games per individual) ([0d9ea6b](https://github.com/bxrne/darwin/commit/0d9ea6bd91e9d11621452c0d7e0d697a26870ad9))
+
+
+### Bug Fixes
+
+* **cmd, cfg, fitness:** use test_case_count games per individual (weight + tree) ([11c9111](https://github.com/bxrne/darwin/commit/11c91119e46e5e7e9481a2f947483f7cbe62810d))
+* **fitness:** call to calc setup with TC count ([92fa2fe](https://github.com/bxrne/darwin/commit/92fa2fe4de6f67ea511455f41173b283c8f6568f))
+
 ## [1.16.1](https://github.com/bxrne/darwin/compare/v1.16.0...v1.16.1) (2025-12-08)
 
 
