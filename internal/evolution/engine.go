@@ -123,7 +123,7 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	// Create new population
 	newPop := make([]individual.Evolvable, 0, ee.population.Count())
 	// Elitism: keep best individuals
-	elitismCount := int(float64(ee.population.Count()) * cmd.ElitismPct)
+	elitismCount := max(int(float64(ee.population.Count())*cmd.ElitismPct), 1)
 	for i := 0; i < elitismCount && i < ee.population.Count(); i++ {
 		newPop = append(newPop, ee.population.Get(i))
 	}

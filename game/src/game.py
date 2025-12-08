@@ -6,10 +6,9 @@ import logging
 from typing import Dict, Any, Optional, Tuple
 from generals.agents import RandomAgent, ExpanderAgent
 from generals.envs import PettingZooGenerals
-from generals.core.action import Action, compute_valid_move_mask
+from generals.core.action import Action
 from generals import GridFactory
-from generals.core.observation import Observation
-from src.correct_frequent_reward_func import FrequentAssetRewardFn
+from generals.core.rewards import FrequentAssetRewardFn
 
 
 class Game:
