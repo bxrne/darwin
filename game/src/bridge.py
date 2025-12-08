@@ -28,6 +28,7 @@ def worker_process(
     log_queue: multiprocessing.Queue,
     disconnect_queue: multiprocessing.Queue,
     render_mode=None,
+    global_wins_ref=None,
 ):
     """
     Handles a single client connection in a separate process.
@@ -71,6 +72,16 @@ def worker_process(
 
                     if msg_type == MessageType.CONNECT:
                         opponent_type = json_data.get("opponent_type", "random")
+
+                        # Check if we should switch to expander due to 20+ wins
+                        current_wins = global_wins_ref.value if global_wins_ref else 0
+                        if current_wins >= 20:
+                            opponent_type = "expander"
+                            logger.info(
+                                "Global wins reached %d, switching to expander opponent for client %s",
+                                current_wins,
+                                client_id,
+                            )
 
                         game = Game(
                             client_id,
@@ -145,8 +156,27 @@ def worker_process(
 
                         # Game over
                         if result["terminated"] or result["truncated"]:
+                            winner = game.get_winner()
+
+                            # Check if client won and increment global win counter
+                            if winner == client_id and global_wins_ref is not None:
+                                with global_wins_ref.get_lock():
+                                    global_wins_ref.value += 1
+                                    new_total = global_wins_ref.value
+                                logger.info(
+                                    "Client %s won! Global wins: %d",
+                                    client_id,
+                                    new_total,
+                                )
+
+                                # Check if we just reached 20 wins
+                                if new_total == 20:
+                                    logger.info(
+                                        "Global wins reached 20! Future games will use expander opponent"
+                                    )
+
                             game_over = GameOverResponse(
-                                winner=game.get_winner(),
+                                winner=winner,
                                 final_rewards={game.client_id: result["reward"]},
                                 reason="Game completed",
                             )
@@ -234,6 +264,9 @@ class Bridge:
         self.lock = threading.Lock()
         self.client_counter = 0
 
+        # Global win tracking (session-level) - using multiprocessing.Value for shared state
+        self.global_wins = multiprocessing.Value("i", 0)
+
     def start(self):
         # Setup logging listener with proper formatting
         formatter = logging.Formatter(
@@ -282,6 +315,7 @@ class Bridge:
                         self.log_queue,
                         self.disconnect_queue,
                         self.render_mode,
+                        self.global_wins,
                     ),
                     daemon=False,
                 )
@@ -352,7 +386,7 @@ class Bridge:
         logger.info("Bridge stopped")
 
     def get_stats(self):
-        """Return current number of active clients and workers."""
+        """Return current number of active clients, workers, and global wins."""
         with self.lock:
             # Remove dead workers automatically
             dead_workers = [cid for cid, p in self.workers.items() if not p.is_alive()]
@@ -362,4 +396,16 @@ class Bridge:
             return {
                 "active_clients": len(self.clients),
                 "active_workers": len(self.workers),
+                "global_wins": self.global_wins.value,
             }
+
+    def get_global_wins(self) -> int:
+        """Get the current global win count."""
+        return self.global_wins.value
+
+    def reset_global_wins(self):
+        """Reset the global win counter to zero."""
+        with self.global_wins.get_lock():
+            old_wins = self.global_wins.value
+            self.global_wins.value = 0
+            logging.info("Global wins reset from %d to 0", old_wins)
