@@ -81,6 +81,7 @@ func FitnessCalculatorFactoryWithConfig(info FitnessSetupInformation, config *cf
 			info.Population,
 			info.ActionTreeSelectionPercentage,
 			poolSize,
+			config.Fitness.TestCaseCount,
 			timeout,
 		)
 		return calc
