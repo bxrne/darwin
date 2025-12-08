@@ -8,10 +8,14 @@ from src.bridge import Bridge
 
 
 def main():
-    """Start the bridge server."""
+    """Start bridge server."""
+    # Setup logging with proper formatting
     logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)8s | %(name)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
+
     bridge = Bridge(address="127.0.0.1", port=5000, render_mode=None)
     bridge.start()
 

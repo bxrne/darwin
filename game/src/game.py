@@ -32,6 +32,18 @@ class Game:
         self.client_id = client_id
         self.logger = logging.getLogger(f"Game-{client_id}")
 
+        # Setup logger format if not already configured
+        if not self.logger.handlers:
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter(
+                fmt="%(asctime)s | %(levelname)8s | %(name)s | %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
+            self.logger.setLevel(logging.INFO)
+            self.logger.propagate = False
+
         # Create opponent agent
         if opponent_type == "random":
             self.opponent = RandomAgent()
@@ -39,7 +51,7 @@ class Game:
             self.opponent = ExpanderAgent()
         else:
             self.logger.warning(
-                f"Unknown opponent type: {opponent_type}, defaulting to random"
+                "Unknown opponent type: %s, defaulting to random", opponent_type
             )
             self.opponent = RandomAgent()
 
@@ -60,7 +72,7 @@ class Game:
             agents=self.agent_names,
             grid_factory=grid_factory,
             render_mode=render_mode,
-            reward_fn=LandRewardFn()
+            reward_fn=LandRewardFn(),
         )
 
         self.observations = None
@@ -102,26 +114,28 @@ class Game:
         try:
             # Collect actions from all agents
             actions = {}
-            self.logger.debug("Received client action: %s", str(client_action))
+            self.logger.debug("Received client action: %s", client_action)
             for agent in self.env.agents:
                 if agent == self.client_id:
                     pass_turn = 1 if client_action[0] > 0 else 0
                     split = 1 if client_action[4] > 0 else 0
 
                     actions[agent] = Action(
-                        pass_turn, client_action[1], client_action[2], client_action[3], split
+                        pass_turn,
+                        client_action[1],
+                        client_action[2],
+                        client_action[3],
+                        split,
                     )
                 else:
                     # Opponent agent decides action
                     opponent_obs = (
-                        self.observations.get(
-                            agent, {}) if self.observations else {}
+                        self.observations.get(agent, {}) if self.observations else {}
                     )
                     actions[agent] = self.opponent.act(opponent_obs)
 
             # Execute actions
-            observations, rewards, terminated, truncated, info = self.env.step(
-                actions)
+            observations, rewards, terminated, truncated, info = self.env.step(actions)
             # Update state
             self.terminated = terminated
             self.truncated = truncated
@@ -134,11 +148,11 @@ class Game:
                 "reward": rewards.get(self.client_id, 0.0),
                 "terminated": self.terminated,
                 "truncated": self.truncated,
-                "info": valid_start_point_map(observations, self.client_id)
+                "info": valid_start_point_map(observations, self.client_id),
             }
 
         except Exception as e:
-            self.logger.error(f"Error during step: {e}")
+            self.logger.error("Error during step: %s", e)
             raise
 
     def _get_terminal_state(self) -> Dict[str, Any]:
@@ -160,7 +174,7 @@ class Game:
             self.env.close()
             self.logger.info("Game closed")
         except Exception as e:
-            self.logger.error(f"Error closing game: {e}")
+            self.logger.error("Error closing game: %s", e)
 
     def get_winner(self) -> Optional[str]:
         """Get the winner if game is over."""
@@ -281,8 +295,7 @@ def extract_features(state, my_id):
     # Distances (optional)
     # -----------------------------
     if enemy_general_pos is not None:
-        distance_to_enemy_general = manhattan(
-            my_general_pos, enemy_general_pos)
+        distance_to_enemy_general = manhattan(my_general_pos, enemy_general_pos)
     else:
         distance_to_enemy_general = N + M  # max distance if unknown
 

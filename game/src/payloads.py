@@ -3,7 +3,7 @@ Message payload definitions for client-server communication.
 All messages are JSON objects with a 'type' field.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 from dataclasses import dataclass, asdict
 import json
 import numpy as np
