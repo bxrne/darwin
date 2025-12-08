@@ -1,16 +1,16 @@
 [evolution]
-population_size = 50
+population_size = 5
 crossover_point_count = 1
 crossover_rate = 0.7
 mutation_rate = 0.3
-generations = 10
-elitism_percentage = 0.2
-selection_size = 10
+generations = 1
+elitism_percentage = 0.5
+selection_size = 5
 selection_type = "tournament"
 seed = 0
 
 [fitness]
-test_case_count = 3
+test_case_count = 1
 target_function = "(x^3)*y+y^3"
 
 
@@ -44,7 +44,7 @@ genome_size = 20
 [action_tree]
 enabled = true
 opponent_type = "random"
-max_steps = 1000
+max_steps = 333
 weights_count = 50
 weights_column_count = 3
 server_addr = "127.0.0.1:5000"
