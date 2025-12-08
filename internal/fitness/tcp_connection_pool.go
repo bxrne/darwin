@@ -246,7 +246,7 @@ func (p *TCPConnectionPool) createNewConnectionUnlocked() (*TCPClient, error) {
 	}
 	p.activeCount++
 	p.totalCreated++
-	logmgr.Info("Created new connection",
+	logmgr.Debug("Created new connection",
 		logmgr.Field("client_id", fmt.Sprintf("%p", client)),
 		logmgr.Field("active_count", p.activeCount),
 		logmgr.Field("total_created", p.totalCreated))
