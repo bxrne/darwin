@@ -2,7 +2,9 @@ package fitness
 
 import (
 	"fmt"
+
 	"github.com/bxrne/darwin/internal/individual"
+	"github.com/bxrne/darwin/internal/rng"
 	"math"
 )
 
@@ -95,42 +97,26 @@ func CalculateSoftmax(scores []float64) []float64 {
 
 	return probabilities
 }
+
 func SampleAction(probabilties []float64) int {
 	if len(probabilties) == 0 {
 		return -1 // or panic, depending on your use case
 	}
 
-	maxIdx := 0
-	maxVal := probabilties[0]
+	sum := 0.0
+	for _, prob := range probabilties {
+		sum += prob
+	}
 
-	for i := 1; i < len(probabilties); i++ {
-		if probabilties[i] > maxVal {
-			maxVal = probabilties[i]
-			maxIdx = i
+	cum_prob := 0.0
+	randVal := rng.Float64() * sum
+	for i, prob := range probabilties {
+		cum_prob += prob
+		if randVal <= cum_prob {
+			return i
 		}
 	}
 
-	return maxIdx
-}
+	return len(probabilties) - 1
 
-// sampleAction selects an action index based on probabilities
-// func SampleAction(probabilities []float64) int {
-// 	if len(probabilities) == 0 {
-// 		return 0
-// 	}
-//
-// 	// Generate random number between 0 and 1
-// 	rand := rng.Float64()
-//
-// 	// Find which probability interval the random number falls into
-// 	cumulative := 0.0
-// 	for i, prob := range probabilities {
-// 		cumulative += prob
-// 		if rand < cumulative {
-// 			return i
-// 		}
-// 	}
-//
-// 	// Due to floating point precision, return last index
-// 	return len(probabilities) - 1
-// }
+}
