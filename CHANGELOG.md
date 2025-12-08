@@ -1,3 +1,21 @@
+## [1.16.0](https://github.com/bxrne/darwin/compare/v1.15.0...v1.16.0) (2025-12-08)
+
+
+### Features
+
+* Better reward function and replays ([666bb1b](https://github.com/bxrne/darwin/commit/666bb1bf4de7dda98735f3855bd8fb45fafd4b41))
+
+
+### Bug Fixes
+
+* **cmd:** remove uneeded % in if ([e12c95d](https://github.com/bxrne/darwin/commit/e12c95d77c8c4da5a5f6cb8c991fe9d4322bed79))
+* **fitness:** softmaxing the action sampling ([e3c5313](https://github.com/bxrne/darwin/commit/e3c5313e592c5689cbca4c5a8e6f4100812a1920))
+
+
+### Miscellaneous Chores
+
+* **game:** del smoketest ([5017846](https://github.com/bxrne/darwin/commit/5017846b17e818fbd0eff2afe865dafd7e2f5af6))
+
 ## [1.15.0](https://github.com/bxrne/darwin/compare/v1.14.1...v1.15.0) (2025-12-08)
 
 
