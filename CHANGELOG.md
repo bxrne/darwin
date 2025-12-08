@@ -1,3 +1,10 @@
+## [1.16.1](https://github.com/bxrne/darwin/compare/v1.16.0...v1.16.1) (2025-12-08)
+
+
+### Bug Fixes
+
+* **game:** fix log formatting and remove unused files ([f605a99](https://github.com/bxrne/darwin/commit/f605a99317bf3945b29d2540158606aeade08389))
+
 ## [1.16.0](https://github.com/bxrne/darwin/compare/v1.15.0...v1.16.0) (2025-12-08)
 
 
