@@ -100,7 +100,9 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	fitnessInfo := fitness.GenerateFitnessInfoFromConfig(config, populationType, grammar, population.GetPopulations())
 	fitnessCalculator := fitness.FitnessCalculatorFactoryWithConfig(fitnessInfo, config)
 
-	population.CalculateFitnesses(fitnessCalculator)
+	for range config.Fitness.TestCaseCount {
+		population.CalculateFitnesses(fitnessCalculator)
+	}
 
 	var selector selection.Selector
 	switch config.Evolution.SelectionType {
