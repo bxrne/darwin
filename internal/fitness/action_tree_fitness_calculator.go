@@ -67,7 +67,7 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 		sort.Float64s(weightsFitnesses)
 		total_fitness := 0.0
 		for i := range weightsCount {
-			total_fitness = total_fitness + weightsFitnesses[i]
+			total_fitness = total_fitness + weightsFitnesses[len(weightsFitnesses)-i-1]
 		}
 		wi.SetFitness(total_fitness / float64(weightsCount))
 		return
@@ -95,7 +95,6 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 		for i := range actionTreeCount {
 			total_fitness = total_fitness + actionTreeFitnesses[len(actionTreeFitnesses)-i-1]
 		}
-		fmt.Println(total_fitness)
 		at.SetFitness(total_fitness / float64(actionTreeCount))
 		return
 

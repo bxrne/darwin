@@ -34,8 +34,8 @@ func main() {
 
 	// Always add logging handler
 	logHandler := func(m metrics.GenerationMetrics) {
-		if m.Generation%10 == 0 || m.Generation == cfg.Evolution.Generations {
-			logmgr.Debug("",
+		if m.Generation%1 == 0 || m.Generation == cfg.Evolution.Generations {
+			logmgr.Info("",
 				logmgr.Field("gen", m.Generation),
 				logmgr.Field("ns", m.Duration.Nanoseconds()),
 				logmgr.Field("best_fit", fmt.Sprintf("%.3f", m.BestFitness)),

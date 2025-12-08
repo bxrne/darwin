@@ -4,11 +4,12 @@ Game wrapper that manages a single PettingZoo Generals game instance.
 
 import logging
 from typing import Dict, Any, Optional, Tuple
+from datetime import datetime
 from generals.agents import RandomAgent, ExpanderAgent
 from generals.envs import PettingZooGenerals
 from generals.core.action import Action
 from generals import GridFactory
-from generals.core.rewards import FrequentAssetRewardFn
+from generals.core.rewards import LandRewardFn
 
 
 class Game:
@@ -59,19 +60,13 @@ class Game:
             agents=self.agent_names,
             grid_factory=grid_factory,
             render_mode=render_mode,
-            reward_fn=FrequentAssetRewardFn()
+            reward_fn=LandRewardFn()
         )
 
         self.observations = None
         self.info = None
         self.terminated = False
         self.truncated = False
-
-        self.logger.info(
-            f"Game created: {client_id} vs {
-                self.opponent.id
-            } - USING FREQUENT ASSET REWARDS"
-        )
 
     def reset(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """
@@ -80,8 +75,9 @@ class Game:
         Returns:
             Tuple of (observation, info) for the client agent
         """
-
-        observations, info = self.env.reset()
+        replay_name = "replays/replay" + str(datetime.now())
+        options = {"replay_file": replay_name}
+        observations, info = self.env.reset(options=options)
         self.observations = observations
         self.info = self.observations[self.client_id]["mountains"].tolist()
         self.terminated = False
@@ -160,6 +156,7 @@ class Game:
     def close(self):
         """Clean up game resources."""
         try:
+            self.env.replay.store()
             self.env.close()
             self.logger.info("Game closed")
         except Exception as e:
