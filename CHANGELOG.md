@@ -1,3 +1,19 @@
+## [1.18.1](https://github.com/bxrne/darwin/compare/v1.18.0...v1.18.1) (2025-12-08)
+
+
+### Bug Fixes
+
+* blocking is gone, timouts and tidy up ([ebb5fa8](https://github.com/bxrne/darwin/commit/ebb5fa8dead30d4c6aeaa3c71cda28464cb2345d))
+* **cmd:** logging issue ([09cb5ee](https://github.com/bxrne/darwin/commit/09cb5eef2feccd83085030cd690e1a745fe777fa))
+* **fitness, game:** Add timeouts, stats and broken pipe handling ([f287e16](https://github.com/bxrne/darwin/commit/f287e16779a2fc9043840562af10faa6e73c48d3))
+
+
+### Miscellaneous Chores
+
+* **cmd, internal:** log noise reduced at info level ([744634c](https://github.com/bxrne/darwin/commit/744634c47d29b27e86f65122044ef8d0645d781d))
+* **fitness:** conn log on debug ([512a265](https://github.com/bxrne/darwin/commit/512a265cd47b9973cc926920c22d0edacb087bfa))
+* fixup logging ([58afd43](https://github.com/bxrne/darwin/commit/58afd4311431720df47ef979168be7445b81d785))
+
 ## [1.18.0](https://github.com/bxrne/darwin/compare/v1.17.0...v1.18.0) (2025-12-08)
 
 
