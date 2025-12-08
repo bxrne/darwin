@@ -89,7 +89,7 @@ func (tc *TCPClient) Connect() error {
 	}
 
 	tc.reader = bufio.NewReader(tc.conn)
-	logmgr.Info("Connected to game server", logmgr.Field("address", tc.serverAddr))
+	logmgr.Debug("Connected to game server", logmgr.Field("address", tc.serverAddr))
 	return nil
 }
 
