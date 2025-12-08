@@ -113,8 +113,8 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 }
 
 func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.WeightsIndividual, actionTreeInd *individual.ActionTreeIndividual) (float64, error) {
-	// Get connection from pool
-	client, err := atfc.connectionPool.GetConnection()
+	// Get connection from pool with shorter timeout for individual games
+	client, err := atfc.connectionPool.GetConnectionWithTimeout(10 * time.Second)
 	if err != nil {
 		logmgr.Error("Failed to get connection from pool", logmgr.Field("error", err.Error()))
 		return 0.0, fmt.Errorf("connection pool error: %w", err)
@@ -138,8 +138,8 @@ func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.
 	// Small delay to ensure connection is stable
 	time.Sleep(100 * time.Millisecond)
 
-	// Connect to game
-	connectedResp, err := client.ConnectToGame(atfc.opponentType)
+	// Connect to game with timeout
+	connectedResp, err := client.ConnectToGameWithTimeout(atfc.opponentType, 5*time.Second)
 	if err != nil {
 		logmgr.Error("Failed to connect to game", logmgr.Field("error", err))
 		return 0.0, fmt.Errorf("game connection error: %w", err)
@@ -167,10 +167,11 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 		logmgr.Field("weights_id", fmt.Sprintf("%p", weightsInd)),
 		logmgr.Field("action_tree_id", fmt.Sprintf("%p", actionTreeInd)))
 
-	// Get observation from conncetion (Reset)
-	obs, err := client.ReceiveObservation()
+	// Get observation from connection (Reset)
+	obs, err := client.ReceiveObservationWithTimeout(2 * time.Second)
 	if err != nil {
 		logmgr.Error("Failed to receive observation", logmgr.Field("error", err.Error()))
+		return 0.0
 	}
 	actionExecutor := NewActionExecutor(atfc.actions)
 	actionExecutor.validator.SetMountains(obs.Info)
@@ -182,7 +183,7 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 	}
 	for step := range atfc.maxSteps {
 		totalReward += obs.Reward
-		obs, err = client.ReceiveObservation()
+		obs, err = client.ReceiveObservationWithTimeout(2 * time.Second)
 		if err != nil {
 			logmgr.Error("Failed to receive observation", logmgr.Field("error", err.Error()))
 			break

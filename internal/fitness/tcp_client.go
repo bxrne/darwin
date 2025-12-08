@@ -157,6 +157,11 @@ func (tc *TCPClient) ReceiveMessage() (map[string]interface{}, error) {
 
 // ConnectToGame sends connect request and waits for connected response
 func (tc *TCPClient) ConnectToGame(opponentType string) (*ConnectedResponse, error) {
+	return tc.ConnectToGameWithTimeout(opponentType, 30*time.Second)
+}
+
+// ConnectToGameWithTimeout sends connect request and waits for connected response with timeout
+func (tc *TCPClient) ConnectToGameWithTimeout(opponentType string, timeout time.Duration) (*ConnectedResponse, error) {
 	connectReq := ConnectRequest{
 		Type:         string(Connect),
 		AgentType:    "human",
@@ -167,8 +172,16 @@ func (tc *TCPClient) ConnectToGame(opponentType string) (*ConnectedResponse, err
 		return nil, fmt.Errorf("failed to send connect request: %w", err)
 	}
 
-	// Wait for connected response
+	timeoutChan := time.After(timeout)
+
+	// Wait for connected response with timeout
 	for {
+		select {
+		case <-timeoutChan:
+			return nil, fmt.Errorf("timeout waiting for connected response after %v", timeout)
+		default:
+		}
+
 		msg, err := tc.ReceiveMessage()
 		if err != nil {
 			return nil, fmt.Errorf("failed to receive connected response: %w", err)
@@ -217,7 +230,20 @@ func (tc *TCPClient) SendAction(action interface{}) error {
 
 // ReceiveObservation waits for an observation response
 func (tc *TCPClient) ReceiveObservation() (*ObservationResponse, error) {
+	return tc.ReceiveObservationWithTimeout(5 * time.Second)
+}
+
+// ReceiveObservationWithTimeout waits for an observation response with timeout
+func (tc *TCPClient) ReceiveObservationWithTimeout(timeout time.Duration) (*ObservationResponse, error) {
+	timeoutChan := time.After(timeout)
+
 	for {
+		select {
+		case <-timeoutChan:
+			return nil, fmt.Errorf("timeout waiting for observation response after %v", timeout)
+		default:
+		}
+
 		msg, err := tc.ReceiveMessage()
 		if err != nil {
 			return nil, fmt.Errorf("failed to receive observation2: %w", err)
