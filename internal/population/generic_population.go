@@ -23,7 +23,7 @@ func (gp *GenericPopulation) Count() int {
 	return gp.count
 }
 
-func (gp *GenericPopulation) Update(generation int) {
+func (gp *GenericPopulation) Update(generation int, fitnessCalc fitness.FitnessCalculator) {
 }
 
 func (gp *GenericPopulation) SetPopulation(population []individual.Evolvable) {

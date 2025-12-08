@@ -51,7 +51,7 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 
 	rng.Seed(config.Evolution.Seed)
 
-	metricsChan := make(chan metrics.GenerationMetrics, 100)
+	metricsChan := make(chan metrics.GenerationMetrics, config.Evolution.Generations)
 	cmdChan := make(chan evolution.EvolutionCommand, config.Evolution.Generations)
 	metricsComplete := make(chan struct{})
 

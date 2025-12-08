@@ -12,7 +12,7 @@ import (
 type Population interface {
 	Get(index int) individual.Evolvable
 	Count() int
-	Update(generation int)
+	Update(generation int, fitnessCalc fitness.FitnessCalculator)
 	SetPopulation(Population []individual.Evolvable)
 	GetPopulation() []individual.Evolvable
 	GetPopulations() []*[]individual.Evolvable

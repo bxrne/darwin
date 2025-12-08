@@ -36,7 +36,12 @@ func (at *ActionTreeAndWeightsPopulation) Get(index int) individual.Evolvable {
 	return at.actionTrees[index]
 }
 
-func (at *ActionTreeAndWeightsPopulation) Update(generation int) {
+func (at *ActionTreeAndWeightsPopulation) Update(generation int, fitnessCalc fitness.FitnessCalculator) {
+	if generation%10 == 0 {
+		at.isTrainingWeights = !at.isTrainingWeights
+		at.CalculateFitnesses(fitnessCalc)
+	}
+
 }
 
 func (at *ActionTreeAndWeightsPopulation) SetPopulation(population []individual.Evolvable) {
@@ -84,35 +89,38 @@ func (at *ActionTreeAndWeightsPopulation) GetPopulations() []*[]individual.Evolv
 func (at *ActionTreeAndWeightsPopulation) CalculateFitnesses(fitnessCalc fitness.FitnessCalculator) {
 	var wg sync.WaitGroup
 	numWorkers := runtime.NumCPU()
+	if !at.isTrainingWeights {
 
-	treeChunkSize := (len(at.actionTrees) + numWorkers - 1) / numWorkers
-	for i := range numWorkers {
-		start := i * treeChunkSize
-		end := start + treeChunkSize
-		end = min(end, len(at.actionTrees))
+		treeChunkSize := (len(at.actionTrees) + numWorkers - 1) / numWorkers
+		for i := range numWorkers {
+			start := i * treeChunkSize
+			end := start + treeChunkSize
+			end = min(end, len(at.actionTrees))
 
-		wg.Add(1)
-		go func(start, end int) {
-			defer wg.Done()
-			for j := start; j < end; j++ {
-				fitnessCalc.CalculateFitness(at.actionTrees[j])
-				at.actionTrees[j].Describe()
-			}
-		}(start, end) // chunk to use
-	}
-	weightChunkSize := (len(at.Weights) + numWorkers - 1) / numWorkers
-	for i := range numWorkers {
-		start := i * weightChunkSize
-		end := start + weightChunkSize
-		end = min(end, len(at.Weights))
+			wg.Add(1)
+			go func(start, end int) {
+				defer wg.Done()
+				for j := start; j < end; j++ {
+					fitnessCalc.CalculateFitness(at.actionTrees[j])
+					at.actionTrees[j].Describe()
+				}
+			}(start, end) // chunk to use
+		}
+	} else {
+		weightChunkSize := (len(at.Weights) + numWorkers - 1) / numWorkers
+		for i := range numWorkers {
+			start := i * weightChunkSize
+			end := start + weightChunkSize
+			end = min(end, len(at.Weights))
 
-		wg.Add(1)
-		go func(start, end int) {
-			defer wg.Done()
-			for j := start; j < end; j++ {
-				fitnessCalc.CalculateFitness(at.Weights[j])
-			}
-		}(start, end) // chunk to use
+			wg.Add(1)
+			go func(start, end int) {
+				defer wg.Done()
+				for j := start; j < end; j++ {
+					fitnessCalc.CalculateFitness(at.Weights[j])
+				}
+			}(start, end) // chunk to use
+		}
 	}
 
 }

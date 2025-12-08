@@ -146,7 +146,7 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 		newPop = append(newPop, ind)
 	}
 	ee.population.SetPopulation(newPop)
-	ee.population.Update(cmd.Generation)
+	ee.population.Update(cmd.Generation, ee.fitnessCalculator)
 	duration := time.Since(start)
 	// Calculate and send metrics
 	genMetrics := ee.calculateMetrics(cmd.Generation, duration)
