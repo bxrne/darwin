@@ -140,9 +140,22 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 		wg.Wait()
 		close(offspringChan)
 	}()
-	for ind := range offspringChan {
-		newPop = append(newPop, ind)
+	// Add timeout for receiving offspring
+	offspringTimeout := time.After(30 * time.Second)
+	for {
+		select {
+		case ind, ok := <-offspringChan:
+			if !ok {
+				// Channel closed
+				goto done
+			}
+			newPop = append(newPop, ind)
+		case <-offspringTimeout:
+			logmgr.Error("Timeout waiting for offspring generation")
+			goto done
+		}
 	}
+done:
 	ee.population.SetPopulation(newPop)
 	ee.population.Update(cmd.Generation, ee.fitnessCalculator)
 	duration := time.Since(start)

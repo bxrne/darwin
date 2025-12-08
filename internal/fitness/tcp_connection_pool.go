@@ -235,13 +235,21 @@ func (p *TCPConnectionPool) GetStats() map[string]interface{} {
 // ─────────────────────────────
 func (p *TCPConnectionPool) createNewConnectionUnlocked() (*TCPClient, error) {
 	client := NewTCPClient(p.serverAddr)
-
+	logmgr.Debug("Creating new connection to server",
+		logmgr.Field("server", p.serverAddr),
+		logmgr.Field("client_id", fmt.Sprintf("%p", client)))
 	if err := client.Connect(); err != nil {
+		logmgr.Error("Failed to create new connection",
+			logmgr.Field("server", p.serverAddr),
+			logmgr.Field("error", err))
 		return nil, fmt.Errorf("failed to create new connection: %w", err)
 	}
-
 	p.activeCount++
 	p.totalCreated++
+	logmgr.Info("Created new connection",
+		logmgr.Field("client_id", fmt.Sprintf("%p", client)),
+		logmgr.Field("active_count", p.activeCount),
+		logmgr.Field("total_created", p.totalCreated))
 	return client, nil
 }
 

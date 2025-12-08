@@ -38,7 +38,7 @@ func (shc *ServerHealthChecker) CheckServerHealth() error {
 	connectReq := ConnectRequest{
 		Type:         string(Connect),
 		AgentType:    "health_check",
-		OpponentType: "none",
+		OpponentType: "random",
 	}
 
 	if err := client.SendMessage(connectReq); err != nil {
