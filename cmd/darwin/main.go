@@ -34,7 +34,7 @@ func main() {
 
 	// Always add logging handler
 	logHandler := func(m metrics.GenerationMetrics) {
-		if m.Generation%1 == 0 || m.Generation == cfg.Evolution.Generations {
+		if m.Generation == cfg.Evolution.Generations {
 			logmgr.Info("",
 				logmgr.Field("gen", m.Generation),
 				logmgr.Field("ns", m.Duration.Nanoseconds()),
