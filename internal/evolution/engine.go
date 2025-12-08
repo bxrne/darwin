@@ -148,6 +148,7 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	duration := time.Since(start)
 	// Calculate and send metrics
 	genMetrics := ee.calculateMetrics(cmd.Generation, duration)
+	logmgr.Info("Completed", logmgr.Field("generation", cmd.Generation), logmgr.Field("duration_ms", duration.Milliseconds()), logmgr.Field("best_fitness", genMetrics.BestFitness))
 	select {
 	case ee.metricsChan <- genMetrics:
 	default:

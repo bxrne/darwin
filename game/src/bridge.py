@@ -321,7 +321,7 @@ class Bridge:
                 )
                 p.start()
                 self.workers[client_id] = p
-                logging.info(
+                logging.debug(
                     "Accepted connection from %s as %s", client_address, client_id
                 )
 
@@ -351,7 +351,7 @@ class Bridge:
                             sock.close()
                         except:
                             pass
-                logging.info("Cleaned up client %s (disconnect)", client_id)
+                logging.debug("Cleaned up client %s (disconnect)", client_id)
             except Exception:
                 continue
 
@@ -389,7 +389,10 @@ class Bridge:
         """Return current number of active clients, workers, and global wins."""
         with self.lock:
             # Remove dead workers automatically
-            dead_workers = [cid for cid, p in self.workers.items() if not p.is_alive()]
+            # Create a list of dead worker IDs to avoid modifying dict during iteration
+            dead_workers = [
+                cid for cid, p in list(self.workers.items()) if not p.is_alive()
+            ]
             for cid in dead_workers:
                 self.workers.pop(cid, None)
                 self.clients.pop(cid, None)
