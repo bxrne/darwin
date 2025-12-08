@@ -39,14 +39,35 @@ func NewTCPConnectionPool(serverAddr string, maxConnections int, timeout time.Du
 	return p
 }
 
+// GetPoolStats returns current pool statistics
+func (p *TCPConnectionPool) GetPoolStats() map[string]interface{} {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	return map[string]interface{}{
+		"active_connections":    p.activeCount,
+		"available_connections": len(p.connections),
+		"max_connections":       p.maxConnections,
+		"total_created":         p.totalCreated,
+		"closed":                p.closed,
+	}
+}
+
 // ─────────────────────────────
 //
-//	BLOCKING GetConnection()
+//	GetConnection() with timeout
 //
 // ─────────────────────────────
 func (p *TCPConnectionPool) GetConnection() (*TCPClient, error) {
+	return p.GetConnectionWithTimeout(p.timeout)
+}
+
+// GetConnectionWithTimeout gets a connection with specified timeout
+func (p *TCPConnectionPool) GetConnectionWithTimeout(timeout time.Duration) (*TCPClient, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+
+	timeoutChan := time.After(timeout)
 
 	for {
 		if p.closed {
@@ -64,6 +85,9 @@ func (p *TCPConnectionPool) GetConnection() (*TCPClient, error) {
 			}
 			return client, nil
 
+		case <-timeoutChan:
+			return nil, fmt.Errorf("timeout getting connection from pool after %v", timeout)
+
 		default:
 		}
 
@@ -71,7 +95,19 @@ func (p *TCPConnectionPool) GetConnection() (*TCPClient, error) {
 			return p.createNewConnectionUnlocked()
 		}
 
-		p.cond.Wait()
+		// Use cond.WaitWithTimeout to avoid blocking indefinitely
+		waitChan := make(chan struct{})
+		go func() {
+			p.cond.Wait()
+			close(waitChan)
+		}()
+
+		select {
+		case <-waitChan:
+			// Wait completed, continue loop
+		case <-timeoutChan:
+			return nil, fmt.Errorf("timeout waiting for connection from pool after %v", timeout)
+		}
 	}
 }
 
@@ -92,6 +128,9 @@ func (p *TCPConnectionPool) ReturnConnection(client *TCPClient) error {
 	}
 
 	if err := p.healthCheckUnlocked(client); err != nil {
+		logmgr.Debug("Connection health check failed, disconnecting",
+			logmgr.Field("error", err.Error()),
+			logmgr.Field("client_id", fmt.Sprintf("%p", client)))
 		if err := client.Disconnect(); err != nil {
 			logmgr.Warn("Failed to disconnect client", logmgr.Field("err", err))
 		}
@@ -101,8 +140,15 @@ func (p *TCPConnectionPool) ReturnConnection(client *TCPClient) error {
 
 	select {
 	case p.connections <- client:
+		logmgr.Debug("Connection returned to pool",
+			logmgr.Field("client_id", fmt.Sprintf("%p", client)),
+			logmgr.Field("available_connections", len(p.connections)))
 		p.cond.Signal()
 	default:
+		logmgr.Debug("Connection pool full, disconnecting client",
+			logmgr.Field("client_id", fmt.Sprintf("%p", client)),
+			logmgr.Field("active_count", p.activeCount),
+			logmgr.Field("max_connections", p.maxConnections))
 		if err := client.Disconnect(); err != nil {
 			logmgr.Warn("Failed to disconnect client", logmgr.Field("err", err))
 		}

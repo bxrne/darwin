@@ -101,11 +101,19 @@ def worker_process(
                                 game.opponent.id
                             }",
                         )
-                        client_socket.sendall(
-                            (
-                                json.dumps(to_dict(response), cls=NumpyEncoder) + "\n"
-                            ).encode("utf-8")
-                        )
+                        try:
+                            client_socket.sendall(
+                                (
+                                    json.dumps(to_dict(response), cls=NumpyEncoder)
+                                    + "\n"
+                                ).encode("utf-8")
+                            )
+                        except BrokenPipeError:
+                            logger.info(
+                                "Broken pipe sending connected response to %s",
+                                client_id,
+                            )
+                            break
 
                         # Initial observation
                         obs_response = ObservationResponse(
@@ -115,12 +123,19 @@ def worker_process(
                             truncated=False,
                             info=info,
                         )
-                        client_socket.sendall(
-                            (
-                                json.dumps(to_dict(obs_response), cls=NumpyEncoder)
-                                + "\n"
-                            ).encode("utf-8")
-                        )
+                        try:
+                            client_socket.sendall(
+                                (
+                                    json.dumps(to_dict(obs_response), cls=NumpyEncoder)
+                                    + "\n"
+                                ).encode("utf-8")
+                            )
+                        except BrokenPipeError:
+                            logger.info(
+                                "Broken pipe sending initial observation to %s",
+                                client_id,
+                            )
+                            break
 
                         logger.debug(
                             "Game created: %s vs %s", client_id, game.opponent.id
@@ -130,11 +145,18 @@ def worker_process(
                     elif msg_type == MessageType.ACTION:
                         if not game:
                             err = ErrorResponse("No active game", "Send CONNECT first")
-                            client_socket.sendall(
-                                (
-                                    json.dumps(to_dict(err), cls=NumpyEncoder) + "\n"
-                                ).encode("utf-8")
-                            )
+                            try:
+                                client_socket.sendall(
+                                    (
+                                        json.dumps(to_dict(err), cls=NumpyEncoder)
+                                        + "\n"
+                                    ).encode("utf-8")
+                                )
+                            except BrokenPipeError:
+                                logger.info(
+                                    "Broken pipe sending no-game error to %s", client_id
+                                )
+                                break
                             continue
                         action = json_data.get("action")
                         result = game.step(action)
@@ -148,11 +170,18 @@ def worker_process(
                             truncated=result["truncated"],
                             info=result["info"],
                         )
-                        client_socket.sendall(
-                            (
-                                json.dumps(to_dict(response), cls=NumpyEncoder) + "\n"
-                            ).encode("utf-8")
-                        )
+                        try:
+                            client_socket.sendall(
+                                (
+                                    json.dumps(to_dict(response), cls=NumpyEncoder)
+                                    + "\n"
+                                ).encode("utf-8")
+                            )
+                        except BrokenPipeError:
+                            logger.info(
+                                "Broken pipe sending observation to %s", client_id
+                            )
+                            break
 
                         # Game over
                         if result["terminated"] or result["truncated"]:
@@ -212,23 +241,37 @@ def worker_process(
 
                     else:
                         err = ErrorResponse("Unknown message type", f"Type: {msg_type}")
+                        try:
+                            client_socket.sendall(
+                                (
+                                    json.dumps(to_dict(err), cls=NumpyEncoder) + "\n"
+                                ).encode("utf-8")
+                            )
+                        except BrokenPipeError:
+                            logger.info(
+                                "Broken pipe sending error response to %s", client_id
+                            )
+                            break
+
+                except Exception as e:
+                    err = ErrorResponse("Processing error", str(e))
+                    try:
                         client_socket.sendall(
                             (json.dumps(to_dict(err), cls=NumpyEncoder) + "\n").encode(
                                 "utf-8"
                             )
                         )
-
-                except Exception as e:
-                    err = ErrorResponse("Processing error", str(e))
-                    client_socket.sendall(
-                        (json.dumps(to_dict(err), cls=NumpyEncoder) + "\n").encode(
-                            "utf-8"
+                    except BrokenPipeError:
+                        logger.info(
+                            "Broken pipe sending processing error to %s", client_id
                         )
-                    )
+                        break
                     logger.error("Error processing message: %s", e)
 
     except ConnectionResetError:
         logger.info("Connection reset by %s", client_id)
+    except BrokenPipeError:
+        logger.info("Broken pipe for %s - client disconnected", client_id)
     except Exception as e:
         logger.error("Worker error: %s", e)
     finally:
