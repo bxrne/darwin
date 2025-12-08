@@ -10,7 +10,7 @@ selection_type = "tournament"
 seed = 0
 
 [fitness]
-test_case_count = 100
+test_case_count = 3
 target_function = "(x^3)*y+y^3"
 
 
