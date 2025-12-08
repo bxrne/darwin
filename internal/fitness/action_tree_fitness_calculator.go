@@ -18,11 +18,12 @@ type ActionTreeFitnessCalculator struct {
 	weightsPopulation    *[]individual.Evolvable
 	actionTreePopulation *[]individual.Evolvable
 	selectionPercentage  float64
+	testCaseCount        int
 	connectionPool       *TCPConnectionPool
 }
 
 // NewActionTreeFitnessCalculator creates a new action tree fitness calculator
-func NewActionTreeFitnessCalculator(serverAddr string, opponentType string, actions []individual.ActionTuple, maxSteps int, populations []*[]individual.Evolvable, selectionPercentage float64, poolSize int, timeout time.Duration) *ActionTreeFitnessCalculator {
+func NewActionTreeFitnessCalculator(serverAddr string, opponentType string, actions []individual.ActionTuple, maxSteps int, populations []*[]individual.Evolvable, selectionPercentage float64, poolSize int, testCaseCount int, timeout time.Duration) *ActionTreeFitnessCalculator {
 	pool := NewTCPConnectionPool(serverAddr, poolSize, timeout)
 
 	return &ActionTreeFitnessCalculator{
@@ -32,6 +33,7 @@ func NewActionTreeFitnessCalculator(serverAddr string, opponentType string, acti
 		actions:              actions,
 		weightsPopulation:    populations[0],
 		actionTreePopulation: populations[1],
+		testCaseCount:        testCaseCount,
 		selectionPercentage:  selectionPercentage,
 		connectionPool:       pool,
 	}
@@ -55,14 +57,20 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 			if !ok {
 				panic("Not action tree in action tree population")
 			}
-			fitness, err := atfc.SetupGameAndRun(wi, tree)
-			if err != nil {
-				logmgr.Error("Failed to setup game and run", logmgr.Field("error", err.Error()))
-				weightsFitnesses = append(weightsFitnesses, 0.0)
-			} else {
-				weightsFitnesses = append(weightsFitnesses, fitness)
+
+			sum := 0.0
+
+			for range atfc.testCaseCount {
+				fitness, err := atfc.SetupGameAndRun(wi, tree)
+				if err != nil {
+					logmgr.Error("Failed to setup game and run", logmgr.Field("error", err.Error()))
+				} else {
+					sum += fitness
+				}
 			}
+			weightsFitnesses = append(weightsFitnesses, sum/float64(atfc.testCaseCount))
 		}
+
 		weightsCount := int(float64(len(weightsFitnesses)) * atfc.selectionPercentage)
 		sort.Float64s(weightsFitnesses)
 		total_fitness := 0.0
@@ -81,13 +89,17 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 			if !ok {
 				panic("Not action tree in action tree population")
 			}
-			fitness, err := atfc.SetupGameAndRun(weights, at)
-			if err != nil {
-				logmgr.Error("Failed to setup game and run", logmgr.Field("error", err.Error()))
-				actionTreeFitnesses = append(actionTreeFitnesses, 0.0)
-			} else {
-				actionTreeFitnesses = append(actionTreeFitnesses, fitness)
+
+			sum := 0.0
+			for range atfc.testCaseCount {
+				fitness, err := atfc.SetupGameAndRun(weights, at)
+				if err != nil {
+					logmgr.Error("Failed to setup game and run", logmgr.Field("error", err.Error()))
+				} else {
+					sum += fitness
+				}
 			}
+			actionTreeFitnesses = append(actionTreeFitnesses, sum/float64(atfc.testCaseCount))
 		}
 		actionTreeCount := int(float64(len(actionTreeFitnesses)) * atfc.selectionPercentage)
 		sort.Float64s(actionTreeFitnesses)
@@ -97,9 +109,7 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 		}
 		at.SetFitness(total_fitness / float64(actionTreeCount))
 		return
-
 	}
-
 }
 
 func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.WeightsIndividual, actionTreeInd *individual.ActionTreeIndividual) (float64, error) {
