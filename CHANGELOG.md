@@ -1,3 +1,10 @@
+## [1.18.0](https://github.com/bxrne/darwin/compare/v1.17.0...v1.18.0) (2025-12-08)
+
+
+### Features
+
+* **game, cfg:** implementing expander mode (on 20 cumul. wins global_ref) ([3e09d21](https://github.com/bxrne/darwin/commit/3e09d213f9768b251faa9343562521e282757267))
+
 ## [1.17.0](https://github.com/bxrne/darwin/compare/v1.16.1...v1.17.0) (2025-12-08)
 
 
