@@ -1,3 +1,16 @@
+## [1.15.0](https://github.com/bxrne/darwin/compare/v1.14.1...v1.15.0) (2025-12-08)
+
+
+### Features
+
+* **actions:** Implement proper masking and update reward function to not punish a pass as an invlaid action(might need to change) ([ef2611b](https://github.com/bxrne/darwin/commit/ef2611bf3403420a1690e095e28a64bafd44063d))
+
+
+### Bug Fixes
+
+* **ati crossover:** Make ati use correct crossover ([12f159a](https://github.com/bxrne/darwin/commit/12f159ae0b38953c1cf2b761aef4dc1c9bb961e3))
+* **tests:** Fix softmax tests and remove old validator tests ([4a57c72](https://github.com/bxrne/darwin/commit/4a57c72ee435dde91cc508549c6c2d08659aa5e5))
+
 ## [1.14.1](https://github.com/bxrne/darwin/compare/v1.14.0...v1.14.1) (2025-12-05)
 
 
