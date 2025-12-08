@@ -8,6 +8,7 @@ from src.payloads import (
     NumpyEncoder,
 )
 from src.game import Game
+
 from typing import Dict, Optional
 import logging
 from logging.handlers import QueueHandler, QueueListener
@@ -36,9 +37,17 @@ def worker_process(
     client_socket = socket.socket(fileno=client_socket_fd)
     client_socket.setblocking(True)
 
-    # Setup logger
+    # Setup logger with proper formatting
     logger = logging.getLogger(f"Game-{client_id}")
     qh = QueueHandler(log_queue)
+
+    # Create formatter for consistent output
+    formatter = logging.Formatter(
+        fmt="%(asctime)s | %(levelname)8s | %(name)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    qh.setFormatter(formatter)
+
     logger.addHandler(qh)
     logger.setLevel(logging.INFO)
     logger.propagate = False
@@ -49,7 +58,7 @@ def worker_process(
         while True:
             data = client_socket.recv(4096).decode("utf-8")
             if not data:
-                logger.info(f"Client {client_id} disconnected (reader)")
+                logger.info("Client %s disconnected (reader)", client_id)
                 break
             buffer += data
             while "\n" in buffer:
@@ -102,8 +111,10 @@ def worker_process(
                             ).encode("utf-8")
                         )
 
-                        logger.info(f"Game created: {client_id} vs {game.opponent.id}")
-                        logger.info(f"Game reset")
+                        logger.debug(
+                            "Game created: %s vs %s", client_id, game.opponent.id
+                        )
+                        logger.debug("Game reset")
 
                     elif msg_type == MessageType.ACTION:
                         if not game:
@@ -184,12 +195,12 @@ def worker_process(
                             "utf-8"
                         )
                     )
-                    logger.error(f"Error processing message: {e}")
+                    logger.error("Error processing message: %s", e)
 
     except ConnectionResetError:
-        logger.info(f"Connection reset by {client_id}")
+        logger.info("Connection reset by %s", client_id)
     except Exception as e:
-        logger.error(f"Worker error: {e}")
+        logger.error("Worker error: %s", e)
     finally:
         try:
             if game:
@@ -199,7 +210,7 @@ def worker_process(
             pass
         # Notify main process about disconnect
         disconnect_queue.put({"client_id": client_id})
-        logger.info(f"Worker for {client_id} exited")
+        logger.info("Worker for %s exited", client_id)
 
 
 # ---------------------------------------------------
@@ -224,8 +235,15 @@ class Bridge:
         self.client_counter = 0
 
     def start(self):
-        # Setup logging listener
-        listener = QueueListener(self.log_queue, logging.StreamHandler())
+        # Setup logging listener with proper formatting
+        formatter = logging.Formatter(
+            fmt="%(asctime)s | %(levelname)8s | %(name)s | %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+
+        listener = QueueListener(self.log_queue, console_handler)
         listener.start()
 
         # Start server socket
@@ -242,7 +260,7 @@ class Bridge:
 
         # Accept connections
         threading.Thread(target=self._accept_connections, daemon=True).start()
-        logging.info(f"Bridge started on {self.address}:{self.port}")
+        logging.info("Bridge started on %s:%d", self.address, self.port)
 
     def _accept_connections(self):
         while self.running:
@@ -270,7 +288,7 @@ class Bridge:
                 p.start()
                 self.workers[client_id] = p
                 logging.info(
-                    f"Accepted connection from {client_address} as {client_id}"
+                    "Accepted connection from %s as %s", client_address, client_id
                 )
 
             except socket.timeout:
@@ -278,7 +296,7 @@ class Bridge:
                 continue
             except Exception as e:
                 if self.running:  # Only log errors if we're still running
-                    logging.error(f"Error accepting connection: {e}")
+                    logging.error("Error accepting connection: %s", e)
 
     def _handle_disconnects(self):
         """Clean up workers when they notify disconnection."""
@@ -299,12 +317,13 @@ class Bridge:
                             sock.close()
                         except:
                             pass
-                logging.info(f"Cleaned up client {client_id} (disconnect)")
+                logging.info("Cleaned up client %s (disconnect)", client_id)
             except Exception:
                 continue
 
     def stop(self):
-        logging.info("Stopping bridge...")
+        logger = logging.getLogger("Bridge")
+        logger.info("Stopping bridge...")
         self.running = False
         # Close all client sockets
         with self.lock:
@@ -330,7 +349,7 @@ class Bridge:
                 self.server_socket.close()
             except:
                 pass
-        logging.info("Bridge stopped")
+        logger.info("Bridge stopped")
 
     def get_stats(self):
         """Return current number of active clients and workers."""
