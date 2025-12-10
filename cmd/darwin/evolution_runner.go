@@ -66,17 +66,22 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	var treeCounter atomic.Int64
 
 	// Helper function to create ramped half-and-half tree
+	// Depth 0 is disallowed, so we distribute from depth 1 to initialDepth
 	createRampedHalfAndHalfTree := func(initialDepth int, operandSet, variableSet, terminalSet []string) *individual.Tree {
 		popSize := config.Evolution.PopulationSize
 		index := int(treeCounter.Add(1) - 1) // Get current index (0-based)
 
-		// Calculate depth group: divide population into (initialDepth + 1) groups
-		depthGroups := initialDepth + 1
+		// Calculate depth group: divide population into initialDepth groups (depths 1 to initialDepth)
+		// Depth 0 is disallowed
+		depthGroups := initialDepth
+		if depthGroups <= 0 {
+			depthGroups = 1 // Ensure at least one group
+		}
 		groupSize := popSize / depthGroups
 		remainder := popSize % depthGroups
 
-		// Determine which depth group this individual belongs to
-		depth := 0
+		// Determine which depth group this individual belongs to (1 to initialDepth)
+		depth := 1 // Start from depth 1
 		groupIndex := index
 		for d := 0; d < depthGroups; d++ {
 			groupCount := groupSize
@@ -84,7 +89,7 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 				groupCount++ // Distribute remainder across first groups
 			}
 			if groupIndex < groupCount {
-				depth = d
+				depth = d + 1 // Depth is 1-indexed (1 to initialDepth)
 				break
 			}
 			groupIndex -= groupCount
@@ -93,7 +98,7 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 		// Within the depth group, determine if we use grow (first half) or full (second half)
 		// Recalculate group boundaries for this specific depth
 		groupStart := 0
-		for d := 0; d < depth; d++ {
+		for d := 0; d < (depth - 1); d++ { // depth - 1 because depth is 1-indexed
 			groupCount := groupSize
 			if d < remainder {
 				groupCount++
@@ -101,7 +106,7 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 			groupStart += groupCount
 		}
 		groupCount := groupSize
-		if depth < remainder {
+		if (depth - 1) < remainder {
 			groupCount++
 		}
 		localIndex := index - groupStart
@@ -121,16 +126,21 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 		case individual.ActionTreeGenome:
 			// Create random trees for each action using ramped half-and-half
 			// All trees in an individual use the same depth and method
+			// Depth 0 is disallowed, so we distribute from depth 1 to initialDepth
 			index := int(treeCounter.Add(1) - 1)
 			popSize := config.Evolution.PopulationSize
 			initialDepth := config.Tree.InitalDepth
 
 			// Calculate depth and method for this individual
-			depthGroups := initialDepth + 1
+			// Depth 0 is disallowed, so we have initialDepth groups (depths 1 to initialDepth)
+			depthGroups := initialDepth
+			if depthGroups <= 0 {
+				depthGroups = 1 // Ensure at least one group
+			}
 			groupSize := popSize / depthGroups
 			remainder := popSize % depthGroups
 
-			depth := 0
+			depth := 1 // Start from depth 1
 			groupIndex := index
 			for d := 0; d < depthGroups; d++ {
 				groupCount := groupSize
@@ -138,14 +148,14 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 					groupCount++
 				}
 				if groupIndex < groupCount {
-					depth = d
+					depth = d + 1 // Depth is 1-indexed (1 to initialDepth)
 					break
 				}
 				groupIndex -= groupCount
 			}
 
 			groupStart := 0
-			for d := 0; d < depth; d++ {
+			for d := 0; d < (depth - 1); d++ { // depth - 1 because depth is 1-indexed
 				groupCount := groupSize
 				if d < remainder {
 					groupCount++
@@ -153,7 +163,7 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 				groupStart += groupCount
 			}
 			groupCount := groupSize
-			if depth < remainder {
+			if (depth - 1) < remainder {
 				groupCount++
 			}
 			localIndex := index - groupStart
