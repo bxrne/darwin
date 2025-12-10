@@ -30,4 +30,5 @@ type MutateInformation struct {
 	VariableSet []string
 	TerminalSet []string
 	OperandSet  []string
+	MaxDepth    int
 }

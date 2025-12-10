@@ -262,7 +262,9 @@ func (t *Tree) MultiPointCrossover(t2 Evolvable, crossoverInformation *Crossover
 // Mutate mutates the tree based on the given mutation rate (interface compatibility)
 func (t *Tree) Mutate(rate float64, mutateInformation *MutateInformation) {
 	newSet := append(mutateInformation.TerminalSet, mutateInformation.VariableSet...)
-	t.Root = t.Root.mutateRecursive(rate, mutateInformation.OperandSet, newSet)
+	t.Root = t.Root.mutateRecursive(rate, mutateInformation.OperandSet, newSet, mutateInformation.MaxDepth, 0)
+	// Update tree depth after mutation
+	t.depth = t.Root.CalculateMaxDepth()
 }
 
 func (t *TreeNode) EvaluateTree(vars *map[string]float64) (float64, bool) {
@@ -347,24 +349,102 @@ func (tn *TreeNode) MutateFunction(primitiveSet []string) {
 	}
 }
 
+// shrinkNode replaces a non-terminal node's subtree with a terminal
+func (tn *TreeNode) shrinkNode(terminalSet []string) bool {
+	if tn == nil || tn.IsLeaf() {
+		return false // Cannot shrink a terminal node
+	}
+
+	// Replace this node with a random terminal
+	newTerminal := terminalSet[rng.Intn(len(terminalSet))]
+	tn.Value = newTerminal
+	tn.Left = nil
+	tn.Right = nil
+	return true
+}
+
+// growNode replaces a terminal node with a function node and children
+func (tn *TreeNode) growNode(maxDepth int, currentDepth int, operandSet []string, terminalSet []string) bool {
+	if tn == nil || !tn.IsLeaf() {
+		return false // Can only grow terminal nodes
+	}
+
+	if currentDepth >= maxDepth {
+		return false // Cannot grow beyond maxDepth
+	}
+
+	remainingDepth := maxDepth - currentDepth
+	if remainingDepth <= 0 {
+		return false
+	}
+
+	// Create a new function node with children
+	functionSet := make([]Operand, 0, len(operandSet))
+	for _, prim := range operandSet {
+		functionSet = append(functionSet, Operand(prim))
+	}
+
+	op := functionSet[rng.Intn(len(functionSet))]
+	tn.Value = string(op)
+
+	// Create children with remaining depth
+	tn.Left = newGrowTreeNode(remainingDepth-1, terminalSet, functionSet)
+	tn.Right = newGrowTreeNode(remainingDepth-1, terminalSet, functionSet)
+	return true
+}
+
 // mutateRecursive traverses the tree and gives each node a chance to mutate
-func (tn *TreeNode) mutateRecursive(rate float64, primitiveSet []string, terminalSet []string) *TreeNode {
+func (tn *TreeNode) mutateRecursive(rate float64, primitiveSet []string, terminalSet []string, maxDepth int, currentDepth int) *TreeNode {
 	// First, recursively mutate children (if any)
 	if tn.Left != nil {
-		tn.Left = tn.Left.mutateRecursive(rate, primitiveSet, terminalSet)
+		tn.Left = tn.Left.mutateRecursive(rate, primitiveSet, terminalSet, maxDepth, currentDepth+1)
 	}
 	if tn.Right != nil {
-		tn.Right = tn.Right.mutateRecursive(rate, primitiveSet, terminalSet)
+		tn.Right = tn.Right.mutateRecursive(rate, primitiveSet, terminalSet, maxDepth, currentDepth+1)
 	}
 
 	// Then, decide if this node should mutate
 	if rng.Float64() < rate {
-		if tn.IsLeaf() {
-			// It's a terminal node
-			tn.MutateTerminal(terminalSet)
+		// Decide mutation type: 60% value mutation, 20% shrink, 20% grow
+		mutationType := rng.Float64()
+
+		if mutationType < 0.6 {
+			// Value mutation (current behavior)
+			if tn.IsLeaf() {
+				tn.MutateTerminal(terminalSet)
+			} else {
+				tn.MutateFunction(primitiveSet)
+			}
+		} else if mutationType < 0.8 {
+			// Shrink mutation (20% probability)
+			// Only attempt if this is a non-terminal node
+			if !tn.IsLeaf() {
+				if tn.shrinkNode(terminalSet) {
+					// Shrink was successful, node is now a terminal
+					return tn
+				}
+			}
+			// If shrink failed, fall back to value mutation
+			if tn.IsLeaf() {
+				tn.MutateTerminal(terminalSet)
+			} else {
+				tn.MutateFunction(primitiveSet)
+			}
 		} else {
-			// It's a function node
-			tn.MutateFunction(primitiveSet)
+			// Grow mutation (20% probability)
+			// Only attempt if this is a terminal node
+			if tn.IsLeaf() {
+				if tn.growNode(maxDepth, currentDepth, primitiveSet, terminalSet) {
+					// Grow was successful
+					return tn
+				}
+			}
+			// If grow failed, fall back to value mutation
+			if tn.IsLeaf() {
+				tn.MutateTerminal(terminalSet)
+			} else {
+				tn.MutateFunction(primitiveSet)
+			}
 		}
 	}
 
