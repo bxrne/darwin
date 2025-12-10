@@ -1,3 +1,26 @@
+## [1.20.0](https://github.com/bxrne/darwin/compare/v1.19.0...v1.20.0) (2025-12-10)
+
+
+### Features
+
+* **config:** add ge_problem configuration file and update tree fitness calculation to handle NaN/Inf results ([8dc4c15](https://github.com/bxrne/darwin/commit/8dc4c15aa61064104b0e0e8a55e54b12273bd741))
+
+
+### Bug Fixes
+
+* **evolution, fitness:** fix crossover and mutation probability in offspring generation; adjust penalty for NaN/Inf in fitness calculation ([7dbbca7](https://github.com/bxrne/darwin/commit/7dbbca704274500f524924aff77dc833cbf1cd37))
+
+
+### Code Refactoring
+
+* **fitness:** adjust penalty for NaN/Inf in fitness calculation and enhance genome description for logging ([b9bd51d](https://github.com/bxrne/darwin/commit/b9bd51d26379e0b437c1e15f145a05200707277c))
+* **tree:** enhance Describe method for improved genome representation and readability ([ad188bb](https://github.com/bxrne/darwin/commit/ad188bb2726b22546d113ca7412711ca20bed27c))
+
+
+### Miscellaneous Chores
+
+* **config:** update ge_problem configuration parameters for evolution and fitness settings ([c6321d5](https://github.com/bxrne/darwin/commit/c6321d5a27bb04abffe184bbe1be7ae04a1690f1))
+
 ## [1.19.0](https://github.com/bxrne/darwin/compare/v1.18.0...v1.19.0) (2025-12-10)
 
 
