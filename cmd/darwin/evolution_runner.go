@@ -191,7 +191,9 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	fitnessInfo := fitness.GenerateFitnessInfoFromConfig(config, populationType, grammar, population.GetPopulations())
 	fitnessCalculator := fitness.FitnessCalculatorFactoryWithConfig(fitnessInfo, config)
 
+	logger.Info("Calculating initial population fitness", zap.Int("population_size", population.Count()))
 	population.CalculateFitnesses(fitnessCalculator)
+	logger.Info("Initial population fitness calculation complete")
 
 	var selector selection.Selector
 	switch config.Evolution.SelectionType {
@@ -259,7 +261,7 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	evolutionEngine.Wait()
 	metricsStreamer.Stop()
 
-		// Clean up fitness calculator resources
+	// Clean up fitness calculator resources
 	if cleanupCalc, ok := fitnessCalculator.(interface{ Close() error }); ok {
 		if err := cleanupCalc.Close(); err != nil {
 			logger.Error("Failed to cleanup fitness calculator", zap.Error(err))
