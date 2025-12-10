@@ -1,3 +1,21 @@
+## [1.19.0](https://github.com/bxrne/darwin/compare/v1.18.0...v1.19.0) (2025-12-10)
+
+
+### Features
+
+* track winning client and change variables for training ([ff39f1b](https://github.com/bxrne/darwin/commit/ff39f1b0296b53671794d951a369e1cfa7859e52))
+
+
+### Bug Fixes
+
+* **cmd:** logging issue ([09cb5ee](https://github.com/bxrne/darwin/commit/09cb5eef2feccd83085030cd690e1a745fe777fa))
+
+
+### Miscellaneous Chores
+
+* **cmd, internal:** log noise reduced at info level ([744634c](https://github.com/bxrne/darwin/commit/744634c47d29b27e86f65122044ef8d0645d781d))
+* fixup logging ([58afd43](https://github.com/bxrne/darwin/commit/58afd4311431720df47ef979168be7445b81d785))
+
 ## [1.18.0](https://github.com/bxrne/darwin/compare/v1.17.0...v1.18.0) (2025-12-08)
 
 
