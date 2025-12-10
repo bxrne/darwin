@@ -265,6 +265,17 @@ func (t *Tree) Mutate(rate float64, mutateInformation *MutateInformation) {
 	t.Root = t.Root.mutateRecursive(rate, mutateInformation.OperandSet, newSet, mutateInformation.MaxDepth, 0)
 	// Update tree depth after mutation
 	t.depth = t.Root.CalculateMaxDepth()
+	
+	// Safety check: if mutation resulted in depth 0, regenerate with minimum depth 1
+	if t.depth == 0 {
+		// Regenerate tree with depth 1 using grow method (more diverse than full)
+		functionSet := make([]Operand, 0, len(mutateInformation.OperandSet))
+		for _, prim := range mutateInformation.OperandSet {
+			functionSet = append(functionSet, Operand(prim))
+		}
+		t.Root = newGrowTreeNode(1, newSet, functionSet)
+		t.depth = 1
+	}
 }
 
 func (t *TreeNode) EvaluateTree(vars *map[string]float64) (float64, bool) {
@@ -350,9 +361,24 @@ func (tn *TreeNode) MutateFunction(primitiveSet []string) {
 }
 
 // shrinkNode replaces a non-terminal node's subtree with a terminal
-func (tn *TreeNode) shrinkNode(terminalSet []string) bool {
+// currentDepth is the depth from root to this node (0 for root)
+// Returns false if shrinking would create a depth 0 tree (single terminal)
+func (tn *TreeNode) shrinkNode(terminalSet []string, currentDepth int) bool {
 	if tn == nil || tn.IsLeaf() {
 		return false // Cannot shrink a terminal node
+	}
+
+	// Check if this is the root node (currentDepth == 0)
+	// If so, check if the tree has depth > 1 before allowing shrink
+	if currentDepth == 0 {
+		// Calculate the depth of the subtree rooted at this node
+		subtreeDepth := tn.CalculateMaxDepth()
+		// Only allow shrink if the resulting tree would have depth >= 1
+		// Since we're at root, shrinking would make the whole tree a terminal (depth 0)
+		// So we need the subtree to have depth > 1, meaning we're not just a single function node
+		if subtreeDepth <= 1 {
+			return false // Shrinking root would create depth 0 tree
+		}
 	}
 
 	// Replace this node with a random terminal
@@ -419,7 +445,7 @@ func (tn *TreeNode) mutateRecursive(rate float64, primitiveSet []string, termina
 			// Shrink mutation (20% probability)
 			// Only attempt if this is a non-terminal node
 			if !tn.IsLeaf() {
-				if tn.shrinkNode(terminalSet) {
+				if tn.shrinkNode(terminalSet, currentDepth) {
 					// Shrink was successful, node is now a terminal
 					return tn
 				}

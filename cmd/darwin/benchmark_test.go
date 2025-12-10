@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/bxrne/darwin/internal/cfg"
+	"go.uber.org/zap"
 )
 
 type benchmarkCase struct {
@@ -99,7 +100,8 @@ func runBenchmark(b *testing.B, config *cfg.Config) {
 
 	// Run evolution b.N times
 	for i := 0; b.Loop(); i++ {
-		finalPop, _, err := RunEvolution(b.Context(), config, nil)
+		logger := zap.NewNop() // Use no-op logger for benchmarks
+		finalPop, _, err := RunEvolution(b.Context(), config, nil, logger)
 		if err != nil {
 			b.Fatalf("Evolution failed: %v", err.Error())
 		}

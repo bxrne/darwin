@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bxrne/logmgr"
+	"go.uber.org/zap"
 )
 
 type TCPConnectionPool struct {
@@ -31,10 +31,10 @@ func NewTCPConnectionPool(serverAddr string, maxConnections int, timeout time.Du
 	}
 	p.cond = sync.NewCond(&p.mu)
 
-	logmgr.Info("Created TCP connection pool",
-		logmgr.Field("server", serverAddr),
-		logmgr.Field("max_connections", maxConnections),
-		logmgr.Field("timeout", timeout))
+	zap.L().Info("Created TCP connection pool",
+		zap.String("server", serverAddr),
+		zap.Int("max_connections", maxConnections),
+		zap.Duration("timeout", timeout))
 
 	return p
 }
@@ -57,7 +57,7 @@ func (p *TCPConnectionPool) GetConnection() (*TCPClient, error) {
 		case client := <-p.connections:
 			if err := p.healthCheckUnlocked(client); err != nil {
 				if err := client.Disconnect(); err != nil {
-					logmgr.Warn("Failed to disconnect client", logmgr.Field("err", err))
+					zap.L().Warn("Failed to disconnect client", zap.Error(err))
 				}
 				p.activeCount--
 				continue
@@ -86,14 +86,14 @@ func (p *TCPConnectionPool) ReturnConnection(client *TCPClient) error {
 
 	if p.closed {
 		if err := client.Disconnect(); err != nil {
-			logmgr.Warn("Failed to disconnect client", logmgr.Field("err", err))
+			zap.L().Warn("Failed to disconnect client", zap.Error(err))
 		}
 		return fmt.Errorf("connection pool is closed")
 	}
 
 	if err := p.healthCheckUnlocked(client); err != nil {
 		if err := client.Disconnect(); err != nil {
-			logmgr.Warn("Failed to disconnect client", logmgr.Field("err", err))
+			zap.L().Warn("Failed to disconnect client", zap.Error(err))
 		}
 		p.activeCount--
 		return nil
@@ -104,7 +104,7 @@ func (p *TCPConnectionPool) ReturnConnection(client *TCPClient) error {
 		p.cond.Signal()
 	default:
 		if err := client.Disconnect(); err != nil {
-			logmgr.Warn("Failed to disconnect client", logmgr.Field("err", err))
+			zap.L().Warn("Failed to disconnect client", zap.Error(err))
 		}
 		p.activeCount--
 	}
@@ -130,16 +130,16 @@ func (p *TCPConnectionPool) Close() error {
 
 	for client := range p.connections {
 		if err := client.Disconnect(); err != nil {
-			logmgr.Warn("Failed to disconnect client during close", logmgr.Field("err", err))
+			zap.L().Warn("Failed to disconnect client during close", zap.Error(err))
 		}
 		p.activeCount--
 	}
 
 	p.cond.Broadcast()
 
-	logmgr.Info("TCP connection pool closed",
-		logmgr.Field("total_created", p.totalCreated),
-		logmgr.Field("final_active", p.activeCount))
+	zap.L().Info("TCP connection pool closed",
+		zap.Int("total_created", p.totalCreated),
+		zap.Int("final_active", p.activeCount))
 
 	return nil
 }
@@ -156,7 +156,7 @@ func (p *TCPConnectionPool) HealthCheck() error {
 	}
 	defer func() {
 		if err := p.ReturnConnection(client); err != nil {
-			logmgr.Warn("Failed to return client to pool", logmgr.Field("err", err))
+			zap.L().Warn("Failed to return client to pool", zap.Error(err))
 		}
 	}()
 
