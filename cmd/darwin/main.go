@@ -20,6 +20,9 @@ func main() {
 		_ = logger.Sync() // Ignore sync errors on exit
 	}()
 
+	// Set global logger so zap.L() works throughout the codebase
+	zap.ReplaceGlobals(logger)
+
 	// Use sugared logger for convenience
 	sugar := logger.Sugar()
 
