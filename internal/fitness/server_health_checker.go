@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bxrne/logmgr"
+	"go.uber.org/zap"
 )
 
 // ServerHealthChecker performs health checks on game server
@@ -23,7 +23,7 @@ func NewServerHealthChecker(serverAddr string, timeout time.Duration) *ServerHea
 
 // CheckServerHealth performs a basic health check on the game server
 func (shc *ServerHealthChecker) CheckServerHealth() error {
-	logmgr.Info("Checking game server health", logmgr.Field("server", shc.serverAddr))
+	zap.L().Info("Checking game server health", zap.String("server", shc.serverAddr))
 
 	// Create a temporary connection for health check
 	client := NewTCPClient(shc.serverAddr)
@@ -43,17 +43,17 @@ func (shc *ServerHealthChecker) CheckServerHealth() error {
 
 	if err := client.SendMessage(connectReq); err != nil {
 		if err := client.Disconnect(); err != nil {
-			logmgr.Warn("Failed to disconnect client", logmgr.Field("err", err))
+			zap.L().Warn("Failed to disconnect client", zap.Error(err))
 		}
 		return fmt.Errorf("server health check failed: unable to send health check message: %w", err)
 	}
 
 	// Clean up connection
 	if err := client.Disconnect(); err != nil {
-		logmgr.Warn("Failed to disconnect health check connection", logmgr.Field("error", err))
+		zap.L().Warn("Failed to disconnect health check connection", zap.Error(err))
 	}
 
-	logmgr.Info("Server health check passed", logmgr.Field("server", shc.serverAddr))
+	zap.L().Info("Server health check passed", zap.String("server", shc.serverAddr))
 	return nil
 }
 
@@ -61,7 +61,7 @@ func (shc *ServerHealthChecker) CheckServerHealth() error {
 func (shc *ServerHealthChecker) CheckServerHealthWithRetry() error {
 	err := shc.CheckServerHealth()
 	if err != nil {
-		logmgr.Warn("Server health check failed, retrying once", logmgr.Field("error", err))
+		zap.L().Warn("Server health check failed, retrying once", zap.Error(err))
 		time.Sleep(1 * time.Second) // Brief delay before retry
 		return shc.CheckServerHealth()
 	}

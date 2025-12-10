@@ -7,13 +7,21 @@ import (
 
 	"github.com/bxrne/darwin/internal/cfg"
 	"github.com/bxrne/darwin/internal/metrics"
-	"github.com/bxrne/logmgr"
+	"go.uber.org/zap"
 )
 
 func main() {
-	defer logmgr.Shutdown()
-	logmgr.AddSink(logmgr.DefaultConsoleSink)
-	logmgr.SetLevel(logmgr.InfoLevel)
+	// Initialize zap logger - use development config for better readability
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(fmt.Sprintf("failed to initialize logger: %v", err))
+	}
+	defer func() {
+		_ = logger.Sync() // Ignore sync errors on exit
+	}()
+
+	// Use sugared logger for convenience
+	sugar := logger.Sugar()
 
 	configPath := flag.String("config", "config/default.toml", "Path to config file")
 	csvOutput := flag.String("csv-output", "", "Path to CSV file for metrics output")
@@ -21,13 +29,13 @@ func main() {
 
 	cfg, err := cfg.LoadConfig(*configPath)
 	if err != nil {
-		logmgr.Fatal("Failed to load config", logmgr.Field("error", err))
+		sugar.Fatalw("Failed to load config", "error", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	logmgr.Info("Starting evolution", logmgr.Field("config", cfg.Evolution))
+	sugar.Infow("Starting evolution", "config", cfg.Evolution)
 
 	// Create composite metrics handler
 	var handler MetricsHandler
@@ -39,18 +47,18 @@ func main() {
 			logInterval = 1
 		}
 		if m.Generation%logInterval == 0 || m.Generation == 1 || m.Generation == cfg.Evolution.Generations {
-			logmgr.Info("",
-				logmgr.Field("gen", m.Generation),
-				logmgr.Field("ns", m.Duration.Nanoseconds()),
-				logmgr.Field("best_fit", fmt.Sprintf("%.3f", m.BestFitness)),
-				logmgr.Field("avg_fit", fmt.Sprintf("%.3f", m.AvgFitness)),
-				logmgr.Field("min_fit", fmt.Sprintf("%.3f", m.MinFitness)),
-				logmgr.Field("max_fit", fmt.Sprintf("%.3f", m.MaxFitness)),
-				logmgr.Field("pop_size", m.PopulationSize),
-				logmgr.Field("best_desc", m.BestDescription),
-				logmgr.Field("min_depth", m.MinDepth),
-				logmgr.Field("max_depth", m.MaxDepth),
-				logmgr.Field("avg_depth", fmt.Sprintf("%.2f", m.AvgDepth)),
+			sugar.Infow("",
+				"gen", m.Generation,
+				"ns", m.Duration.Nanoseconds(),
+				"best_fit", fmt.Sprintf("%.3f", m.BestFitness),
+				"avg_fit", fmt.Sprintf("%.3f", m.AvgFitness),
+				"min_fit", fmt.Sprintf("%.3f", m.MinFitness),
+				"max_fit", fmt.Sprintf("%.3f", m.MaxFitness),
+				"pop_size", m.PopulationSize,
+				"best_desc", m.BestDescription,
+				"min_depth", m.MinDepth,
+				"max_depth", m.MaxDepth,
+				"avg_depth", fmt.Sprintf("%.2f", m.AvgDepth),
 			)
 		}
 	}
@@ -65,7 +73,7 @@ func main() {
 	if csvFile != "" {
 		csvHandler, err := metrics.CreateCSVHandler(csvFile)
 		if err != nil {
-			logmgr.Fatal("Failed to create CSV handler", logmgr.Field("error", err))
+			sugar.Fatalw("Failed to create CSV handler", "error", err)
 		}
 
 		// Combine both handlers
@@ -74,14 +82,14 @@ func main() {
 			csvHandler(m)
 		}
 
-		logmgr.Info("CSV output enabled", logmgr.Field("file", csvFile))
+		sugar.Infow("CSV output enabled", "file", csvFile)
 	} else {
 		handler = logHandler
 	}
 
-	finalPop, metricsComplete, err := RunEvolution(ctx, cfg, handler)
+	finalPop, metricsComplete, err := RunEvolution(ctx, cfg, handler, logger)
 	if err != nil {
-		logmgr.Fatal("Evolution failed", logmgr.Field("error", err.Error()))
+		sugar.Fatalw("Evolution failed", "error", err.Error())
 	}
 
 	// Wait for metrics to finish processing before calculating final stats
@@ -112,14 +120,14 @@ func main() {
 			}
 		}
 
-		logmgr.Info("Evolution complete",
-			logmgr.Field("population_size", len(finalPop)),
-			logmgr.Field("best_fitness", fmt.Sprintf("%.3f", bestFitness)),
-			logmgr.Field("avg_fitness", fmt.Sprintf("%.3f", avgFitness)),
-			logmgr.Field("min_fitness", fmt.Sprintf("%.3f", minFitness)),
-			logmgr.Field("best_individual", bestIndividual.Describe()),
+		sugar.Infow("Evolution complete",
+			"population_size", len(finalPop),
+			"best_fitness", fmt.Sprintf("%.3f", bestFitness),
+			"avg_fitness", fmt.Sprintf("%.3f", avgFitness),
+			"min_fitness", fmt.Sprintf("%.3f", minFitness),
+			"best_individual", bestIndividual.Describe(),
 		)
 	}
 
-	logmgr.Info("Evolution finished successfully")
+	sugar.Info("Evolution finished successfully")
 }

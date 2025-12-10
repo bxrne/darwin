@@ -14,7 +14,7 @@ import (
 	"github.com/bxrne/darwin/internal/population"
 	"github.com/bxrne/darwin/internal/rng"
 	"github.com/bxrne/darwin/internal/selection"
-	"github.com/bxrne/logmgr"
+	"go.uber.org/zap"
 )
 
 type MetricsHandler func(metrics.GenerationMetrics)
@@ -34,9 +34,9 @@ func getGenomeType(config *cfg.Config) individual.GenomeType {
 }
 
 // RunEvolution encapsulates the shared evolution logic.
-// It takes a context, config, and optional metrics handler.
+// It takes a context, config, optional metrics handler, and logger.
 // Returns the final population, a completion channel, and an error.
-func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandler) ([]individual.Evolvable, MetricsComplete, error) {
+func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandler, logger *zap.Logger) ([]individual.Evolvable, MetricsComplete, error) {
 	// pre evolution srv heartbeat
 	if config.ActionTree.Enabled {
 		timeout := 5 * time.Second
@@ -208,7 +208,7 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	}
 	crossoverInformation := individual.CrossoverInformation{CrossoverPoints: config.Evolution.CrossoverPointCount, MaxDepth: config.Tree.MaxDepth}
 	mutateInformation := individual.MutateInformation{OperandSet: config.Tree.OperandSet, TerminalSet: config.Tree.TerminalSet, VariableSet: config.Tree.VariableSet, MaxDepth: config.Tree.MaxDepth}
-	evolutionEngine := evolution.NewEvolutionEngine(population, selector, metricsChan, cmdChan, fitnessCalculator, crossoverInformation, mutateInformation)
+	evolutionEngine := evolution.NewEvolutionEngine(population, selector, metricsChan, cmdChan, fitnessCalculator, crossoverInformation, mutateInformation, logger)
 
 	metricsStreamer.Start(ctx)
 	evolutionEngine.Start(ctx)
@@ -259,10 +259,10 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	evolutionEngine.Wait()
 	metricsStreamer.Stop()
 
-	// Clean up fitness calculator resources
+		// Clean up fitness calculator resources
 	if cleanupCalc, ok := fitnessCalculator.(interface{ Close() error }); ok {
 		if err := cleanupCalc.Close(); err != nil {
-			logmgr.Error("Failed to cleanup fitness calculator", logmgr.Field("error", err))
+			logger.Error("Failed to cleanup fitness calculator", zap.Error(err))
 		}
 	}
 

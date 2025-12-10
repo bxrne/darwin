@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/bxrne/darwin/internal/individual"
-	"github.com/bxrne/logmgr"
+	"go.uber.org/zap"
 )
 
 // ActionTreeFitnessCalculator implements fitness calculation for ActionTree individuals
@@ -58,7 +58,7 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 	wi, wiok := evolvable.(*individual.WeightsIndividual)
 	at, atok := evolvable.(*individual.ActionTreeIndividual)
 	if !wiok && !atok {
-		logmgr.Error("Expected ActionTreeIndividual or weightsIndividual", logmgr.Field("type", fmt.Sprintf("%T", evolvable)))
+		zap.L().Error("Expected ActionTreeIndividual or weightsIndividual", zap.String("type", fmt.Sprintf("%T", evolvable)))
 		evolvable.SetFitness(0.0)
 		return
 	}
@@ -76,7 +76,7 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 			for range atfc.testCaseCount {
 				fitness, currentClientId, err := atfc.SetupGameAndRun(wi, tree)
 				if err != nil {
-					logmgr.Error("Failed to setup game and run", logmgr.Field("error", err.Error()))
+					zap.L().Error("Failed to setup game and run", zap.Error(err))
 				} else {
 					sum += fitness
 					if clientId == "" {
@@ -111,7 +111,7 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 			for range atfc.testCaseCount {
 				fitness, currentClientId, err := atfc.SetupGameAndRun(weights, at)
 				if err != nil {
-					logmgr.Error("Failed to setup game and run", logmgr.Field("error", err.Error()))
+					zap.L().Error("Failed to setup game and run", zap.Error(err))
 				} else {
 					sum += fitness
 					if clientId == "" {
@@ -137,22 +137,22 @@ func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.
 	// Get connection from pool
 	client, err := atfc.connectionPool.GetConnection()
 	if err != nil {
-		logmgr.Error("Failed to get connection from pool", logmgr.Field("error", err.Error()))
+		zap.L().Error("Failed to get connection from pool", zap.Error(err))
 		return 0.0, "", fmt.Errorf("connection pool error: %w", err)
 	}
 	clientId := atfc.getClientId()
-	logmgr.Debug("Got connection for game evaluation",
-		logmgr.Field("client_id", clientId),
-		logmgr.Field("weights_id", fmt.Sprintf("%p", weightsInd)),
-		logmgr.Field("action_tree_id", fmt.Sprintf("%p", actionTreeInd)))
+	zap.L().Debug("Got connection for game evaluation",
+		zap.String("client_id", clientId),
+		zap.String("weights_id", fmt.Sprintf("%p", weightsInd)),
+		zap.String("action_tree_id", fmt.Sprintf("%p", actionTreeInd)))
 
 	// Ensure connection is returned to pool
 	defer func() {
 		if returnErr := atfc.connectionPool.ReturnConnection(client); returnErr != nil {
-			logmgr.Error("Failed to return connection to pool", logmgr.Field("error", returnErr.Error()))
+			zap.L().Error("Failed to return connection to pool", zap.Error(returnErr))
 		} else {
-			logmgr.Debug("Connection returned to pool successfully",
-				logmgr.Field("client_id", clientId))
+			zap.L().Debug("Connection returned to pool successfully",
+				zap.String("client_id", clientId))
 		}
 	}()
 
@@ -162,35 +162,35 @@ func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.
 	// Connect to game
 	connectedResp, err := client.ConnectToGame(clientId, atfc.opponentType)
 	if err != nil {
-		logmgr.Error("Failed to connect to game", logmgr.Field("error", err.Error()))
+		zap.L().Error("Failed to connect to game", zap.Error(err))
 		return 0.0, "", fmt.Errorf("game connection error: %w", err)
 	}
 
-	logmgr.Debug("Connected to game",
-		logmgr.Field("agent_id", connectedResp.AgentID),
-		logmgr.Field("opponent_id", connectedResp.OpponentID))
+	zap.L().Debug("Connected to game",
+		zap.String("agent_id", connectedResp.AgentID),
+		zap.String("opponent_id", connectedResp.OpponentID))
 
 	// Play game
 	fitness := atfc.playGame(client, weightsInd, actionTreeInd)
 
-	logmgr.Debug("Fitness calculated",
-		logmgr.Field("fitness", fitness),
-		logmgr.Field("agent_id", clientId))
+	zap.L().Debug("Fitness calculated",
+		zap.Float64("fitness", fitness),
+		zap.String("agent_id", clientId))
 	return fitness, clientId, nil
 }
 
 // playGame plays a single game and returns the fitness score
 func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd *individual.WeightsIndividual, actionTreeInd *individual.ActionTreeIndividual) float64 {
 	totalReward := 0.0
-	logmgr.Debug("Starting game evaluation",
-		logmgr.Field("max_steps", atfc.maxSteps),
-		logmgr.Field("weights_id", fmt.Sprintf("%p", weightsInd)),
-		logmgr.Field("action_tree_id", fmt.Sprintf("%p", actionTreeInd)))
+	zap.L().Debug("Starting game evaluation",
+		zap.Int("max_steps", atfc.maxSteps),
+		zap.String("weights_id", fmt.Sprintf("%p", weightsInd)),
+		zap.String("action_tree_id", fmt.Sprintf("%p", actionTreeInd)))
 
 	// Get observation from conncetion (Reset)
 	obs, err := client.ReceiveObservation()
 	if err != nil {
-		logmgr.Error("Failed to receive observation", logmgr.Field("error", err.Error()))
+		zap.L().Error("Failed to receive observation", zap.Error(err))
 	}
 	actionExecutor := NewActionExecutor(atfc.actions)
 	actionExecutor.validator.SetMountains(obs.Info)
@@ -198,33 +198,33 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 	// Send action to server
 	err = client.SendAction([]int{1, 0, 0, 0, 0})
 	if err != nil {
-		logmgr.Error("Failed to send action", logmgr.Field("error", err))
+		zap.L().Error("Failed to send action", zap.Error(err))
 	}
 	for step := range atfc.maxSteps {
 		totalReward += obs.Reward
 		obs, err = client.ReceiveObservation()
 		if err != nil {
-			logmgr.Error("Failed to receive observation", logmgr.Field("error", err.Error()))
+			zap.L().Error("Failed to receive observation", zap.Error(err))
 			break
 		}
 		// Log game progress every 10 steps
 		if step%10 == 0 {
-			logmgr.Debug("Game progress",
-				logmgr.Field("step", step),
-				logmgr.Field("reward", obs.Reward),
-				logmgr.Field("terminated", obs.Terminated),
-				logmgr.Field("truncated", obs.Truncated),
-				logmgr.Field("total_reward", totalReward))
+			zap.L().Debug("Game progress",
+				zap.Int("step", step),
+				zap.Float64("reward", obs.Reward),
+				zap.Bool("terminated", obs.Terminated),
+				zap.Bool("truncated", obs.Truncated),
+				zap.Float64("total_reward", totalReward))
 		}
 
 		// Check if game is over
 		if obs.Terminated || obs.Truncated {
-			logmgr.Debug("Game ended",
-				logmgr.Field("step", step),
-				logmgr.Field("final_reward", obs.Reward),
-				logmgr.Field("total_reward", totalReward+obs.Reward),
-				logmgr.Field("terminated", obs.Terminated),
-				logmgr.Field("truncated", obs.Truncated))
+			zap.L().Debug("Game ended",
+				zap.Int("step", step),
+				zap.Float64("final_reward", obs.Reward),
+				zap.Float64("total_reward", totalReward+obs.Reward),
+				zap.Bool("terminated", obs.Terminated),
+				zap.Bool("truncated", obs.Truncated))
 			// Extract final game state
 			totalReward += obs.Reward
 			break
@@ -234,7 +234,7 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 		action, err := actionExecutor.ExecuteActionTreesWithSoftmax(actionTreeInd, weightsInd, obs.Observation, obs.Info)
 
 		if err != nil {
-			logmgr.Error("Failed to execute action trees", logmgr.Field("error", err.Error()))
+			zap.L().Error("Failed to execute action trees", zap.Error(err))
 			// Send a default action (pass) instead of panicking
 
 		}
@@ -242,7 +242,7 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 		// Send action to server
 		err = client.SendAction(action)
 		if err != nil {
-			logmgr.Error("Failed to send action", logmgr.Field("error", err))
+			zap.L().Error("Failed to send action", zap.Error(err))
 			break
 		}
 
@@ -250,11 +250,11 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 	}
 	err = client.SendDisconnect()
 	if err != nil {
-		logmgr.Error("Failed to disconncet", logmgr.Field("error", err.Error()))
+		zap.L().Error("Failed to disconnect", zap.Error(err))
 	}
 
-	logmgr.Debug("Final fitness calculation",
-		logmgr.Field("total_reward", totalReward))
+	zap.L().Debug("Final fitness calculation",
+		zap.Float64("total_reward", totalReward))
 
 	return totalReward
 }

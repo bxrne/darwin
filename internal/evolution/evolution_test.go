@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap"
 )
 
 // MockSelector is a mock implementation of the Selector interface
@@ -44,7 +45,8 @@ func (suite *EvolutionEngineTestSuite) SetupTest() {
 	suite.metricsChan = make(chan metrics.GenerationMetrics, 10)
 	suite.cmdChan = make(chan EvolutionCommand, 10)
 	suite.fitnessCalculator = fitnessCalc
-	suite.engine = NewEvolutionEngine(suite.population, suite.selector, suite.metricsChan, suite.cmdChan, suite.fitnessCalculator, individual.CrossoverInformation{}, individual.MutateInformation{})
+	logger := zap.NewNop() // Use no-op logger for tests
+	suite.engine = NewEvolutionEngine(suite.population, suite.selector, suite.metricsChan, suite.cmdChan, suite.fitnessCalculator, individual.CrossoverInformation{}, individual.MutateInformation{}, logger)
 }
 
 func (suite *EvolutionEngineTestSuite) TearDownTest() {

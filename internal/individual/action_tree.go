@@ -60,6 +60,13 @@ func (ati *ActionTreeIndividual) Mutate(rate float64, mutateInformation *MutateI
 	// Mutate each tree based on the mutation rate
 	for _, tree := range ati.Trees {
 		tree.Mutate(rate, mutateInformation)
+		// Safety check: ensure no tree has depth 0 (Tree.Mutate should handle this, but double-check)
+		// If depth is 0, regenerate using NewRampedHalfAndHalfTree with depth 1
+		if tree.GetDepth() == 0 {
+			// Use NewRampedHalfAndHalfTree to regenerate with depth 1
+			regeneratedTree := NewRampedHalfAndHalfTree(1, true, mutateInformation.OperandSet, mutateInformation.VariableSet, mutateInformation.TerminalSet)
+			*tree = *regeneratedTree
+		}
 	}
 
 }

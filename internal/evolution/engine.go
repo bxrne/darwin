@@ -12,7 +12,7 @@ import (
 	"github.com/bxrne/darwin/internal/population"
 	"github.com/bxrne/darwin/internal/rng"
 	"github.com/bxrne/darwin/internal/selection"
-	"github.com/bxrne/logmgr"
+	"go.uber.org/zap"
 )
 
 // EvolutionEngine manages the evolution process using channels
@@ -26,6 +26,7 @@ type EvolutionEngine struct {
 	fitnessCalculator    fitness.FitnessCalculator
 	crossoverInformation individual.CrossoverInformation
 	mutateInformation    individual.MutateInformation
+	logger               *zap.Logger
 }
 
 // NewEvolutionEngine creates a new evolution engine
@@ -37,6 +38,7 @@ func NewEvolutionEngine(
 	fitnessCalculator fitness.FitnessCalculator,
 	crossoverInformation individual.CrossoverInformation,
 	mutateInformation individual.MutateInformation,
+	logger *zap.Logger,
 ) *EvolutionEngine {
 	return &EvolutionEngine{
 		population:           population,
@@ -48,6 +50,7 @@ func NewEvolutionEngine(
 		fitnessCalculator:    fitnessCalculator,
 		crossoverInformation: crossoverInformation,
 		mutateInformation:    mutateInformation,
+		logger:               logger,
 	}
 }
 
@@ -115,7 +118,7 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 // processGeneration performs one generation of evolution
 func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	start := time.Now()
-	logmgr.Info("Starting Generation", logmgr.Field("generation", cmd.Generation))
+	ee.logger.Info("Starting Generation", zap.Int("generation", cmd.Generation))
 	// Sort population by fitness (descending)
 	ee.sortPopulation()
 	// Create new population
@@ -148,7 +151,7 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	duration := time.Since(start)
 	// Calculate and send metrics
 	genMetrics := ee.calculateMetrics(cmd.Generation, duration)
-	logmgr.Info("Completed", logmgr.Field("generation", cmd.Generation), logmgr.Field("duration_ms", duration.Milliseconds()), logmgr.Field("best_fitness", genMetrics.BestFitness))
+	ee.logger.Info("Completed", zap.Int("generation", cmd.Generation), zap.Int64("duration_ms", duration.Milliseconds()), zap.Float64("best_fitness", genMetrics.BestFitness))
 	select {
 	case ee.metricsChan <- genMetrics:
 	default:
