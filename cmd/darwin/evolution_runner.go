@@ -191,10 +191,6 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	fitnessInfo := fitness.GenerateFitnessInfoFromConfig(config, populationType, grammar, population.GetPopulations())
 	fitnessCalculator := fitness.FitnessCalculatorFactoryWithConfig(fitnessInfo, config)
 
-	logger.Info("Calculating initial population fitness", zap.Int("population_size", population.Count()))
-	population.CalculateFitnesses(fitnessCalculator)
-	logger.Info("Initial population fitness calculation complete")
-
 	var selector selection.Selector
 	switch config.Evolution.SelectionType {
 	case "tournament":
