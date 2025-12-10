@@ -30,11 +30,24 @@ func (i *GrammarTree) GetFitness() float64 {
 	return i.Fitness
 }
 
-// Describe returns a string representation of the genome
+// Describe returns a string representation of the genome (truncated for logs)
 func (i *GrammarTree) Describe() string {
+	if len(i.Genome) == 0 {
+		return ""
+	}
+
+	const maxShown = 40
+	limit := len(i.Genome)
+	if limit > maxShown {
+		limit = maxShown
+	}
+
 	response := ""
-	for _, val := range i.Genome {
-		response += strconv.Itoa(val) + ", "
+	for idx := 0; idx < limit; idx++ {
+		response += strconv.Itoa(i.Genome[idx]) + ", "
+	}
+	if len(i.Genome) > maxShown {
+		response += "…"
 	}
 	return response
 }
