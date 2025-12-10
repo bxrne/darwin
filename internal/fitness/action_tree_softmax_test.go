@@ -91,7 +91,7 @@ func TestExecuteActionTreesWithSoftmax_Deterministic(t *testing.T) {
 			}
 
 			// Execute softmax
-			selectedAction, err := executor.ExecuteActionTreesWithSoftmax(actionIndividual, tc.weights, inputMap, [][]bool{})
+			selectedAction, err := executor.ExecuteActionTreesWithSoftmax(actionIndividual, tc.weights, inputMap, [][]bool{}, &[]bool{true, true, true})
 
 			// Check for expected error
 			if tc.expectedError != "" {
@@ -178,7 +178,7 @@ func TestExecuteActionTreesWithSoftmax_ErrorCases(t *testing.T) {
 				inputMap[fmt.Sprintf("input_%d", i)] = val
 			}
 
-			_, err := executor.ExecuteActionTreesWithSoftmax(actionIndividual, tc.weights, inputMap, [][]bool{})
+			_, err := executor.ExecuteActionTreesWithSoftmax(actionIndividual, tc.weights, inputMap, [][]bool{}, &[]bool{true, true, true})
 
 			assert.Error(t, err, "Should return an error")
 			assert.Contains(t, err.Error(), tc.expectedError, "Error message should match expected")
