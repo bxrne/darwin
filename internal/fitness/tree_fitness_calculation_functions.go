@@ -20,7 +20,12 @@ func CalculateTreeFitness(tree *individual.TreeNode, targetResults []float64, te
 	for index, vars := range testCases {
 
 		actualResult, hasDividedByZero := tree.EvaluateTree(&vars)
-		dividedByZero = hasDividedByZero
+		// Guard against bad numeric results (NaN/Inf) so they don't poison metrics
+		if math.IsNaN(actualResult) || math.IsInf(actualResult, 0) {
+			hasDividedByZero = true
+			actualResult = 0
+		}
+		dividedByZero = dividedByZero || hasDividedByZero
 		actualResults = append(actualResults, actualResult)
 		error += math.Pow(actualResults[index]-targetResults[index], 2)
 	}

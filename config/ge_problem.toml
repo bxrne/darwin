@@ -1,0 +1,52 @@
+[evolution]
+population_size = 40
+crossover_point_count = 2
+crossover_rate = 0.7
+mutation_rate = 0.2
+generations = 30
+elitism_percentage = 0.05
+selection_size = 3
+selection_type = "tournament"
+seed = 0
+
+[fitness]
+test_case_count = 25
+target_function = "x^3 + 2*x*y - y"
+
+[bitstring_individual]
+enabled = false
+genome_size = 128
+
+[tree_individual]
+enabled = false
+max_depth = 8
+initial_depth = 3
+operand_set = ["+", "-", "*", "/", "^"]
+variable_set = ["x", "y"]
+terminal_set = ["-1.0", "0.0", "1.0", "2.0"]
+
+[grammar_tree]
+enabled = true
+genome_size = 32
+
+[action_tree]
+enabled = false
+opponent_type = "random"
+max_steps = 10
+weights_count = 1
+weights_column_count = 1
+server_addr = "127.0.0.1:5000"
+train_weights_first = false
+fitness_selection_percentage = 0.1
+switch_training_target_step = 1
+connection_pool_size = 1
+connection_timeout = "1s"
+health_check_timeout = "1s"
+
+[[action_tree.actions]]
+name = "noop"
+value = 1
+
+[metrics]
+csv_enabled = true
+csv_file = "ge_problem_metrics.csv"
