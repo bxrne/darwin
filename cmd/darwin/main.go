@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/bxrne/darwin/internal/cfg"
 	"github.com/bxrne/darwin/internal/metrics"
@@ -11,8 +12,20 @@ import (
 )
 
 func main() {
-	// Initialize zap logger - use development config for better readability
-	logger, err := zap.NewDevelopment()
+	configPath := flag.String("config", "config/default.toml", "Path to config file")
+	csvOutput := flag.String("csv-output", "", "Path to CSV file for metrics output")
+	flag.Parse()
+
+	// Load config first (needed for logger level)
+	cfg, err := cfg.LoadConfig(*configPath)
+	if err != nil {
+		// Can't use logger yet, use fmt for error
+		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Initialize zap logger based on config
+	logger, err := InitializeLogger(cfg)
 	if err != nil {
 		panic(fmt.Sprintf("failed to initialize logger: %v", err))
 	}
@@ -25,15 +38,6 @@ func main() {
 
 	// Use sugared logger for convenience
 	sugar := logger.Sugar()
-
-	configPath := flag.String("config", "config/default.toml", "Path to config file")
-	csvOutput := flag.String("csv-output", "", "Path to CSV file for metrics output")
-	flag.Parse()
-
-	cfg, err := cfg.LoadConfig(*configPath)
-	if err != nil {
-		sugar.Fatalw("Failed to load config", "error", err)
-	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
