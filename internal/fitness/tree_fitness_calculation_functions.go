@@ -32,7 +32,7 @@ func CalculateTreeFitness(tree *individual.TreeNode, targetResults []float64, te
 	//r error
 	if dividedByZero {
 		// Use a large negative finite penalty to avoid -Inf in averages
-		return -1e6
+		return -1e4
 	} else {
 		return (math.Sqrt(error/float64(len(actualResults))) * -1)
 	}
