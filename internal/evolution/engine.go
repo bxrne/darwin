@@ -151,12 +151,16 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	duration := time.Since(start)
 	// Calculate and send metrics
 	genMetrics := ee.calculateMetrics(cmd.Generation, duration)
-	ee.logger.Info("Completed", zap.Int("generation", cmd.Generation), zap.Int64("duration_ms", duration.Milliseconds()), zap.Float64("best_fitness", genMetrics.BestFitness))
+	
+	// Send metrics before logging completion to ensure proper ordering
 	select {
 	case ee.metricsChan <- genMetrics:
 	default:
 		// Skip if metrics channel is full (non-blocking)
 	}
+	
+	// Log completion after metrics are sent to ensure ordering
+	ee.logger.Info("Completed", zap.Int("generation", cmd.Generation), zap.Int64("duration_ms", duration.Milliseconds()), zap.Float64("best_fitness", genMetrics.BestFitness))
 }
 
 // sortPopulation sorts the population by fitness (descending)
