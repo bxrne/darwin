@@ -7,7 +7,7 @@ generations = 10
 elitism_percentage = 0.01
 selection_size = 3
 selection_type = "tournament"
-seed = 0
+seed = 42
 
 [fitness]
 test_case_count = 1
