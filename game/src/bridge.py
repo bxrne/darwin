@@ -4,6 +4,7 @@ from src.payloads import (
     ObservationResponse,
     ErrorResponse,
     GameOverResponse,
+    HealthResponse,
     to_dict,
     NumpyEncoder,
 )
@@ -55,11 +56,13 @@ def worker_process(
 
     buffer = ""
     game: Optional[Game] = None
+    is_health_check_only = False
     try:
         while True:
             data = client_socket.recv(4096).decode("utf-8")
             if not data:
-                logger.info("Client %s disconnected (reader)", client_id)
+                if not is_health_check_only:
+                    logger.info("Client %s disconnected (reader)", client_id)
                 break
             buffer += data
             while "\n" in buffer:
@@ -197,6 +200,63 @@ def worker_process(
                     elif msg_type == MessageType.SAVE_REPLAY:
                         game.save_replay()
 
+                    elif msg_type == MessageType.HEALTH:
+                        # Health check - respond without starting a game
+                        is_health_check_only = True
+                        health_response = HealthResponse(
+                            status="ok", message="Server is healthy"
+                        )
+                        try:
+                            # Send response and ensure it's flushed
+                            response_data = (
+                                json.dumps(to_dict(health_response), cls=NumpyEncoder)
+                                + "\n"
+                            ).encode("utf-8")
+                            client_socket.sendall(response_data)
+                            # Ensure data is sent before proceeding
+                            client_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                            logger.debug("Health check responded for %s", client_id)
+                        except (BrokenPipeError, OSError, ConnectionResetError) as e:
+                            # Client may have closed connection already - that's fine
+                            logger.debug("Error sending health response (client may have closed): %s", e)
+                            break
+                        
+                        # Shutdown write side to signal we're done sending
+                        # This allows client to finish reading without broken pipe errors
+                        try:
+                            client_socket.shutdown(socket.SHUT_WR)
+                        except (OSError, BrokenPipeError, ConnectionResetError):
+                            # Connection already closed - that's fine
+                            pass
+                        
+                        # Wait briefly for client to close connection
+                        # This ensures client has finished reading before we close
+                        try:
+                            # Set a short timeout for the read
+                            client_socket.settimeout(0.5)
+                            data = client_socket.recv(4096)
+                            # If we get here, client closed or sent something unexpected
+                            # Either way, we're done
+                        except socket.timeout:
+                            # Timeout is fine - client may have already closed
+                            pass
+                        except (ConnectionResetError, BrokenPipeError, OSError):
+                            # Connection closed by client - that's expected
+                            pass
+                        except Exception:
+                            # Any other error is fine - connection is closing
+                            pass
+                        finally:
+                            # Restore blocking mode
+                            try:
+                                client_socket.setblocking(True)
+                            except Exception:
+                                pass
+                        
+                        # Close connection gracefully after health check
+                        # This prevents the "disconnected (reader)" log message
+                        break
+
                     elif msg_type == MessageType.RESET:
                         if not game:
                             err = ErrorResponse(
@@ -254,7 +314,8 @@ def worker_process(
             pass
         # Notify main process about disconnect
         disconnect_queue.put({"client_id": client_id})
-        logger.info("Worker for %s exited", client_id)
+        if not is_health_check_only:
+            logger.info("Worker for %s exited", client_id)
 
 
 # ---------------------------------------------------
