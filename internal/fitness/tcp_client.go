@@ -259,7 +259,7 @@ func (tc *TCPClient) ReceiveHealthResponse() (*HealthResponse, error) {
 }
 
 // SendAction sends an action to the server
-func (tc *TCPClient) SendDisconnect() error {
+func (tc *TCPClient) RequestReplay() error {
 	actionReq := SaveReplayRequest{
 		Type: string(SaveReplay),
 	}
