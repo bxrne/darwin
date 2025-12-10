@@ -1,16 +1,16 @@
 [evolution]
-population_size = 10
+population_size = 20
 crossover_point_count = 1
 crossover_rate = 0.7
 mutation_rate = 0.3
-generations = 10
+generations = 50
 elitism_percentage = 0.01
 selection_size = 3
 selection_type = "tournament"
 seed = 42
 
 [fitness]
-test_case_count = 1
+test_case_count = 3
 target_function = "(x^3)*y+y^3"
 
 
@@ -20,8 +20,8 @@ genome_size = 200
 
 [tree_individual]
 enabled = false
-max_depth = 12
-initial_depth = 5
+max_depth = 8
+initial_depth = 4
 operand_set = ["+", "-", "*", "/", "^",]
 variable_set = [
   "army_diff",
@@ -39,7 +39,7 @@ variable_set = [
   "land_ratio",
   "border_pressure",
 ]
-terminal_set = ["0.0", "1.0", "10.0",]
+terminal_set = []
 
 [grammar_tree]
 enabled = false
@@ -47,10 +47,10 @@ genome_size = 20
 
 [action_tree]
 enabled = true
-opponent_type = "random"
-max_steps = 1600
-weights_count = 10
-weights_column_count = 3
+opponent_type = "expander"
+max_steps = 1000
+weights_count = 5
+weights_column_count = 8
 server_addr = "127.0.0.1:5000"
 train_weights_first = false
 fitness_selection_percentage = 0.1

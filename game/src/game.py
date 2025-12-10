@@ -66,6 +66,7 @@ class Game:
             city_density=0.05,  # Probability of a city in a cell
             # Positions of generals (i, j)
             general_positions=[(0, 3), (5, 7)],
+            seed=42
         )
         # Initialize environment with frequent asset rewards
         self.env = PettingZooGenerals(
@@ -89,7 +90,7 @@ class Game:
         """
         replay_name = "replays/replay" + self.client_id
         options = {"replay_file": replay_name}
-        observations, info = self.env.reset(options=options)
+        observations, info = self.env.reset(seed=42, options=options)
         self.observations = observations
         self.info = self.observations[self.client_id]["mountains"].tolist()
         self.terminated = False

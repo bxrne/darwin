@@ -23,7 +23,7 @@ func NewActionExecutor(actions []individual.ActionTuple) *ActionExecutor {
 }
 
 // ExecuteActionTreesWithSoftmax evaluates all action trees with given inputs and returns selected action using softmax
-func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *individual.ActionTreeIndividual, weights *individual.WeightsIndividual, inputs map[string]float64, owned_cells [][]bool) ([]int, error) {
+func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *individual.ActionTreeIndividual, weights *individual.WeightsIndividual, inputs map[string]float64, owned_cells [][]bool, checkConstantActions *[]bool) ([]int, error) {
 	// Calculate outputs for each action tree
 	actionOutputs := make([][]float64, len(ae.actions))
 	r, c := weights.Weights.Dims()
@@ -48,7 +48,7 @@ func (ae *ActionExecutor) ExecuteActionTreesWithSoftmax(actionTreeIndividual *in
 	}
 
 	// Apply softmax to convert scores to probabilities
-	selectedActions, err := ae.validator.SelectValidAction(actionOutputs, owned_cells)
+	selectedActions, err := ae.validator.SelectValidAction(actionOutputs, *checkConstantActions, owned_cells)
 	if err != nil {
 		//Pass if no vlaid acitons(need more troops)
 		return []int{1, 0, 0, 0, 0}, nil

@@ -2,7 +2,9 @@ package fitness
 
 import (
 	"fmt"
+	"math"
 	"sort"
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -52,6 +54,16 @@ type Client struct {
 	Fitness float64
 }
 
+// Score computes a fitness-like value from a slice of numbers.
+// Positives get diminishing returns (alpha < 1), negatives subtract directly.
+func Score(value float64, alpha float64) float64 {
+	if value > 0 {
+		return math.Pow(value, alpha) // diminishing return for positives
+	} else {
+		return -1 * math.Pow(math.Abs(value), alpha) // negatives penalize directly
+	}
+}
+
 // CalculateFitness evaluates the fitness of an ActionTree individual
 func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.Evolvable) {
 
@@ -78,10 +90,9 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 				if err != nil {
 					zap.L().Error("Failed to setup game and run", zap.Error(err))
 				} else {
-					sum += fitness
-					if clientId == "" {
-						clientId += currentClientId
-					}
+					sum += Score(fitness, 0.5)
+					clientId += currentClientId + " " + strconv.FormatFloat(fitness, 'f', -1, 64) + " : "
+
 				}
 			}
 			weightsFitnesses = append(weightsFitnesses, Client{
@@ -113,10 +124,9 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 				if err != nil {
 					zap.L().Error("Failed to setup game and run", zap.Error(err))
 				} else {
-					sum += fitness
-					if clientId == "" {
-						clientId += currentClientId
-					}
+
+					sum += Score(fitness, 0.5)
+					clientId += currentClientId + " " + strconv.FormatFloat(fitness, 'f', -1, 64) + " : "
 				}
 			}
 			actionTreeFitnesses = append(actionTreeFitnesses, Client{
@@ -194,6 +204,7 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 	}
 	actionExecutor := NewActionExecutor(atfc.actions)
 	actionExecutor.validator.SetMountains(obs.Info)
+	constantActionSelectionTracker := make([]bool, 3)
 
 	// Send action to server
 	err = client.SendAction([]int{1, 0, 0, 0, 0})
@@ -231,12 +242,10 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 		}
 
 		// Execute action trees to get action
-		action, err := actionExecutor.ExecuteActionTreesWithSoftmax(actionTreeInd, weightsInd, obs.Observation, obs.Info)
-
+		action, err := actionExecutor.ExecuteActionTreesWithSoftmax(actionTreeInd, weightsInd, obs.Observation, obs.Info, &constantActionSelectionTracker)
 		if err != nil {
 			zap.L().Error("Failed to execute action trees", zap.Error(err))
 			// Send a default action (pass) instead of panicking
-
 		}
 
 		// Send action to server
@@ -248,9 +257,16 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 
 		totalReward += obs.Reward
 	}
-	err = client.SendDisconnect()
-	if err != nil {
-		zap.L().Error("Failed to disconnect", zap.Error(err))
+	for _, actionIsntConstant := range constantActionSelectionTracker {
+		if !actionIsntConstant {
+			totalReward -= 5 // Try to reduce them but not totally kill them as genome parts could still be good if one tree is bad
+		}
+	}
+	if totalReward > 4.0 {
+		err = client.RequestReplay()
+		if err != nil {
+			zap.L().Error("Failed to getReplay", zap.Error(err))
+		}
 	}
 
 	zap.L().Debug("Final fitness calculation",
