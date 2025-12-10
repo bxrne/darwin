@@ -78,6 +78,28 @@ func (mc *MetricsConfig) validate() error {
 	return nil
 }
 
+// LoggingConfig holds configuration for logging.
+type LoggingConfig struct {
+	Level string `toml:"level"`
+}
+
+// validate validates the LoggingConfig.
+func (lc *LoggingConfig) validate() error {
+	validLevels := map[string]bool{
+		"debug": true,
+		"info":  true,
+		"warn":  true,
+		"error": true,
+	}
+	if lc.Level == "" {
+		lc.Level = "info" // Default to info level
+	}
+	if !validLevels[lc.Level] {
+		return fmt.Errorf("log level must be one of: debug, info, warn, error")
+	}
+	return nil
+}
+
 type FitnessConfig struct {
 	TestCaseCount  int    `toml:"test_case_count"`
 	TargetFunction string `toml:"target_function"`
@@ -211,6 +233,7 @@ type Config struct {
 	Fitness     FitnessConfig             `toml:"fitness"`
 	GrammarTree GrammarTreeConfig         `toml:"grammar_tree"`
 	ActionTree  ActionTreeConfig          `toml:"action_tree"`
+	Logging     LoggingConfig             `toml:"logging"`
 }
 
 // validate validates the entire Config.
@@ -240,6 +263,9 @@ func (c *Config) validate() error {
 	}
 	if err := c.ActionTree.validate(); err != nil {
 		return fmt.Errorf("action tree config validation failed: %w", err)
+	}
+	if err := c.Logging.validate(); err != nil {
+		return fmt.Errorf("logging config validation failed: %w", err)
 	}
 	// Mutual exclusivity
 	if c.Tree.Enabled && c.BitString.Enabled && c.GrammarTree.Enabled && c.ActionTree.Enabled {

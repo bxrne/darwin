@@ -40,3 +40,6 @@ max_steps = 50
 [metrics]
 csv_enabled = true
 csv_file = "test_metrics.csv"
+
+[logging]
+level = "debug"

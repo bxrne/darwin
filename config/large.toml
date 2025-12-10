@@ -38,3 +38,6 @@ num_inputs = 2
 [metrics]
 csv_enabled = true
 csv_file = "large_metrics.csv"
+
+[logging]
+level = "debug"

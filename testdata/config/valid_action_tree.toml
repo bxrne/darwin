@@ -37,3 +37,6 @@ num_inputs = 3
 [metrics]
 csv_enabled = false
 csv_file = ""
+
+[logging]
+level = "debug"

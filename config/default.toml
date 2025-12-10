@@ -84,3 +84,6 @@ value = 2
 [metrics]
 csv_enabled = true
 csv_file = "default_metrics.csv"
+
+[logging]
+level = "info"

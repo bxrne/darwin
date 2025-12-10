@@ -50,3 +50,6 @@ value = 1
 [metrics]
 csv_enabled = true
 csv_file = "ge_problem_metrics.csv"
+
+[logging]
+level = "debug"
