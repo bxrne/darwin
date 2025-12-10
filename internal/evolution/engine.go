@@ -94,10 +94,12 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 	// Create copies of parents to avoid mutating the original population
 	parentCopy1 := parent1.Clone()
 	parentCopy2 := parent2.Clone()
-	if 1 > rng.Float64() {
-
+	// Crossover with configured probability; otherwise mutate
+	if rng.Float64() < cmd.CrossoverRate {
 		child1, child2 := parentCopy1.MultiPointCrossover(parentCopy2, &ee.crossoverInformation)
-
+		// Mutate children post-crossover
+		child1.Mutate(cmd.MutationRate, &ee.mutateInformation)
+		child2.Mutate(cmd.MutationRate, &ee.mutateInformation)
 		ee.fitnessCalculator.CalculateFitness(child1)
 		ee.fitnessCalculator.CalculateFitness(child2)
 		out <- child1.Max(child2)
@@ -105,11 +107,9 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 	}
 
 	parentCopy1.Mutate(cmd.MutationRate, &ee.mutateInformation)
-	ee.fitnessCalculator.CalculateFitness(parentCopy1)
-
 	parentCopy2.Mutate(cmd.MutationRate, &ee.mutateInformation)
+	ee.fitnessCalculator.CalculateFitness(parentCopy1)
 	ee.fitnessCalculator.CalculateFitness(parentCopy2)
-
 	out <- parentCopy1.Max(parentCopy2)
 }
 
