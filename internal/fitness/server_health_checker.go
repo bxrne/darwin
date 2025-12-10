@@ -2,6 +2,7 @@ package fitness
 
 import (
 	"fmt"
+	"net"
 	"time"
 
 	"go.uber.org/zap"
@@ -21,8 +22,8 @@ func NewServerHealthChecker(serverAddr string, timeout time.Duration) *ServerHea
 	}
 }
 
-// CheckServerHealth performs a basic health check on the game server
-// It only verifies TCP connectivity without sending a Connect message (which starts a game)
+// CheckServerHealth performs a health check on the game server
+// It sends a HEALTH message (which does not start a game) and waits for a response
 func (shc *ServerHealthChecker) CheckServerHealth() error {
 	zap.L().Info("Checking game server health", zap.String("server", shc.serverAddr))
 
@@ -30,19 +31,46 @@ func (shc *ServerHealthChecker) CheckServerHealth() error {
 	client := NewTCPClient(shc.serverAddr)
 
 	// Try to connect with timeout - this verifies the server is listening
-	// We do NOT send a Connect message as that would start a game
 	if err := client.Connect(); err != nil {
 		return fmt.Errorf("server health check failed: unable to connect to %s: %w", shc.serverAddr, err)
 	}
 
-	// Connection successful - server is listening and accepting connections
-	// Just disconnect without sending any game-starting messages
-	if err := client.Disconnect(); err != nil {
-		zap.L().Warn("Failed to disconnect health check connection", zap.Error(err))
-		// Don't fail the health check if disconnect fails - connection was successful
+	// Send health check message (does not start a game)
+	if err := client.SendHealthCheck(); err != nil {
+		client.Disconnect()
+		return fmt.Errorf("server health check failed: failed to send health message: %w", err)
 	}
 
-	zap.L().Info("Server health check passed", zap.String("server", shc.serverAddr))
+	// Wait for health response with timeout
+	// Set a read timeout on the connection
+	if tcpConn, ok := client.conn.(*net.TCPConn); ok {
+		tcpConn.SetReadDeadline(time.Now().Add(shc.timeout))
+	}
+
+	healthResp, err := client.ReceiveHealthResponse()
+	if err != nil {
+		client.Disconnect()
+		return fmt.Errorf("server health check failed: failed to receive health response: %w", err)
+	}
+
+	// Clear the read deadline
+	if tcpConn, ok := client.conn.(*net.TCPConn); ok {
+		tcpConn.SetReadDeadline(time.Time{})
+	}
+
+	// Verify the response indicates healthy status
+	if healthResp.Status != "ok" {
+		client.Disconnect()
+		return fmt.Errorf("server health check failed: server returned non-ok status: %s", healthResp.Status)
+	}
+
+	// Disconnect cleanly
+	if err := client.Disconnect(); err != nil {
+		zap.L().Warn("Failed to disconnect health check connection", zap.Error(err))
+		// Don't fail the health check if disconnect fails - health check was successful
+	}
+
+	zap.L().Info("Server health check passed", zap.String("server", shc.serverAddr), zap.String("status", healthResp.Status))
 	return nil
 }
 

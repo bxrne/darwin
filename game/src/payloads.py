@@ -31,12 +31,14 @@ class MessageType:
     ACTION = "action"
     RESET = "reset"
     SAVE_REPLAY = "save_replay"
+    HEALTH = "health"
 
     # Server -> Client
     CONNECTED = "connected"
     OBSERVATION = "observation"
     ERROR = "error"
     GAME_OVER = "game_over"
+    HEALTH_RESPONSE = "health_response"
 
 
 @dataclass
@@ -51,6 +53,22 @@ class ConnectRequest:
 @dataclass
 class SaveReplayRequest:
     type: str = MessageType.SAVE_REPLAY
+
+
+@dataclass
+class HealthRequest:
+    """Client requests health check without starting a game."""
+
+    type: str = MessageType.HEALTH
+
+
+@dataclass
+class HealthResponse:
+    """Server responds to health check."""
+
+    type: str = MessageType.HEALTH_RESPONSE
+    status: str = "ok"
+    message: str = "Server is healthy"
 
 
 @dataclass

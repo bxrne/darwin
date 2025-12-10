@@ -16,14 +16,16 @@ import (
 type MessageType string
 
 const (
-	Connect     MessageType = "connect"
-	Action      MessageType = "action"
-	Reset       MessageType = "reset"
-	Connected   MessageType = "connected"
-	Observation MessageType = "observation"
-	Error       MessageType = "error"
-	GameOver    MessageType = "game_over"
-	SaveReplay  MessageType = "save_replay"
+	Connect           MessageType = "connect"
+	Action            MessageType = "action"
+	Reset             MessageType = "reset"
+	Connected         MessageType = "connected"
+	Observation       MessageType = "observation"
+	Error             MessageType = "error"
+	GameOver          MessageType = "game_over"
+	SaveReplay        MessageType = "save_replay"
+	Health            MessageType = "health"
+	HealthResponseMsg MessageType = "health_response"
 )
 
 // Message structures matching Python payloads
@@ -41,6 +43,16 @@ type ActionRequest struct {
 
 type SaveReplayRequest struct {
 	Type string `json:"type"`
+}
+
+type HealthRequest struct {
+	Type string `json:"type"`
+}
+
+type HealthResponse struct {
+	Type    string `json:"type"`
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }
 
 type ConnectedResponse struct {
@@ -210,6 +222,40 @@ func (tc *TCPClient) ConnectToGame(clientId string, opponentType string) (*Conne
 			continue
 		}
 	}
+}
+
+// SendHealthCheck sends a health check message to the server without starting a game
+func (tc *TCPClient) SendHealthCheck() error {
+	healthReq := HealthRequest{
+		Type: string(Health),
+	}
+	return tc.SendMessage(healthReq)
+}
+
+// ReceiveHealthResponse waits for a health response from the server
+func (tc *TCPClient) ReceiveHealthResponse() (*HealthResponse, error) {
+	msg, err := tc.ReceiveMessage()
+	if err != nil {
+		return nil, fmt.Errorf("failed to receive health response: %w", err)
+	}
+
+	msgType, ok := msg["type"].(string)
+	if !ok {
+		return nil, fmt.Errorf("invalid message type in health response")
+	}
+
+	if MessageType(msgType) != HealthResponseMsg {
+		return nil, fmt.Errorf("unexpected message type: %s, expected health_response", msgType)
+	}
+
+	var resp HealthResponse
+	data, _ := json.Marshal(msg)
+	err = json.Unmarshal(data, &resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse health response: %w", err)
+	}
+
+	return &resp, nil
 }
 
 // SendAction sends an action to the server
