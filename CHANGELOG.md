@@ -1,3 +1,27 @@
+## [1.21.0](https://github.com/bxrne/darwin/compare/v1.20.0...v1.21.0) (2025-12-10)
+
+
+### Features
+
+* **evolution:** enhance depth calculation in metrics by supporting ActionTreeIndividuals ([f366783](https://github.com/bxrne/darwin/commit/f3667834d4bf1361b20948046f81fa154240356d))
+* **evolution:** implement ramped half-and-half initialization for tree generation and enhance mutation strategies ([06f48b3](https://github.com/bxrne/darwin/commit/06f48b38e162d79ce7703a0faf38ae1bdffd7ddd))
+* **logging:**  dynamic logger init based on cfg ([aa7c45c](https://github.com/bxrne/darwin/commit/aa7c45c9e733f1bbdafb62d54ee34193445f489b))
+* **logging:** add immediate logging for received generation commands in EvolutionEngine ([a03503d](https://github.com/bxrne/darwin/commit/a03503dca217abada24842d155d7052a2e0fcfc0))
+
+
+### Bug Fixes
+
+* **evolution:** correct depth group calculations to ensure proper tree initialization and distribution, aparrently seed 0 is invalid, lol ([1f4f45b](https://github.com/bxrne/darwin/commit/1f4f45bed4103027fc3a445df2418d44f76aedf4))
+* **logging:** set global zap logger for consistent logging across the codebase ([db891f5](https://github.com/bxrne/darwin/commit/db891f55841efdcdb332a9a3ac3d926cf1beeb1a))
+
+
+### Code Refactoring
+
+* **evolution:** clean up whitespace in engine.go for improved readability ([98e51d4](https://github.com/bxrne/darwin/commit/98e51d4335c5bef7bd1e862372426ef28de67344))
+* **logging:** improve log  for clarity ([4c9d9ad](https://github.com/bxrne/darwin/commit/4c9d9ad08ef8cca63a2c96bf1807ce9143ca2ea7))
+* **logging:** improve logging performance and ordering by using structured logging with zap ([b316835](https://github.com/bxrne/darwin/commit/b316835a107b17f453cd2e3cc902a9d884e3e6bb))
+* **logging:** replace logmgr with zap logger ([e136b65](https://github.com/bxrne/darwin/commit/e136b6587fdd5d0799d770ac5e309b2770a13cb2))
+
 ## [1.20.0](https://github.com/bxrne/darwin/compare/v1.19.0...v1.20.0) (2025-12-10)
 
 
