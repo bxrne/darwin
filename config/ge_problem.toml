@@ -1,17 +1,17 @@
 [evolution]
-population_size = 40
+population_size = 180
 crossover_point_count = 2
-crossover_rate = 0.7
-mutation_rate = 0.2
-generations = 30
-elitism_percentage = 0.05
-selection_size = 3
+crossover_rate = 0.8
+mutation_rate = 0.5
+generations = 500
+elitism_percentage = 0.20
+selection_size = 7
 selection_type = "tournament"
 seed = 0
 
 [fitness]
-test_case_count = 25
-target_function = "x^3 + 2*x*y - y"
+test_case_count = 5
+target_function = "x + y"
 
 [bitstring_individual]
 enabled = false
@@ -19,15 +19,15 @@ genome_size = 128
 
 [tree_individual]
 enabled = false
-max_depth = 8
+max_depth = 14
 initial_depth = 3
 operand_set = ["+", "-", "*", "/", "^"]
 variable_set = ["x", "y"]
-terminal_set = ["-1.0", "0.0", "1.0", "2.0"]
+terminal_set = ["-20.0", "-10.0", "-5.0", "-2.0", "-1.0", "-0.5", "0.0", "0.5", "1.0", "2.0", "5.0", "10.0", "20.0"]
 
 [grammar_tree]
 enabled = true
-genome_size = 32
+genome_size = 160
 
 [action_tree]
 enabled = false
