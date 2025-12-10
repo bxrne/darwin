@@ -2,7 +2,6 @@ package evolution
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -126,8 +125,6 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	for i := 0; i < elitismCount && i < ee.population.Count(); i++ {
 		newPop = append(newPop, ee.population.Get(i))
 	}
-	fmt.Println(ee.population.Get(0))
-	fmt.Println(ee.population.Get(0).Describe())
 	offspringNeeded := ee.population.Count() - len(newPop)
 	offspringChan := make(chan individual.Evolvable, ee.population.Count()-elitismCount+1)
 	var wg sync.WaitGroup

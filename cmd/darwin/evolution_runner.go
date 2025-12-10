@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/bxrne/darwin/internal/cfg"
@@ -60,16 +61,104 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 
 	popBuilder := population.NewPopulationBuilder()
 	popinfo := population.NewPopulationInfo(config, populationType)
+
+	// Atomic counter for ramped half-and-half initialization
+	var treeCounter atomic.Int64
+
+	// Helper function to create ramped half-and-half tree
+	createRampedHalfAndHalfTree := func(initialDepth int, operandSet, variableSet, terminalSet []string) *individual.Tree {
+		popSize := config.Evolution.PopulationSize
+		index := int(treeCounter.Add(1) - 1) // Get current index (0-based)
+
+		// Calculate depth group: divide population into (initialDepth + 1) groups
+		depthGroups := initialDepth + 1
+		groupSize := popSize / depthGroups
+		remainder := popSize % depthGroups
+
+		// Determine which depth group this individual belongs to
+		depth := 0
+		groupIndex := index
+		for d := 0; d < depthGroups; d++ {
+			groupCount := groupSize
+			if d < remainder {
+				groupCount++ // Distribute remainder across first groups
+			}
+			if groupIndex < groupCount {
+				depth = d
+				break
+			}
+			groupIndex -= groupCount
+		}
+
+		// Within the depth group, determine if we use grow (first half) or full (second half)
+		// Recalculate group boundaries for this specific depth
+		groupStart := 0
+		for d := 0; d < depth; d++ {
+			groupCount := groupSize
+			if d < remainder {
+				groupCount++
+			}
+			groupStart += groupCount
+		}
+		groupCount := groupSize
+		if depth < remainder {
+			groupCount++
+		}
+		localIndex := index - groupStart
+		useGrow := localIndex < groupCount/2
+
+		return individual.NewRampedHalfAndHalfTree(depth, useGrow, operandSet, variableSet, terminalSet)
+	}
+
 	population := popBuilder.BuildPopulation(&popinfo, func() individual.Evolvable {
 		switch populationType {
 		case individual.BitStringGenome:
 			return individual.NewBinaryIndividual(config.BitString.GenomeSize)
 		case individual.TreeGenome:
-			return individual.NewRandomTree(config.Tree.InitalDepth, config.Tree.OperandSet, config.Tree.VariableSet, config.Tree.TerminalSet)
+			return createRampedHalfAndHalfTree(config.Tree.InitalDepth, config.Tree.OperandSet, config.Tree.VariableSet, config.Tree.TerminalSet)
 		case individual.GrammarTreeGenome:
 			return individual.NewGrammarTree(config.GrammarTree.GenomeSize)
 		case individual.ActionTreeGenome:
-			// Create random trees for each action
+			// Create random trees for each action using ramped half-and-half
+			// All trees in an individual use the same depth and method
+			index := int(treeCounter.Add(1) - 1)
+			popSize := config.Evolution.PopulationSize
+			initialDepth := config.Tree.InitalDepth
+
+			// Calculate depth and method for this individual
+			depthGroups := initialDepth + 1
+			groupSize := popSize / depthGroups
+			remainder := popSize % depthGroups
+
+			depth := 0
+			groupIndex := index
+			for d := 0; d < depthGroups; d++ {
+				groupCount := groupSize
+				if d < remainder {
+					groupCount++
+				}
+				if groupIndex < groupCount {
+					depth = d
+					break
+				}
+				groupIndex -= groupCount
+			}
+
+			groupStart := 0
+			for d := 0; d < depth; d++ {
+				groupCount := groupSize
+				if d < remainder {
+					groupCount++
+				}
+				groupStart += groupCount
+			}
+			groupCount := groupSize
+			if depth < remainder {
+				groupCount++
+			}
+			localIndex := index - groupStart
+			useGrow := localIndex < groupCount/2
+
 			initialTrees := make(map[string]*individual.Tree)
 			variableSet := make([]string, config.ActionTree.WeightsColumnCount)
 			for i := range config.ActionTree.WeightsColumnCount {
@@ -78,12 +167,7 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 			}
 			variableSet = append(variableSet, config.Tree.VariableSet...)
 			for _, action := range config.ActionTree.Actions {
-				tree := individual.NewRandomTree(
-					config.Tree.InitalDepth,
-					config.Tree.OperandSet,
-					variableSet,
-					config.Tree.TerminalSet,
-				)
+				tree := individual.NewRampedHalfAndHalfTree(depth, useGrow, config.Tree.OperandSet, variableSet, config.Tree.TerminalSet)
 				initialTrees[action.Name] = tree
 			}
 			result := individual.NewActionTreeIndividual(config.ActionTree.Actions, initialTrees)
@@ -113,7 +197,7 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 		metricsSubscriber = metricsStreamer.Subscribe()
 	}
 	crossoverInformation := individual.CrossoverInformation{CrossoverPoints: config.Evolution.CrossoverPointCount, MaxDepth: config.Tree.MaxDepth}
-	mutateInformation := individual.MutateInformation{OperandSet: config.Tree.OperandSet, TerminalSet: config.Tree.TerminalSet, VariableSet: config.Tree.VariableSet}
+	mutateInformation := individual.MutateInformation{OperandSet: config.Tree.OperandSet, TerminalSet: config.Tree.TerminalSet, VariableSet: config.Tree.VariableSet, MaxDepth: config.Tree.MaxDepth}
 	evolutionEngine := evolution.NewEvolutionEngine(population, selector, metricsChan, cmdChan, fitnessCalculator, crossoverInformation, mutateInformation)
 
 	metricsStreamer.Start(ctx)
