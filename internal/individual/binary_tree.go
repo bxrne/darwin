@@ -3,8 +3,10 @@ package individual
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/bxrne/darwin/internal/rng"
+	"math"
 	"strconv"
+
+	"github.com/bxrne/darwin/internal/rng"
 )
 
 // TreeNode represents a node in the expression tree
@@ -29,6 +31,8 @@ const (
 	Subtract Operand = "-"
 	Multiply Operand = "*"
 	Divide   Operand = "/"
+	Modulo   Operand = "%"
+	Power    Operand = "^"
 )
 
 func applyOperator(opStr string, left, right float64, dividedByZero *bool) float64 {
@@ -47,6 +51,8 @@ func applyOperator(opStr string, left, right float64, dividedByZero *bool) float
 			return 0
 		}
 		return left / right
+	case Power:
+		return math.Pow(left, right)
 	default:
 		panic(fmt.Sprintf("unknown operator: %s", op))
 	}

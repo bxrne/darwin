@@ -23,11 +23,13 @@ const (
 	Observation MessageType = "observation"
 	Error       MessageType = "error"
 	GameOver    MessageType = "game_over"
+	SaveReplay  MessageType = "save_replay"
 )
 
 // Message structures matching Python payloads
 type ConnectRequest struct {
 	Type         string `json:"type"`
+	ClientId     string `json:"client_id"`
 	AgentType    string `json:"agent_type"`
 	OpponentType string `json:"opponent_type"`
 }
@@ -35,6 +37,10 @@ type ConnectRequest struct {
 type ActionRequest struct {
 	Type   string      `json:"type"`
 	Action interface{} `json:"action"`
+}
+
+type SaveReplayRequest struct {
+	Type string `json:"type"`
 }
 
 type ConnectedResponse struct {
@@ -156,9 +162,10 @@ func (tc *TCPClient) ReceiveMessage() (map[string]interface{}, error) {
 }
 
 // ConnectToGame sends connect request and waits for connected response
-func (tc *TCPClient) ConnectToGame(opponentType string) (*ConnectedResponse, error) {
+func (tc *TCPClient) ConnectToGame(clientId string, opponentType string) (*ConnectedResponse, error) {
 	connectReq := ConnectRequest{
 		Type:         string(Connect),
+		ClientId:     clientId,
 		AgentType:    "human",
 		OpponentType: opponentType,
 	}
@@ -203,6 +210,14 @@ func (tc *TCPClient) ConnectToGame(opponentType string) (*ConnectedResponse, err
 			continue
 		}
 	}
+}
+
+// SendAction sends an action to the server
+func (tc *TCPClient) SendDisconnect() error {
+	actionReq := SaveReplayRequest{
+		Type: string(SaveReplay),
+	}
+	return tc.SendMessage(actionReq)
 }
 
 // SendAction sends an action to the server

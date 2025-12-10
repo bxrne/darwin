@@ -30,7 +30,7 @@ class MessageType:
     CONNECT = "connect"
     ACTION = "action"
     RESET = "reset"
-    DISCONNECT = "disconnect"
+    SAVE_REPLAY = "save_replay"
 
     # Server -> Client
     CONNECTED = "connected"
@@ -46,6 +46,11 @@ class ConnectRequest:
     type: str = MessageType.CONNECT
     agent_type: str = "human"  # 'human', 'random', 'expander'
     opponent_type: str = "random"  # Type of opponent
+
+
+@dataclass
+class SaveReplayRequest:
+    type: str = MessageType.SAVE_REPLAY
 
 
 @dataclass

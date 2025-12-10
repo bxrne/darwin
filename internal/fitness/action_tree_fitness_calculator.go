@@ -3,6 +3,7 @@ package fitness
 import (
 	"fmt"
 	"sort"
+	"sync/atomic"
 	"time"
 
 	"github.com/bxrne/darwin/internal/individual"
@@ -20,6 +21,7 @@ type ActionTreeFitnessCalculator struct {
 	selectionPercentage  float64
 	testCaseCount        int
 	connectionPool       *TCPConnectionPool
+	clientId             uint64
 }
 
 // NewActionTreeFitnessCalculator creates a new action tree fitness calculator
@@ -36,7 +38,18 @@ func NewActionTreeFitnessCalculator(serverAddr string, opponentType string, acti
 		testCaseCount:        testCaseCount,
 		selectionPercentage:  selectionPercentage,
 		connectionPool:       pool,
+		clientId:             0,
 	}
+}
+
+func (atfc *ActionTreeFitnessCalculator) getClientId() string {
+	id := atomic.AddUint64(&atfc.clientId, 1)
+	return fmt.Sprintf("client_%d", id)
+}
+
+type Client struct {
+	ID      string
+	Fitness float64
 }
 
 // CalculateFitness evaluates the fitness of an ActionTree individual
@@ -51,7 +64,7 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 	}
 
 	if wiok {
-		weightsFitnesses := make([]float64, len(*atfc.weightsPopulation))
+		weightsFitnesses := make([]Client, len(*atfc.weightsPopulation))
 		for _, evolvable := range *atfc.actionTreePopulation {
 			tree, ok := (evolvable).(*individual.ActionTreeIndividual)
 			if !ok {
@@ -59,31 +72,34 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 			}
 
 			sum := 0.0
-
+			clientId := ""
 			for range atfc.testCaseCount {
-				fitness, err := atfc.SetupGameAndRun(wi, tree)
+				fitness, currentClientId, err := atfc.SetupGameAndRun(wi, tree)
 				if err != nil {
 					logmgr.Error("Failed to setup game and run", logmgr.Field("error", err.Error()))
 				} else {
 					sum += fitness
+					if clientId == "" {
+						clientId += currentClientId
+					}
 				}
 			}
-			weightsFitnesses = append(weightsFitnesses, sum/float64(atfc.testCaseCount))
+			weightsFitnesses = append(weightsFitnesses, Client{
+				ID:      clientId,
+				Fitness: sum / float64(atfc.testCaseCount),
+			})
 		}
+		sort.Slice(weightsFitnesses, func(i, j int) bool {
+			return (weightsFitnesses[i].Fitness > weightsFitnesses[j].Fitness)
+		})
+		wi.SetFitness(weightsFitnesses[0].Fitness)
+		wi.SetClient(weightsFitnesses[0].ID)
 
-		weightsCount := int(float64(len(weightsFitnesses)) * atfc.selectionPercentage)
-		sort.Float64s(weightsFitnesses)
-		total_fitness := 0.0
-		for i := range weightsCount {
-			total_fitness = total_fitness + weightsFitnesses[len(weightsFitnesses)-i-1]
-		}
-		wi.SetFitness(total_fitness / float64(weightsCount))
 		return
-
 	}
 
 	if atok {
-		actionTreeFitnesses := make([]float64, len(*atfc.actionTreePopulation))
+		actionTreeFitnesses := make([]Client, len(*atfc.actionTreePopulation))
 		for _, evolvable := range *atfc.weightsPopulation {
 			weights, ok := (evolvable).(*individual.WeightsIndividual)
 			if !ok {
@@ -91,37 +107,42 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 			}
 
 			sum := 0.0
+			clientId := ""
 			for range atfc.testCaseCount {
-				fitness, err := atfc.SetupGameAndRun(weights, at)
+				fitness, currentClientId, err := atfc.SetupGameAndRun(weights, at)
 				if err != nil {
 					logmgr.Error("Failed to setup game and run", logmgr.Field("error", err.Error()))
 				} else {
 					sum += fitness
+					if clientId == "" {
+						clientId += currentClientId
+					}
 				}
 			}
-			actionTreeFitnesses = append(actionTreeFitnesses, sum/float64(atfc.testCaseCount))
+			actionTreeFitnesses = append(actionTreeFitnesses, Client{
+				ID:      clientId,
+				Fitness: sum / float64(atfc.testCaseCount),
+			})
 		}
-		actionTreeCount := int(float64(len(actionTreeFitnesses)) * atfc.selectionPercentage)
-		sort.Float64s(actionTreeFitnesses)
-		total_fitness := 0.0
-		for i := range actionTreeCount {
-			total_fitness = total_fitness + actionTreeFitnesses[len(actionTreeFitnesses)-i-1]
-		}
-		at.SetFitness(total_fitness / float64(actionTreeCount))
+		sort.Slice(actionTreeFitnesses, func(i, j int) bool {
+			return actionTreeFitnesses[i].Fitness > actionTreeFitnesses[j].Fitness
+		})
+		at.SetFitness(actionTreeFitnesses[0].Fitness)
+		at.SetClient(actionTreeFitnesses[0].ID)
 		return
 	}
 }
 
-func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.WeightsIndividual, actionTreeInd *individual.ActionTreeIndividual) (float64, error) {
+func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.WeightsIndividual, actionTreeInd *individual.ActionTreeIndividual) (float64, string, error) {
 	// Get connection from pool
 	client, err := atfc.connectionPool.GetConnection()
 	if err != nil {
 		logmgr.Error("Failed to get connection from pool", logmgr.Field("error", err.Error()))
-		return 0.0, fmt.Errorf("connection pool error: %w", err)
+		return 0.0, "", fmt.Errorf("connection pool error: %w", err)
 	}
-
+	clientId := atfc.getClientId()
 	logmgr.Debug("Got connection for game evaluation",
-		logmgr.Field("client_id", fmt.Sprintf("%p", client)),
+		logmgr.Field("client_id", clientId),
 		logmgr.Field("weights_id", fmt.Sprintf("%p", weightsInd)),
 		logmgr.Field("action_tree_id", fmt.Sprintf("%p", actionTreeInd)))
 
@@ -131,7 +152,7 @@ func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.
 			logmgr.Error("Failed to return connection to pool", logmgr.Field("error", returnErr.Error()))
 		} else {
 			logmgr.Debug("Connection returned to pool successfully",
-				logmgr.Field("client_id", fmt.Sprintf("%p", client)))
+				logmgr.Field("client_id", clientId))
 		}
 	}()
 
@@ -139,10 +160,10 @@ func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.
 	time.Sleep(100 * time.Millisecond)
 
 	// Connect to game
-	connectedResp, err := client.ConnectToGame(atfc.opponentType)
+	connectedResp, err := client.ConnectToGame(clientId, atfc.opponentType)
 	if err != nil {
-		logmgr.Error("Failed to connect to game", logmgr.Field("error", err))
-		return 0.0, fmt.Errorf("game connection error: %w", err)
+		logmgr.Error("Failed to connect to game", logmgr.Field("error", err.Error()))
+		return 0.0, "", fmt.Errorf("game connection error: %w", err)
 	}
 
 	logmgr.Debug("Connected to game",
@@ -154,14 +175,13 @@ func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.
 
 	logmgr.Debug("Fitness calculated",
 		logmgr.Field("fitness", fitness),
-		logmgr.Field("agent_id", connectedResp.AgentID))
-	return fitness, nil
+		logmgr.Field("agent_id", clientId))
+	return fitness, clientId, nil
 }
 
 // playGame plays a single game and returns the fitness score
 func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd *individual.WeightsIndividual, actionTreeInd *individual.ActionTreeIndividual) float64 {
 	totalReward := 0.0
-
 	logmgr.Debug("Starting game evaluation",
 		logmgr.Field("max_steps", atfc.maxSteps),
 		logmgr.Field("weights_id", fmt.Sprintf("%p", weightsInd)),
@@ -225,9 +245,12 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 			logmgr.Error("Failed to send action", logmgr.Field("error", err))
 			break
 		}
-		// Small delay to prevent overwhelming the server
 
 		totalReward += obs.Reward
+	}
+	err = client.SendDisconnect()
+	if err != nil {
+		logmgr.Error("Failed to disconncet", logmgr.Field("error", err.Error()))
 	}
 
 	logmgr.Debug("Final fitness calculation",

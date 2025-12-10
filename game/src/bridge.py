@@ -71,8 +71,9 @@ def worker_process(
                     msg_type = json_data.get("type")
 
                     if msg_type == MessageType.CONNECT:
-                        opponent_type = json_data.get("opponent_type", "random")
-
+                        opponent_type = json_data.get(
+                            "opponent_type", "random")
+                        client_id = json_data.get("client_id", client_id)
                         # Check if we should switch to expander due to 20+ wins
                         current_wins = global_wins_ref.value if global_wins_ref else 0
                         if current_wins >= 20:
@@ -103,7 +104,8 @@ def worker_process(
                         )
                         client_socket.sendall(
                             (
-                                json.dumps(to_dict(response), cls=NumpyEncoder) + "\n"
+                                json.dumps(to_dict(response),
+                                           cls=NumpyEncoder) + "\n"
                             ).encode("utf-8")
                         )
 
@@ -117,7 +119,8 @@ def worker_process(
                         )
                         client_socket.sendall(
                             (
-                                json.dumps(to_dict(obs_response), cls=NumpyEncoder)
+                                json.dumps(to_dict(obs_response),
+                                           cls=NumpyEncoder)
                                 + "\n"
                             ).encode("utf-8")
                         )
@@ -129,10 +132,12 @@ def worker_process(
 
                     elif msg_type == MessageType.ACTION:
                         if not game:
-                            err = ErrorResponse("No active game", "Send CONNECT first")
+                            err = ErrorResponse(
+                                "No active game", "Send CONNECT first")
                             client_socket.sendall(
                                 (
-                                    json.dumps(to_dict(err), cls=NumpyEncoder) + "\n"
+                                    json.dumps(
+                                        to_dict(err), cls=NumpyEncoder) + "\n"
                                 ).encode("utf-8")
                             )
                             continue
@@ -150,7 +155,8 @@ def worker_process(
                         )
                         client_socket.sendall(
                             (
-                                json.dumps(to_dict(response), cls=NumpyEncoder) + "\n"
+                                json.dumps(to_dict(response),
+                                           cls=NumpyEncoder) + "\n"
                             ).encode("utf-8")
                         )
 
@@ -177,22 +183,28 @@ def worker_process(
 
                             game_over = GameOverResponse(
                                 winner=winner,
-                                final_rewards={game.client_id: result["reward"]},
+                                final_rewards={
+                                    game.client_id: result["reward"]},
                                 reason="Game completed",
                             )
                             client_socket.sendall(
                                 (
-                                    json.dumps(to_dict(game_over), cls=NumpyEncoder)
+                                    json.dumps(to_dict(game_over),
+                                               cls=NumpyEncoder)
                                     + "\n"
                                 ).encode("utf-8")
                             )
+                    elif msg_type == MessageType.SAVE_REPLAY:
+                        game.save_replay()
 
                     elif msg_type == MessageType.RESET:
                         if not game:
-                            err = ErrorResponse("No active game", "Send CONNECT first")
+                            err = ErrorResponse(
+                                "No active game", "Send CONNECT first")
                             client_socket.sendall(
                                 (
-                                    json.dumps(to_dict(err), cls=NumpyEncoder) + "\n"
+                                    json.dumps(
+                                        to_dict(err), cls=NumpyEncoder) + "\n"
                                 ).encode("utf-8")
                             )
                             continue
@@ -206,12 +218,14 @@ def worker_process(
                         )
                         client_socket.sendall(
                             (
-                                json.dumps(to_dict(response), cls=NumpyEncoder) + "\n"
+                                json.dumps(to_dict(response),
+                                           cls=NumpyEncoder) + "\n"
                             ).encode("utf-8")
                         )
 
                     else:
-                        err = ErrorResponse("Unknown message type", f"Type: {msg_type}")
+                        err = ErrorResponse(
+                            "Unknown message type", f"Type: {msg_type}")
                         client_socket.sendall(
                             (json.dumps(to_dict(err), cls=NumpyEncoder) + "\n").encode(
                                 "utf-8"
@@ -281,7 +295,8 @@ class Bridge:
 
         # Start server socket
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server_socket.setsockopt(
+            socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         # Add timeout to allow clean shutdown
         self.server_socket.settimeout(1.0)
         self.server_socket.bind((self.address, self.port))

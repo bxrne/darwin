@@ -122,5 +122,5 @@ func (at *ActionTreeAndWeightsPopulation) CalculateFitnesses(fitnessCalc fitness
 			}(start, end) // chunk to use
 		}
 	}
-
+	wg.Wait()
 }

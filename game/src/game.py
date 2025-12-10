@@ -1,10 +1,10 @@
 """
 Game wrapper that manages a single PettingZoo Generals game instance.
 """
-
+import numpy as np
+import traceback
 import logging
 from typing import Dict, Any, Optional, Tuple
-from datetime import datetime
 from generals.agents import RandomAgent, ExpanderAgent
 from generals.envs import PettingZooGenerals
 from generals.core.action import Action
@@ -87,7 +87,7 @@ class Game:
         Returns:
             Tuple of (observation, info) for the client agent
         """
-        replay_name = "replays/replay" + str(datetime.now())
+        replay_name = "replays/replay" + self.client_id
         options = {"replay_file": replay_name}
         observations, info = self.env.reset(options=options)
         self.observations = observations
@@ -130,18 +130,21 @@ class Game:
                 else:
                     # Opponent agent decides action
                     opponent_obs = (
-                        self.observations.get(agent, {}) if self.observations else {}
+                        self.observations.get(
+                            agent, {}) if self.observations else {}
                     )
                     actions[agent] = self.opponent.act(opponent_obs)
 
             # Execute actions
-            observations, rewards, terminated, truncated, info = self.env.step(actions)
+            observations, rewards, terminated, truncated, info = self.env.step(
+                actions)
             # Update state
             self.terminated = terminated
             self.truncated = truncated
             # Render if enabled
 
             self.observations = observations
+
             # Return client's perspective
             return {
                 "observation": extract_features(observations, self.client_id),
@@ -167,10 +170,12 @@ class Game:
             "info": self.info or {},
         }
 
+    def save_replay(self):
+        self.env.replay.store()
+
     def close(self):
         """Clean up game resources."""
         try:
-            self.env.replay.store()
             self.env.close()
             self.logger.info("Game closed")
         except Exception as e:
@@ -231,16 +236,30 @@ def extract_features(state, my_id):
     cities_cells = state[my_id]["cities"]
     generals_cells = state[my_id]["generals"]
     fog_cells = state[my_id]["fog_cells"]
-    my_total_army = 0
-    opp_total_army = 0
-    my_land_count = 0
-    opp_land_count = 0
-    neutral_count = 0
+    owned_army = state[my_id]["owned_army_count"]
+    opponent_army = state[my_id]["opponent_army_count"]
+    owned_land = state[my_id]["owned_land_count"]
+    opponent_land = state[my_id]["opponent_land_count"]
     fog_count = 0
     visible_cities = 0
     visible_mountains = 0
     owned_cells_list = []
+    rows, cols = np.where(owned_cells)
+    if rows.size == 0:
+        max_army_idx = (10, 10)  # no True values
+    else:
+        # pick the maximum among True positions
+        idx = np.argmax(armies[rows, cols])
+        max_army_idx = (rows[idx], cols[idx])
 
+    rows, cols = np.where(generals_cells & owned_cells)
+    if len(rows) == 0:
+        rows = [0]
+        cols = [0]
+    my_general_pos = (int(rows[0]), int(cols[0]))
+    min_city_dist = float("inf")
+    min_city_x = 0
+    min_city_y = 0
     enemy_general_pos = None
 
     # -----------------------------
@@ -254,25 +273,22 @@ def extract_features(state, my_id):
             # terrain type
             if cities_cells[i][j]:  # city
                 visible_cities += 1
+                if not owned_cells[i][j]:
+                    d = manhattan(my_general_pos, (i, j))
+                    if d < min_city_dist:
+                        min_city_dist = d
+                        min_city_x = i
+                        min_city_y = j
             elif mountain_cells[i][j]:  # mountain
                 visible_mountains += 1
 
             # ownership
             if owned_cells[i][j]:
-                if generals_cells[i][j]:
-                    my_general_pos = (i, j)
-                my_land_count += 1
-                my_total_army += armies[i][j]
                 owned_cells_list.append((i, j))
 
             elif opponent_cells[i][j]:
                 if generals_cells[i][j]:
                     enemy_general_pos = (i, j)
-                opp_land_count += 1
-                opp_total_army += armies[i][j]
-
-            else:
-                neutral_count += 1
 
     # -----------------------------
     # PASS 2: Border pressure
@@ -288,40 +304,28 @@ def extract_features(state, my_id):
     # -----------------------------
     # Ratios (+1 denominator to avoid division by zero)
     # -----------------------------
-    army_ratio = my_total_army / (opp_total_army + 1)
-    land_ratio = my_land_count / (opp_land_count + 1)
+    army_ratio = owned_army / (opponent_army + 1)
+    land_ratio = owned_land / (opponent_land + 1)
 
     # -----------------------------
     # Distances (optional)
     # -----------------------------
     if enemy_general_pos is not None:
-        distance_to_enemy_general = manhattan(my_general_pos, enemy_general_pos)
+        distance_to_enemy_general = manhattan(
+            my_general_pos, enemy_general_pos)
     else:
         distance_to_enemy_general = N + M  # max distance if unknown
+        enemy_general_pos = (10, 10)
 
     # nearest visible city
-    min_city_dist = float("inf")
-    for i in range(N):
-        for j in range(M):
-            if not fog_cells[i][j] and cities_cells[i][j]:
-                d = manhattan(my_general_pos, (i, j))
-                if d < min_city_dist:
-                    min_city_dist = d
-
     if min_city_dist == float("inf"):
         min_city_dist = N + M  # no visible city
     # -----------------------------
     # FINAL FEATURE VECTOR
     # -----------------------------
     return {
-        "my_total_army": state[my_id]["owned_army_count"],
-        "opp_total_army": state[my_id]["opponent_army_count"],
-        "army_diff": state[my_id]["owned_army_count"]
-        - state[my_id]["opponent_army_count"],
-        "my_land_count": my_land_count,
-        "opp_land_count": opp_land_count,
-        "land_diff": my_land_count - opp_land_count,
-        "neutral_count": neutral_count,
+        "army_diff": owned_army - opponent_army,
+        "land_diff": owned_land - opponent_land,
         "fog_count": fog_count,
         "visible_cities_count": visible_cities,
         "visible_mountains_count": visible_mountains,
@@ -329,9 +333,14 @@ def extract_features(state, my_id):
         "land_ratio": float(land_ratio),
         "border_pressure": border_pressure,
         "timestep": state[my_id]["timestep"],
-        # optional
         "distance_to_enemy_general": distance_to_enemy_general,
-        "distance_to_nearest_city": min_city_dist,
+        "min_city_x": min_city_x,
+        "min_city_y": min_city_y,
+        "enemy_general_x": enemy_general_pos[0],
+        "enemy_general_y": enemy_general_pos[1],
+        "max_owned_army_x": max_army_idx[0],
+        "max_owned_army_y": max_army_idx[1],
+
     }
 
 

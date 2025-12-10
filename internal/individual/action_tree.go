@@ -2,8 +2,9 @@ package individual
 
 // ActionTreeIndividual implements an individual composed of action trees and a weights matrix for action selection
 type ActionTreeIndividual struct {
-	Trees   map[string]*Tree // action name -> action tree
-	fitness float64
+	Trees    map[string]*Tree // action name -> action tree
+	fitness  float64
+	clientId string
 }
 
 type ActionTuple struct {
@@ -13,7 +14,7 @@ type ActionTuple struct {
 
 // Describe provides a string description of the ActionTreeIndividual
 func (ati *ActionTreeIndividual) Describe() string {
-	description := "ActionTreeIndividual:\n"
+	description := "ActionTreeIndividual:" + ati.clientId + " :\n"
 	for action, tree := range ati.Trees {
 		description += "Action: " + action + "\n"
 		description += "Tree: " + tree.Describe() + "\n"
@@ -48,6 +49,10 @@ func (ati *ActionTreeIndividual) Clone() Evolvable {
 // SetFitness sets the fitness of the ActionTreeIndividual
 func (ati *ActionTreeIndividual) SetFitness(fitness float64) {
 	ati.fitness = fitness
+}
+
+func (ati *ActionTreeIndividual) SetClient(clientId string) {
+	ati.clientId = clientId
 }
 
 // Mutate applies mutation to the ActionTreeIndividual

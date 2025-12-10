@@ -9,10 +9,11 @@ import (
 )
 
 type WeightsIndividual struct {
-	Weights *mat.Dense
-	fitness float64
-	minVal  float64
-	maxVal  float64
+	Weights  *mat.Dense
+	fitness  float64
+	minVal   float64
+	maxVal   float64
+	clientId string
 }
 
 func NewWeightsIndividual(height int, width int) *WeightsIndividual {
@@ -36,7 +37,7 @@ func (wi *WeightsIndividual) Max(i2 Evolvable) Evolvable {
 
 func (wi *WeightsIndividual) Describe() string {
 	r, c := wi.Weights.Dims()
-	description := ""
+	description := wi.clientId + ": "
 	for i := range r {
 		for j := range c {
 			description += fmt.Sprintf("%f ", wi.Weights.At(i, j))
@@ -45,6 +46,10 @@ func (wi *WeightsIndividual) Describe() string {
 	}
 	description += "Fitness: " + fmt.Sprintf("%f", wi.fitness) + "\n"
 	return description
+}
+
+func (wi *WeightsIndividual) SetClient(clientId string) {
+	wi.clientId = clientId
 }
 
 func (wi *WeightsIndividual) GetFitness() float64 {

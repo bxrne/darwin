@@ -1,11 +1,11 @@
 [evolution]
-population_size = 5
+population_size = 10
 crossover_point_count = 1
 crossover_rate = 0.7
 mutation_rate = 0.3
-generations = 1
-elitism_percentage = 0.5
-selection_size = 5
+generations = 10
+elitism_percentage = 0.01
+selection_size = 3
 selection_type = "tournament"
 seed = 0
 
@@ -22,20 +22,24 @@ genome_size = 200
 enabled = false
 max_depth = 12
 initial_depth = 5
-operand_set = ["+", "-", "*", "/"]
+operand_set = ["+", "-", "*", "/", "^",]
 variable_set = [
   "army_diff",
-
   "land_diff",
-
+  "distance_to_enemy_general",
+  "enemy_general_x",
+  "max_owned_army_x",
+  "max_owned_army_y",
+  "enemy_general_y",
+  "min_city_x",
+  "min_city_y",
   "visible_cities_count",
   "visible_mountains_count",
   "army_ratio",
   "land_ratio",
   "border_pressure",
-  "timestep",
 ]
-terminal_set = []
+terminal_set = ["0.0", "1.0", "10.0",]
 
 [grammar_tree]
 enabled = false
@@ -44,8 +48,8 @@ genome_size = 20
 [action_tree]
 enabled = true
 opponent_type = "random"
-max_steps = 333
-weights_count = 50
+max_steps = 1600
+weights_count = 10
 weights_column_count = 3
 server_addr = "127.0.0.1:5000"
 train_weights_first = false
