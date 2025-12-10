@@ -37,30 +37,42 @@ func (shc *ServerHealthChecker) CheckServerHealth() error {
 
 	// Send health check message (does not start a game)
 	if err := client.SendHealthCheck(); err != nil {
-		client.Disconnect()
+		_ = client.Disconnect()
 		return fmt.Errorf("server health check failed: failed to send health message: %w", err)
 	}
 
 	// Wait for health response with timeout
 	// Set a read timeout on the connection
 	if tcpConn, ok := client.conn.(*net.TCPConn); ok {
-		tcpConn.SetReadDeadline(time.Now().Add(shc.timeout))
+		err_inner := tcpConn.SetReadDeadline(time.Now().Add(shc.timeout))
+		if err_inner != nil {
+			zap.L().Warn("Failed to set read deadline", zap.Error(err_inner))
+		}
 	}
 
 	healthResp, err := client.ReceiveHealthResponse()
 	if err != nil {
-		client.Disconnect()
+		err_inner := client.Disconnect()
+		if err_inner != nil {
+			zap.L().Warn("Failed to disconnect", zap.Error(err_inner))
+		}
 		return fmt.Errorf("server health check failed: failed to receive health response: %w", err)
 	}
 
 	// Clear the read deadline
 	if tcpConn, ok := client.conn.(*net.TCPConn); ok {
-		tcpConn.SetReadDeadline(time.Time{})
+		err_inner := tcpConn.SetReadDeadline(time.Time{})
+		if err_inner != nil {
+			zap.L().Warn("Failed to set read deadline", zap.Error(err_inner))
+		}
 	}
 
 	// Verify the response indicates healthy status
 	if healthResp.Status != "ok" {
-		client.Disconnect()
+		err_inner := client.Disconnect()
+		if err_inner != nil {
+			zap.L().Warn("Failed to disconnect", zap.Error(err_inner))
+		}
 		return fmt.Errorf("server health check failed: server returned non-ok status: %s", healthResp.Status)
 	}
 
