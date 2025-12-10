@@ -30,10 +30,16 @@ func (i *GrammarTree) GetFitness() float64 {
 	return i.Fitness
 }
 
-// Describe returns a string representation of the genome (truncated for logs)
+// Describe returns a human-readable view of the individual.
+// Prefer the expression (if the tree root is available), otherwise a concise genome head.
 func (i *GrammarTree) Describe() string {
+	// If fitness calculation already built the tree, render the expression.
+	if i.Root != nil {
+		return i.Root.describeNode()
+	}
+
 	if len(i.Genome) == 0 {
-		return ""
+		return "len=0 head=[]"
 	}
 
 	const maxShown = 40
@@ -42,13 +48,17 @@ func (i *GrammarTree) Describe() string {
 		limit = maxShown
 	}
 
-	response := ""
+	response := "len=" + strconv.Itoa(len(i.Genome)) + " head=["
 	for idx := 0; idx < limit; idx++ {
-		response += strconv.Itoa(i.Genome[idx]) + ", "
+		if idx > 0 {
+			response += ","
+		}
+		response += strconv.Itoa(i.Genome[idx])
 	}
 	if len(i.Genome) > maxShown {
-		response += "…"
+		response += ",..."
 	}
+	response += "]"
 	return response
 }
 
