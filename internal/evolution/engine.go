@@ -118,7 +118,7 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 // processGeneration performs one generation of evolution
 func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	start := time.Now()
-	ee.logger.Info("Starting Generation", zap.Int("generation", cmd.Generation))
+	ee.logger.Info("Starting generation", zap.Int("generation", cmd.Generation))
 	// Sort population by fitness (descending)
 	ee.sortPopulation()
 	// Create new population
@@ -160,7 +160,7 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	}
 
 	// Log completion after metrics are sent to ensure ordering
-	ee.logger.Info("Completed", zap.Int("generation", cmd.Generation), zap.Int64("duration_ms", duration.Milliseconds()), zap.Float64("best_fitness", genMetrics.BestFitness))
+	ee.logger.Info("Generation completed", zap.Int("generation", cmd.Generation), zap.Int64("duration_ms", duration.Milliseconds()), zap.Float64("best_fitness", genMetrics.BestFitness))
 }
 
 // sortPopulation sorts the population by fitness (descending)
