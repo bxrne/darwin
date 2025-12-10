@@ -121,6 +121,15 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	start := time.Now()
 	ee.logger.Info("Starting generation", zap.Int("generation", cmd.Generation))
+	
+	// For generation 1, calculate fitness for the initial population first
+	// (initial population doesn't have fitness calculated yet)
+	if cmd.Generation == 1 {
+		ee.logger.Info("Calculating fitness for initial population (generation 1)", zap.Int("population_size", ee.population.Count()))
+		ee.population.CalculateFitnesses(ee.fitnessCalculator)
+		ee.logger.Info("Initial population fitness calculation complete")
+	}
+	
 	// Sort population by fitness (descending)
 	ee.sortPopulation()
 	// Create new population
