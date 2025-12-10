@@ -1,3 +1,21 @@
+## [1.22.0](https://github.com/bxrne/darwin/compare/v1.21.0...v1.22.0) (2025-12-10)
+
+
+### Features
+
+* **health:** implement health check functionality with HealthRequest and HealthResponse messages ([5be8b4d](https://github.com/bxrne/darwin/commit/5be8b4d94f3ad616c35c4ae6505fb6ce7813b7be))
+
+
+### Bug Fixes
+
+* **health:** enhance error handling in server health check by logging disconnect failures and read deadline issues ([945157d](https://github.com/bxrne/darwin/commit/945157d8ce18a99fc9d688adede70ff550502134))
+
+
+### Code Refactoring
+
+* **evolution:** clean up whitespace in engine.go for improved readability ([36c1680](https://github.com/bxrne/darwin/commit/36c168059da774999734eadf11115f53ab493fdb))
+* **evolution:** move initial population fitness calculation to generation processing ([610fabe](https://github.com/bxrne/darwin/commit/610fabe8b09f4426444c5312c5a41a8239370c73))
+
 ## [1.21.0](https://github.com/bxrne/darwin/compare/v1.20.0...v1.21.0) (2025-12-10)
 
 
