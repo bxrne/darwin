@@ -70,6 +70,8 @@ func (ee *EvolutionEngine) Start(ctx context.Context) {
 
 				switch cmd.Type {
 				case CmdStartGeneration:
+					// Log immediately when command is received (before processing starts)
+					ee.logger.Info("Received generation command", zap.Int("generation", cmd.Generation))
 					ee.processGeneration(cmd)
 				case CmdStop:
 					return
