@@ -44,24 +44,26 @@ func main() {
 	var handler MetricsHandler
 
 	// Always add logging handler
+	// Use logger directly (not sugar) for better performance and ordering
 	logHandler := func(m metrics.GenerationMetrics) {
 		logInterval := cfg.Evolution.Generations / 10
 		if logInterval == 0 {
 			logInterval = 1
 		}
 		if m.Generation%logInterval == 0 || m.Generation == 1 || m.Generation == cfg.Evolution.Generations {
-			sugar.Infow("",
-				"gen", m.Generation,
-				"ns", m.Duration.Nanoseconds(),
-				"best_fit", fmt.Sprintf("%.3f", m.BestFitness),
-				"avg_fit", fmt.Sprintf("%.3f", m.AvgFitness),
-				"min_fit", fmt.Sprintf("%.3f", m.MinFitness),
-				"max_fit", fmt.Sprintf("%.3f", m.MaxFitness),
-				"pop_size", m.PopulationSize,
-				"best_desc", m.BestDescription,
-				"min_depth", m.MinDepth,
-				"max_depth", m.MaxDepth,
-				"avg_depth", fmt.Sprintf("%.2f", m.AvgDepth),
+			// Use structured logging with proper field types for better ordering
+			logger.Info("Generation metrics",
+				zap.Int("gen", m.Generation),
+				zap.Int64("ns", m.Duration.Nanoseconds()),
+				zap.String("best_fit", fmt.Sprintf("%.3f", m.BestFitness)),
+				zap.String("avg_fit", fmt.Sprintf("%.3f", m.AvgFitness)),
+				zap.String("min_fit", fmt.Sprintf("%.3f", m.MinFitness)),
+				zap.String("max_fit", fmt.Sprintf("%.3f", m.MaxFitness)),
+				zap.Int("pop_size", m.PopulationSize),
+				zap.String("best_desc", m.BestDescription),
+				zap.Int("min_depth", m.MinDepth),
+				zap.Int("max_depth", m.MaxDepth),
+				zap.String("avg_depth", fmt.Sprintf("%.2f", m.AvgDepth)),
 			)
 		}
 	}
