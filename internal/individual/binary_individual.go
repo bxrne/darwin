@@ -106,3 +106,9 @@ func (i *BinaryIndividual) Clone() Evolvable {
 		Fitness: i.Fitness,
 	}
 }
+
+func (i *BinaryIndividual) GetMetrics() map[string]float64 {
+	return map[string]float64{
+		"fit": i.Fitness,
+	}
+}

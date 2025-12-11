@@ -2,6 +2,8 @@ package evolution
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"sort"
 	"sync"
 	"time"
@@ -171,7 +173,7 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	}
 
 	// Log completion after metrics are sent to ensure ordering
-	ee.logger.Info("Generation completed", zap.Int("generation", cmd.Generation), zap.Int64("duration_ms", duration.Milliseconds()), zap.Float64("best_fitness", genMetrics.BestFitness))
+	ee.logger.Info("Generation completed", zap.Int("generation", cmd.Generation), zap.Int64("duration_ms", duration.Milliseconds()))
 }
 
 // sortPopulation sorts the population by fitness (descending)
@@ -191,75 +193,47 @@ func (ee *EvolutionEngine) calculateMetrics(generation int, duration time.Durati
 			Timestamp:      time.Now(),
 		}
 	}
+	metricsMap := ee.population.Get(0).GetMetrics()
+	totalMetricValues := make(map[string]float64, len(metricsMap))
+	minMetricValues := make(map[string]float64, len(metricsMap))
+	maxMetricValues := make(map[string]float64, len(metricsMap))
 
-	totalFitness := 0.0
-	maxFitness := ee.population.Get(0).GetFitness()
-	minFitness := ee.population.Get(0).GetFitness()
-
+	for key := range metricsMap {
+		totalMetricValues[key] = 0
+		minMetricValues[key] = math.Inf(1)  // +∞
+		maxMetricValues[key] = math.Inf(-1) // -∞
+	}
 	for i := range ee.population.Count() {
-		fitness := ee.population.Get(i).GetFitness()
-		totalFitness += fitness
-		if fitness > maxFitness {
-			maxFitness = fitness
-		}
-		if fitness < minFitness {
-			minFitness = fitness
+		currentMetricsMap := ee.population.Get(i).GetMetrics()
+		for j, value := range currentMetricsMap {
+			totalMetricValues[j] += value
+			if value > maxMetricValues[j] {
+				maxMetricValues[j] = value
+			}
+			if minMetricValues[j] > value {
+				minMetricValues[j] = value
+			}
 		}
 	}
 
-	avgFitness := totalFitness / float64(ee.population.Count())
+	overallMetrics := make(map[string]float64, len(metricsMap)*3)
+
+	for key, _ := range totalMetricValues {
+		avgKey := fmt.Sprintf("avg_%s", key)
+		minKey := fmt.Sprintf("min_%s", key)
+		maxKey := fmt.Sprintf("max_%s", key)
+		overallMetrics[avgKey] = totalMetricValues[key] / float64(ee.population.Count())
+		overallMetrics[minKey] = minMetricValues[key]
+		overallMetrics[maxKey] = maxMetricValues[key]
+	}
+
 	bestDescription := ee.population.Get(0).Describe()
-	minDepth := -1
-	maxDepth := -1
-	totalDepth := 0.0
-	depthCount := 0
-	for citizenIndex := range ee.population.Count() {
-		var depth int
-		var found bool
-
-		// Check if it's a Tree
-		if tree, ok := ee.population.Get(citizenIndex).(*individual.Tree); ok {
-			depth = tree.GetDepth()
-			found = true
-		} else if actionTree, ok := ee.population.Get(citizenIndex).(*individual.ActionTreeIndividual); ok {
-			// For ActionTreeIndividual, calculate average depth across all trees
-			if len(actionTree.Trees) > 0 {
-				sumDepth := 0
-				for _, tree := range actionTree.Trees {
-					sumDepth += tree.GetDepth()
-				}
-				depth = sumDepth / len(actionTree.Trees)
-				found = true
-			}
-		}
-
-		if found {
-			if minDepth == -1 || depth < minDepth {
-				minDepth = depth
-			}
-			if maxDepth == -1 || depth > maxDepth {
-				maxDepth = depth
-			}
-			totalDepth += float64(depth)
-			depthCount++
-		}
-	}
-	avgDepth := 0.0
-	if depthCount > 0 {
-		avgDepth = totalDepth / float64(depthCount)
-	}
 
 	return metrics.GenerationMetrics{
 		Generation:      generation,
 		Duration:        duration,
-		BestFitness:     maxFitness,
-		AvgFitness:      avgFitness,
-		MinFitness:      minFitness,
-		MaxFitness:      maxFitness,
 		BestDescription: bestDescription,
-		MinDepth:        minDepth,
-		MaxDepth:        maxDepth,
-		AvgDepth:        avgDepth,
+		Metrics:         overallMetrics,
 		PopulationSize:  ee.population.Count(),
 		Timestamp:       time.Now(),
 	}

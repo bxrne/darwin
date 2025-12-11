@@ -10,6 +10,7 @@ type Evolvable interface {
 	SetFitness(fitness float64)
 	Clone() Evolvable
 	Describe() string
+	GetMetrics() map[string]float64
 }
 
 type GenomeType int

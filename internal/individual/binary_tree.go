@@ -477,6 +477,10 @@ func (tn *TreeNode) mutateRecursive(rate float64, primitiveSet []string, termina
 	return tn
 }
 
+func (t *Tree) GetMetrics() map[string]float64 {
+	return map[string]float64{}
+}
+
 // Clone creates a deep copy of the tree
 func (t *Tree) Clone() Evolvable {
 	clonedRoot := t.Root.cloneNode()
