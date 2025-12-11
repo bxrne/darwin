@@ -9,10 +9,11 @@ import (
 
 // CSVWriter handles writing generation metrics to a CSV file
 type CSVWriter struct {
-	file        *os.File
-	writer      *csv.Writer
-	mu          sync.Mutex
-	initialized bool
+	file         *os.File
+	writer       *csv.Writer
+	mu           sync.Mutex
+	initialized  bool
+	isFirstWrite bool
 }
 
 // NewCSVWriter creates a new CSV writer for the specified file
@@ -25,38 +26,13 @@ func NewCSVWriter(filename string) (*CSVWriter, error) {
 	csvWriter := csv.NewWriter(file)
 
 	csvw := &CSVWriter{
-		file:   file,
-		writer: csvWriter,
-	}
-
-	// Write header
-	if err := csvw.writeHeader(); err != nil {
-		file.Close()
-		return nil, fmt.Errorf("failed to write CSV header: %w", err)
+		file:         file,
+		writer:       csvWriter,
+		isFirstWrite: false,
 	}
 
 	csvw.initialized = true
 	return csvw, nil
-}
-
-// writeHeader writes the CSV header row
-func (csvw *CSVWriter) writeHeader() error {
-	header := []string{
-		"generation",
-		"duration_ns",
-		"best_fitness",
-		"avg_fitness",
-		"min_fitness",
-		"max_fitness",
-		"best_description",
-		"min_depth",
-		"max_depth",
-		"avg_depth",
-		"population_size",
-		"timestamp",
-	}
-
-	return csvw.writer.Write(header)
 }
 
 // WriteMetrics writes a single generation metrics row to the CSV
@@ -68,19 +44,36 @@ func (csvw *CSVWriter) WriteMetrics(metrics GenerationMetrics) error {
 	csvw.mu.Lock()
 	defer csvw.mu.Unlock()
 
+	// --- Write header if first generation ---
+	if csvw.isFirstWrite {
+		header := []string{"generation", "duration_ns", "population_size", "timestamp"}
+
+		// Add all metric keys dynamically
+		for key := range metrics.Metrics {
+			header = append(header, key)
+		}
+
+		if err := csvw.writer.Write(header); err != nil {
+			return fmt.Errorf("failed to write CSV header: %w", err)
+		}
+		csvw.writer.Flush()
+		if err := csvw.writer.Error(); err != nil {
+			return fmt.Errorf("failed to flush CSV writer: %w", err)
+		}
+		csvw.isFirstWrite = false
+	}
+
+	// --- Build CSV row ---
 	record := []string{
 		fmt.Sprintf("%d", metrics.Generation),
 		fmt.Sprintf("%d", metrics.Duration.Nanoseconds()),
-		fmt.Sprintf("%.6f", metrics.BestFitness),
-		fmt.Sprintf("%.6f", metrics.AvgFitness),
-		fmt.Sprintf("%.6f", metrics.MinFitness),
-		fmt.Sprintf("%.6f", metrics.MaxFitness),
-		metrics.BestDescription,
-		fmt.Sprintf("%d", metrics.MinDepth),
-		fmt.Sprintf("%d", metrics.MaxDepth),
-		fmt.Sprintf("%.2f", metrics.AvgDepth),
 		fmt.Sprintf("%d", metrics.PopulationSize),
 		metrics.Timestamp.Format("2006-01-02T15:04:05.000Z"),
+	}
+
+	// Append metric values in same order as header
+	for key := range metrics.Metrics {
+		record = append(record, fmt.Sprintf("%f", metrics.Metrics[key]))
 	}
 
 	if err := csvw.writer.Write(record); err != nil {

@@ -136,3 +136,10 @@ func (i *GrammarTree) Clone() Evolvable {
 		Fitness: i.Fitness,
 	}
 }
+
+func (t *GrammarTree) GetMetrics() map[string]float64 {
+	return map[string]float64{
+		"fit":   t.Fitness,
+		"depth": float64(t.Root.CalculateMaxDepth()),
+	}
+}

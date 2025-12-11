@@ -10,7 +10,7 @@ selection_type = "tournament"
 seed = 42
 
 [fitness]
-test_case_count = 1
+test_case_count = 3
 target_function = "(x^3)*y+y^3"
 
 
@@ -50,7 +50,7 @@ enabled = true
 opponent_type = "random"
 max_steps = 1600
 weights_count = 10
-weights_column_count = 3
+weights_column_count = 7
 server_addr = "127.0.0.1:5000"
 train_weights_first = false
 fitness_selection_percentage = 0.1

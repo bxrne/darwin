@@ -118,3 +118,9 @@ func (wi *WeightsIndividual) Mutate(rate float64, mutateInformation *MutateInfor
 func (wi *WeightsIndividual) SetFitness(fitness float64) {
 	wi.fitness = fitness
 }
+
+func (wi *WeightsIndividual) GetMetrics() map[string]float64 {
+	return map[string]float64{
+		"fit": wi.GetFitness(),
+	}
+}
