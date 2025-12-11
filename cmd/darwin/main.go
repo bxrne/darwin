@@ -56,19 +56,17 @@ func main() {
 		}
 		if m.Generation%logInterval == 0 || m.Generation == 1 || m.Generation == cfg.Evolution.Generations {
 			// Use structured logging with proper field types for better ordering
-			logger.Info("Generation metrics",
+			fields := []zap.Field{
 				zap.Int("gen", m.Generation),
 				zap.Int64("ns", m.Duration.Nanoseconds()),
-				zap.String("best_fit", fmt.Sprintf("%.3f", m.BestFitness)),
-				zap.String("avg_fit", fmt.Sprintf("%.3f", m.AvgFitness)),
-				zap.String("min_fit", fmt.Sprintf("%.3f", m.MinFitness)),
-				zap.String("max_fit", fmt.Sprintf("%.3f", m.MaxFitness)),
-				zap.Int("pop_size", m.PopulationSize),
 				zap.String("best_desc", m.BestDescription),
-				zap.Int("min_depth", m.MinDepth),
-				zap.Int("max_depth", m.MaxDepth),
-				zap.String("avg_depth", fmt.Sprintf("%.2f", m.AvgDepth)),
-			)
+			}
+
+			// Add all metrics dynamically
+			for k, v := range m.Metrics {
+				fields = append(fields, zap.Float64(k, v))
+			}
+			logger.Info("Generation metrics", fields...)
 		}
 	}
 
@@ -96,47 +94,13 @@ func main() {
 		handler = logHandler
 	}
 
-	finalPop, metricsComplete, err := RunEvolution(ctx, cfg, handler, logger)
+	_, metricsComplete, err := RunEvolution(ctx, cfg, handler, logger)
 	if err != nil {
 		sugar.Fatalw("Evolution failed", "error", err.Error())
 	}
 
 	// Wait for metrics to finish processing before calculating final stats
 	<-metricsComplete
-
-	if len(finalPop) > 0 {
-		bestFitness := finalPop[0].GetFitness()
-		totalFitness := 0.0
-		minFitness := finalPop[0].GetFitness()
-
-		for _, ind := range finalPop {
-			fitness := ind.GetFitness()
-			totalFitness += fitness
-			if fitness > bestFitness {
-				bestFitness = fitness
-			}
-			if fitness < minFitness {
-				minFitness = fitness
-			}
-		}
-
-		avgFitness := totalFitness / float64(len(finalPop))
-		bestIndividual := finalPop[0]
-		for _, ind := range finalPop {
-			if ind.GetFitness() == bestFitness {
-				bestIndividual = ind
-				break
-			}
-		}
-
-		sugar.Infow("Evolution complete",
-			"population_size", len(finalPop),
-			"best_fitness", fmt.Sprintf("%.3f", bestFitness),
-			"avg_fitness", fmt.Sprintf("%.3f", avgFitness),
-			"min_fitness", fmt.Sprintf("%.3f", minFitness),
-			"best_individual", bestIndividual.Describe(),
-		)
-	}
 
 	sugar.Info("Evolution finished successfully")
 }

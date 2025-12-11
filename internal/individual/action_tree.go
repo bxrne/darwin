@@ -117,6 +117,18 @@ func NewActionTreeIndividual(actions []ActionTuple, initialTrees map[string]*Tre
 	}
 }
 
+func (ati *ActionTreeIndividual) GetMetrics() map[string]float64 {
+	treeDepths := 0
+
+	for _, tree := range ati.Trees {
+		treeDepths += tree.Root.CalculateMaxDepth()
+	}
+	return map[string]float64{
+		"fit":   ati.GetFitness(),
+		"depth": float64(treeDepths) / float64(len(ati.Trees)),
+	}
+}
+
 // NewRandomActionTreeIndividual creates a new ActionTreeIndividual with random trees
 func NewRandomActionTreeIndividual(actions []ActionTuple, maxDepth int, operands []string, variables []string, terminals []string) *ActionTreeIndividual {
 	trees := make(map[string]*Tree)
