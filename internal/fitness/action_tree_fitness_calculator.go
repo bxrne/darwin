@@ -228,7 +228,6 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 				zap.Bool("terminated", obs.Terminated),
 				zap.Bool("truncated", obs.Truncated))
 			// Extract final game state
-			totalReward += obs.Reward
 			break
 		}
 
@@ -253,7 +252,7 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 			totalReward -= 10 // Try to reduce them but not totally kill them as genome parts could still be good if one tree is bad
 		}
 	}
-	if totalReward > 30.0 {
+	if totalReward > 5.0 {
 		err = client.RequestReplay()
 		if err != nil {
 			zap.L().Error("Failed to getReplay", zap.Error(err))

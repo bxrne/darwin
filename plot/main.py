@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 # Load the CSV
-df = pd.read_csv("~/Documents/default_metrics2.csv")
+df = pd.read_csv("../test_small_argmax.csv")
 
 # Split into two dataframes:
 # Trees → depth > 0
