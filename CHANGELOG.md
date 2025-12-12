@@ -1,3 +1,21 @@
+## [1.23.2](https://github.com/bxrne/darwin/compare/v1.23.1...v1.23.2) (2025-12-12)
+
+
+### Bug Fixes
+
+* **report:** implementation is smaller and more focused on the project itself ([e6c4d8f](https://github.com/bxrne/darwin/commit/e6c4d8f84640bfc5bbada2339d3385dcf33ab05f))
+
+
+### Documentation
+
+* **report:** Add description of WeightsIndividual and its role in action tree evaluation ([40638f5](https://github.com/bxrne/darwin/commit/40638f514b1052692f8f74e2a476c368bcfa2470))
+* **report:** Add valid action mapping section to clarify action selection constraints ([7117146](https://github.com/bxrne/darwin/commit/71171469dbbfb7c665e25a3bc0f0bc405b59eb61))
+
+
+### Miscellaneous Chores
+
+* **report:** pull sections out ([1bc0729](https://github.com/bxrne/darwin/commit/1bc0729e15352d5a042611cd436984185a538b42))
+
 ## [1.23.1](https://github.com/bxrne/darwin/compare/v1.23.0...v1.23.1) (2025-12-12)
 
 
