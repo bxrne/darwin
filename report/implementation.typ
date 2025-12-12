@@ -118,6 +118,35 @@ The `ActionTreeIndividual` contains a collection of expression trees, one for ea
 
 *Max*: Returns ActionTreeIndividual with higher fitness for offspring selection.
 
+==== Weights Individual
+
+The `WeightsIndividual` (`internal/individual/weights.go`) represents a weight matrix that biasesaction tree outputs during action selection. Each weights individual contains a dense matrix of floating-point values that serve as inputs to action trees during evaluation.
+
+*Structure*: Contains `Weights` (dense matrix from gonum), `fitness`, `minVal`/`maxVal` (bounds for mutation, default: -5.0 to 5.0), and `clientId` for tracking which game client produced the best fitness.
+
+*Initialization*: Weights individuals are initialized with random values uniformly distributed between -5.0 and 5.0. Matrix dimensions are determined by configuration:
+- Height (`maxNumInputs`): Maximum value across all action types, determining how many weight rows are available
+- Width (`weights_column_count`): Number of weight columns, corresponding to the number of weight variables (`w0, w1, ..., wN`) that action trees can access (max depth of the action trees)
+
+The weights population size is configured separately via `weights_count` (default: 5), which is typically smaller than the action tree population size.
+
+*Usage in Action Evaluation*: During action tree evaluation, each row of the weight matrix is used as inputs to the action trees. For each weight row, the values (`w0, w1, ..., wN`) are set as variables in the tree evaluation context, and all action trees are evaluated with those weight values. This produces multiple outputs per action tree (one per weight row), which are then combined using softmax selection to produce the final action vector.
+
+
+*Genetic Operations*:
+
+*Mutation*: Each weight value in the matrix is independently mutated with probability equal to the mutation rate. When mutated, the value is reset to a random value uniformly distributed between `minVal` and `maxVal` (default: -5.0 to 5.0). This allows weights to explore the full range of possible values.
+
+*Crossover*: Multipoint crossover is performed along the column dimension. Crossover points are randomly selected along columns, and weight values are swapped between parents at those points. The crossover alternates which parent's values are inherited, creating offspring that combine weight patterns from both parents.
+
+*Clone*: Creates a deep copy of the weight matrix, ensuring independent mutation and crossover operations without side effects.
+
+*Max*: Returns WeightsIndividual with higher fitness, used during offspring generation to select the better of two children.
+
+*Fitness Evaluation*: Weights individuals are evaluated by testing them against all action trees in the population. Each weight-tree combination is evaluated across `test_case_count` games, and the weight's fitness is the maximum fitness achieved across all tree combinations. This ensures weights are optimized for the best-performing action trees.
+
+*Backpropagation Emulation*: The WeightsIndividual representation enables the system to emulate backpropagation purely through evolutionary algorithms. In neural networks, backpropagation optimizes weight matrices using gradient descent to minimize loss. Here, Genetic Algorithms evolve weight matrices using selection, crossover, and mutation to maximize fitness. The weights modulate action tree outputs in the same way neural network weights modulate neuron outputs each weight row provides inputs that influence how action trees evaluate game state. Research demonstrates that GA-based weight optimization provides a competitive alternative to gradient-based methods, avoiding local minima while maintaining performance @Petroski2018Deep. By evolving weights through GA rather than backpropagation, the system achieves weight optimization without requiring differentiable functions or gradient computation, enabling pure evolutionary optimization of game-playing strategies.
+
 ==== Other Individual Types
 
 *Bitstring Individuals*: Traditional GA with fixed length binary genomes.
