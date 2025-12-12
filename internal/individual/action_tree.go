@@ -1,7 +1,5 @@
 package individual
 
-import "fmt"
-
 // ActionTreeIndividual implements an individual composed of action trees and a weights matrix for action selection
 type ActionTreeIndividual struct {
 	Trees    map[string]*Tree // action name -> action tree
@@ -118,15 +116,41 @@ func NewActionTreeIndividual(actions []ActionTuple, initialTrees map[string]*Tre
 }
 
 func (ati *ActionTreeIndividual) GetMetrics() map[string]float64 {
-	treeDepths := 0
+	totalDepth := 0
+	totalNodes := 0
+
+	// Accumulate parameter frequencies over all trees
+	totalParamFreq := make(map[string]int)
 
 	for _, tree := range ati.Trees {
-		treeDepths += tree.Root.CalculateMaxDepth()
+		// Depth
+		depth := tree.Root.CalculateMaxDepth()
+		totalDepth += depth
+
+		// Nodes + variable frequencies
+		numNodes, freq := tree.CountNodesAndVars()
+		totalNodes += numNodes
+
+		// Merge frequencies into global param frequency map
+		for param, count := range freq {
+			totalParamFreq[param] += count
+		}
 	}
-	return map[string]float64{
+
+	n := float64(len(ati.Trees))
+
+	metrics := map[string]float64{
 		"fit":   ati.GetFitness(),
-		"depth": float64(treeDepths) / float64(len(ati.Trees)),
+		"depth": float64(totalDepth) / n,
+		"nodes": float64(totalNodes) / n,
 	}
+
+	// Add each parameter as its own metric key
+	for param, count := range totalParamFreq {
+		metrics[param] = float64(count) / n // average across trees
+	}
+
+	return metrics
 }
 
 // NewRandomActionTreeIndividual creates a new ActionTreeIndividual with random trees
@@ -135,8 +159,7 @@ func NewRandomActionTreeIndividual(actions []ActionTuple, maxDepth int, operands
 
 	// Create random tree for each action
 	for _, action := range actions {
-		tree := NewFullTree(maxDepth, operands, variables, terminals)
-		fmt.Println(tree.Root.CalculateMaxDepth())
+		tree := NewRandomTree(maxDepth, operands, variables, terminals)
 		trees[action.Name] = tree
 	}
 

@@ -73,7 +73,6 @@ func (ee *EvolutionEngine) Start(ctx context.Context) {
 				switch cmd.Type {
 				case CmdStartGeneration:
 					// Log immediately when command is received (before processing starts)
-					ee.logger.Info("Received generation command", zap.Int("generation", cmd.Generation))
 					ee.processGeneration(cmd)
 				case CmdStop:
 					return
@@ -123,14 +122,6 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	start := time.Now()
 	ee.logger.Info("Starting generation", zap.Int("generation", cmd.Generation))
-
-	// For generation 1, calculate fitness for the initial population first
-	// (initial population doesn't have fitness calculated yet)
-	if cmd.Generation == 1 {
-		ee.logger.Info("Calculating fitness for initial population (generation 1)", zap.Int("population_size", ee.population.Count()))
-		ee.population.CalculateFitnesses(ee.fitnessCalculator)
-		ee.logger.Info("Initial population fitness calculation complete")
-	}
 
 	// Sort population by fitness (descending)
 	ee.sortPopulation()
@@ -227,6 +218,7 @@ func (ee *EvolutionEngine) calculateMetrics(generation int, duration time.Durati
 		overallMetrics[maxKey] = maxMetricValues[key]
 	}
 
+	ee.sortPopulation()
 	bestDescription := ee.population.Get(0).Describe()
 
 	return metrics.GenerationMetrics{

@@ -9,9 +9,10 @@ import (
 )
 
 type ActionTreeAndWeightsPopulation struct {
-	actionTrees       []individual.Evolvable
-	Weights           []individual.Evolvable
-	isTrainingWeights bool
+	actionTrees          []individual.Evolvable
+	Weights              []individual.Evolvable
+	isTrainingWeights    bool
+	switchPopulationStep int
 }
 
 func NewActionTreeAndWeightsPopulation(populationInfo *PopulationInfo, creator func() individual.Evolvable) *ActionTreeAndWeightsPopulation {
@@ -26,7 +27,7 @@ func NewActionTreeAndWeightsPopulation(populationInfo *PopulationInfo, creator f
 	}
 
 	return &ActionTreeAndWeightsPopulation{actionTrees: actionTreePopulation,
-		Weights: weightsPopulation, isTrainingWeights: populationInfo.trainWeightsFirst}
+		Weights: weightsPopulation, isTrainingWeights: populationInfo.trainWeightsFirst, switchPopulationStep: populationInfo.SwitchPopulationStep}
 }
 
 func (at *ActionTreeAndWeightsPopulation) Get(index int) individual.Evolvable {
@@ -37,7 +38,7 @@ func (at *ActionTreeAndWeightsPopulation) Get(index int) individual.Evolvable {
 }
 
 func (at *ActionTreeAndWeightsPopulation) Update(generation int, fitnessCalc fitness.FitnessCalculator) {
-	if generation%10 == 0 {
+	if generation%at.switchPopulationStep == 0 {
 		at.isTrainingWeights = !at.isTrainingWeights
 		at.CalculateFitnesses(fitnessCalc)
 	}

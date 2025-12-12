@@ -124,7 +124,6 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 				if err != nil {
 					zap.L().Error("Failed to setup game and run", zap.Error(err))
 				} else {
-
 					sum += Score(fitness, 0.5)
 					clientId += currentClientId + " " + strconv.FormatFloat(fitness, 'f', -1, 64) + " : "
 				}
@@ -259,10 +258,10 @@ func (atfc *ActionTreeFitnessCalculator) playGame(client *TCPClient, weightsInd 
 	}
 	for _, actionIsntConstant := range constantActionSelectionTracker {
 		if !actionIsntConstant {
-			totalReward -= 5 // Try to reduce them but not totally kill them as genome parts could still be good if one tree is bad
+			totalReward -= 10 // Try to reduce them but not totally kill them as genome parts could still be good if one tree is bad
 		}
 	}
-	if totalReward > 4.0 {
+	if totalReward > 30.0 {
 		err = client.RequestReplay()
 		if err != nil {
 			zap.L().Error("Failed to getReplay", zap.Error(err))

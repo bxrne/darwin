@@ -1,262 +1,170 @@
-import os
-import argparse 
-from pathlib import Path
-
 import pandas as pd
-import numpy as np 
-import seaborn as sns
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
+# Load the CSV
+df = pd.read_csv("../new_test.csv")
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Evolution Metrics Plotting Script")
-    parser.add_argument(
-        "--csv",
-        type=str,
-        default="../default_metrics.csv",
-        help="Path to the CSV file containing metrics data."
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=str,
-        default="./output",
-        help="Directory to save generated plots."
-    )
-    return parser.parse_args()
+# Split into two dataframes:
+# Trees → depth > 0
+trees = df[df["avg_depth"] != 0]
 
-def setup_plotting_style() -> None:
-    """Configure matplotlib and seaborn styling."""
-    plt.style.use('seaborn-v0_8-darkgrid')
-    sns.set_palette("tab10")
-    plt.rcParams.update({
-        'figure.figsize': (12, 8),
-        'font.size': 10,
-        'axes.titlesize': 14,
-        'axes.labelsize': 12,
-        'xtick.labelsize': 10,
-        'ytick.labelsize': 10,
-        'legend.fontsize': 10,
-        'figure.dpi': 100,
-        'savefig.dpi': 300,
-        'savefig.bbox': 'tight'
-    })
+# Weights → depth == 0
+weights = df[df["avg_depth"] == 0]
 
-def plot_fitness_evolution(data: pd.DataFrame, output_dir: Path) -> None:
-    """Create fitness progression plot showing best/avg/min/max fitness over generations."""
-    fig, ax = plt.subplots(figsize=(12, 8))
-    
-    # Plot fitness metrics
-    ax.plot(data['generation'], data['best_fitness'], label='Best Fitness', linewidth=2, color='green')
-    ax.plot(data['generation'], data['avg_fitness'], label='Average Fitness', linewidth=2, color='blue')
-    ax.plot(data['generation'], data['min_fitness'], label='Min Fitness', linewidth=1, alpha=0.7, color='red')
-    ax.plot(data['generation'], data['max_fitness'], label='Max Fitness', linewidth=1, alpha=0.7, color='orange')
-    
-    ax.set_xlabel('Generation')
-    ax.set_ylabel('Fitness')
-    ax.set_title('Fitness Evolution Over Generations')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    
-    # Format y-axis to show scientific notation for better readability
-    ax.yaxis.set_major_formatter(mticker.ScalarFormatter(useMathText=True))
-    ax.ticklabel_format(style='scientific', axis='y', scilimits=(0,0))
-    
+
+trees = trees.reset_index(drop=True)
+weights = weights.reset_index(drop=True)
+
+# trees = your dataframe created earlier
+# trees = df[df["avg_depth"] != 0]
+# Simple moving average smoother
+
+
+def smooth(series, window=5):
+    return series.rolling(window=window, center=True, min_periods=1).mean()
+
+# ----------------------------------------------------------------------
+# Plot avg/min/max for a metric (with shading under average)
+# ----------------------------------------------------------------------
+
+
+def plot_metric_group(df, base_name, title, smooth_window=5):
+    plt.figure(figsize=(10, 5))
+    x = df.index
+
+    # Smooth curves
+    min_y = smooth(df[f"min_{base_name}"], window=smooth_window)
+    avg_y = smooth(df[f"avg_{base_name}"], window=smooth_window)
+    max_y = smooth(df[f"max_{base_name}"], window=smooth_window)
+
+    # Plot lines
+    line_min = plt.plot(x, min_y, label=f"min_{base_name}")[0]
+    line_avg = plt.plot(x, avg_y, label=f"avg_{base_name}")[0]
+    line_max = plt.plot(x, max_y, label=f"max_{base_name}")[0]
+
+    min_color = line_min.get_color()
+    avg_color = line_avg.get_color()
+    max_color = line_max.get_color()
+
+    # --- Layered shading “following the curves” ---
+    plt.fill_between(x, 0, min_y, color=min_color,
+                     alpha=0.22)      # min: from 0 to min
+    plt.fill_between(x, min_y, avg_y, color=avg_color,
+                     alpha=0.22)  # avg: min to avg
+    plt.fill_between(x, avg_y, max_y, color=max_color,
+                     alpha=0.22)  # max: avg to max
+
+    plt.xlabel("Index")
+    plt.ylabel(base_name)
+    plt.title(title)
+    plt.legend()
     plt.tight_layout()
-    plt.savefig(output_dir / 'fitness_evolution.png')
-    plt.close()
+    plt.show()
 
-def plot_complexity_evolution(data: pd.DataFrame, output_dir: Path) -> None:
-    """Create tree complexity evolution plot showing depth statistics over generations."""
-    fig, ax = plt.subplots(figsize=(12, 8))
-    
-    # Plot depth metrics
-    ax.plot(data['generation'], data['min_depth'], label='Min Depth', linewidth=2, color='lightblue')
-    ax.plot(data['generation'], data['avg_depth'], label='Average Depth', linewidth=2, color='blue')
-    ax.plot(data['generation'], data['max_depth'], label='Max Depth', linewidth=2, color='darkblue')
-    
-    # Fill area between min and max depth
-    ax.fill_between(data['generation'], data['min_depth'], data['max_depth'], 
-                   alpha=0.2, color='blue', label='Depth Range')
-    
-    ax.set_xlabel('Generation')
-    ax.set_ylabel('Tree Depth')
-    ax.set_title('Tree Complexity Evolution')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    ax.set_ylim(bottom=0)
-    
+
+# ----------------------------------------------------------------------
+# 1. DEPTH
+# ----------------------------------------------------------------------
+plot_metric_group(trees, "depth", "Tree Depth (smoothed)")
+
+# ----------------------------------------------------------------------
+# 2. NODES
+# ----------------------------------------------------------------------
+plot_metric_group(trees, "nodes", "Node Count (smoothed)")
+
+# ----------------------------------------------------------------------
+# 3. FITNESS
+# ----------------------------------------------------------------------
+plot_metric_group(trees, "fit", "Fitness (smoothed)")
+
+# ----------------------------------------------------------------------
+# 4. ALL W0–W7 VALUES ON ONE PLOT
+# ----------------------------------------------------------------------
+
+
+def plot_all_w_values(df, smooth_window=5):
+    plt.figure(figsize=(12, 6))
+    x = df.index
+
+    for w in range(0, 8):
+        base = f"w{w}"
+        for prefix in ["avg_"]:
+            col = prefix + base
+            if col in df.columns:
+                y_smoothed = smooth(df[col], window=smooth_window)
+                plt.plot(x, y_smoothed, label=col)
+
+                # Shade under avg only
+                if prefix == "avg_":
+                    plt.fill_between(x, y_smoothed, alpha=0.12)
+
+    plt.xlabel("Index")
+    plt.ylabel("Weight values")
+    plt.title("All w-values (avg/min/max for w0–w7) — smoothed")
+    plt.legend(ncol=4, fontsize=8)
     plt.tight_layout()
-    plt.savefig(output_dir / 'complexity_evolution.png')
-    plt.close()
+    plt.show()
 
-def plot_performance_metrics(data: pd.DataFrame, output_dir: Path) -> None:
-    """Create performance metrics plot showing generation duration and efficiency trends."""
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
-    
-    # Convert duration to milliseconds for better readability
-    duration_ms = data['duration_ns'] / 1_000_000
-    
-    # Plot 1: Generation Duration
-    ax1.plot(data['generation'], duration_ms, linewidth=2, color='purple')
-    ax1.set_ylabel('Duration (ms)')
-    ax1.set_title('Generation Performance Over Time')
-    ax1.grid(True, alpha=0.3)
-    
-    # Add moving average for trend
-    window_size = min(5, len(duration_ms))
-    if window_size > 1:
-        moving_avg = duration_ms.rolling(window=window_size, center=True).mean()
-        ax1.plot(data['generation'], moving_avg, linewidth=2, alpha=0.7, 
-                color='red', label=f'{window_size}-gen Moving Avg')
-        ax1.legend()
-    
-    # Plot 2: Performance Distribution
-    ax2.hist(duration_ms, bins=20, alpha=0.7, color='purple', edgecolor='black')
-    ax2.set_xlabel('Duration (ms)')
-    ax2.set_ylabel('Frequency')
-    ax2.set_title('Generation Duration Distribution')
-    ax2.grid(True, alpha=0.3)
-    
-    # Add statistics text
-    stats_text = f'Mean: {duration_ms.mean():.2f} ms\nStd: {duration_ms.std():.2f} ms'
-    ax2.text(0.02, 0.98, stats_text, transform=ax2.transAxes, 
-             verticalalignment='top', bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
-    
+
+plot_all_w_values(trees)
+
+# ----------------------------------------------------------------------
+# 5. REMAINING METRICS
+# ----------------------------------------------------------------------
+
+
+def plot_metric_group_list(df, base_names, title, smooth_window=5):
+    plt.figure(figsize=(14, 6))
+    x = df.index
+
+    for base_name in base_names:
+        # Skip if the metric doesn't exist
+        if f"min_{base_name}" not in df.columns:
+            continue
+
+        avg_y = smooth(df[f"avg_{base_name}"], window=smooth_window)
+
+        # Plot lines
+        line_avg = plt.plot(x, avg_y, label=f"avg_{base_name}")[0]
+
+        # Get colors
+        avg_color = line_avg.get_color()
+
+        # Layered shading: min → avg → max
+        plt.fill_between(x, 0, avg_y, color=avg_color, alpha=0.18)
+
+    plt.xlabel("Index")
+    plt.ylabel("Value")
+    plt.title(title)
+    plt.legend(ncol=3, fontsize=8)
     plt.tight_layout()
-    plt.savefig(output_dir / 'performance_metrics.png')
-    plt.close()
+    plt.show()
 
-def plot_convergence_analysis(data: pd.DataFrame, output_dir: Path) -> None:
-    """Create convergence analysis plot with fitness improvement rate."""
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
-    
-    # Calculate fitness improvement rate
-    fitness_improvement = data['avg_fitness'].diff().fillna(0)
-    
-    # Plot 1: Fitness Improvement Rate
-    ax1.bar(data['generation'], fitness_improvement, alpha=0.7, color='teal')
-    ax1.axhline(y=0, color='black', linestyle='-', alpha=0.3)
-    ax1.set_ylabel('Fitness Improvement')
-    ax1.set_title('Fitness Improvement Rate per Generation')
-    ax1.grid(True, alpha=0.3)
-    
-    # Plot 2: Convergence Detection (rolling standard deviation)
-    window_size = min(10, len(data))
-    if window_size > 1:
-        rolling_std = data['avg_fitness'].rolling(window=window_size).std()
-        ax2.plot(data['generation'], rolling_std, linewidth=2, color='orange')
-        ax2.set_ylabel('Rolling Std Dev')
-        ax2.set_title(f'Convergence Stability ({window_size}-gen rolling std dev)')
-        ax2.grid(True, alpha=0.3)
-        
-        # Add convergence threshold line
-        threshold = rolling_std.quantile(0.25)  # 25th percentile as threshold
-        ax2.axhline(y=threshold, color='red', linestyle='--', alpha=0.7, 
-                   label=f'Convergence Threshold: {threshold:.3f}')
-        ax2.legend()
-    
-    plt.tight_layout()
-    plt.savefig(output_dir / 'convergence_analysis.png')
-    plt.close()
 
-def create_dashboard(data: pd.DataFrame, output_dir: Path) -> None:
-    """Create comprehensive dashboard with subplots for all key metrics."""
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
-    fig.suptitle('Evolution Algorithm Dashboard', fontsize=16, fontweight='bold')
-    
-    # Convert duration to milliseconds
-    duration_ms = data['duration_ns'] / 1_000_000
-    
-    # Subplot 1: Fitness Evolution
-    ax1.plot(data['generation'], data['best_fitness'], label='Best', linewidth=2)
-    ax1.plot(data['generation'], data['avg_fitness'], label='Average', linewidth=2)
-    ax1.plot(data['generation'], data['min_fitness'], label='Min', linewidth=1, alpha=0.7)
-    ax1.set_title('Fitness Evolution')
-    ax1.set_xlabel('Generation')
-    ax1.set_ylabel('Fitness')
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
-    
-    # Subplot 2: Tree Complexity
-    ax2.plot(data['generation'], data['min_depth'], label='Min', linewidth=2)
-    ax2.plot(data['generation'], data['avg_depth'], label='Average', linewidth=2)
-    ax2.plot(data['generation'], data['max_depth'], label='Max', linewidth=2)
-    ax2.fill_between(data['generation'], data['min_depth'], data['max_depth'], alpha=0.2)
-    ax2.set_title('Tree Complexity')
-    ax2.set_xlabel('Generation')
-    ax2.set_ylabel('Depth')
-    ax2.legend()
-    ax2.grid(True, alpha=0.3)
-    
-    # Subplot 3: Performance
-    ax3.plot(data['generation'], duration_ms, color='purple', linewidth=2)
-    ax3.set_title('Generation Duration')
-    ax3.set_xlabel('Generation')
-    ax3.set_ylabel('Duration (ms)')
-    ax3.grid(True, alpha=0.3)
-    
-    # Subplot 4: Fitness Distribution
-    ax4.hist(data['avg_fitness'], bins=15, alpha=0.7, color='skyblue', edgecolor='black')
-    ax4.set_title('Average Fitness Distribution')
-    ax4.set_xlabel('Average Fitness')
-    ax4.set_ylabel('Frequency')
-    ax4.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig(output_dir / 'dashboard.png')
-    plt.close()
+# ----------------------------------------------------------------------
+# Variable metrics (everything in variable_set)
+# ----------------------------------------------------------------------
+variable_set = [
+    "army_diff",
+    "land_diff",
+    "distance_to_enemy_general",
+    "enemy_general_x",
+    "max_owned_army_x",
+    "max_owned_army_y",
+    "enemy_general_y",
+    "min_city_x",
+    "min_city_y",
+    "visible_cities_count",
+    "visible_mountains_count",
+    "army_ratio",
+    "land_ratio",
+    "border_pressure",
+]
 
-def validate_data(data: pd.DataFrame) -> None:
-    """Validate that required columns exist in the dataframe."""
-    required_columns = [
-        'generation', 'duration_ns', 'best_fitness', 'avg_fitness', 
-        'min_fitness', 'max_fitness', 'min_depth', 'max_depth', 'avg_depth'
-    ]
-    
-    missing_columns = [col for col in required_columns if col not in data.columns]
-    if missing_columns:
-        raise ValueError(f"Missing required columns in CSV: {missing_columns}")
+plot_metric_group_list(trees, variable_set, "All Variables (min/avg/max)")
 
-    # drop bad values
-    data.replace([np.inf, -np.inf], np.nan, inplace=True)
-    data.dropna(subset=required_columns, inplace=True)
+# ----------------------------------------------------------------------
+# Operand metrics (everything in operand_set)
+# ----------------------------------------------------------------------
+operand_set = ["+", "-", "*", "/", "^"]
 
-def main(args: argparse.Namespace) -> None:
-    """Main function to generate all plots."""
-    if not os.path.exists(args.csv):
-        raise FileNotFoundError(f"CSV file not found: {args.csv}")
-    
-    # Create output directory
-    output_dir = Path(args.output_dir)
-    output_dir.mkdir(exist_ok=True)
-    
-    # Load and validate data
-    data = pd.read_csv(args.csv)
-    validate_data(data)
-    
-    # Setup plotting style
-    setup_plotting_style()
-    
-    print(f"Loaded {len(data)} generations of data from {args.csv}")
-    print(f"Generating plots in {output_dir}")
-    
-    # Generate all plots
-    print("Creating fitness evolution plot...")
-    plot_fitness_evolution(data, output_dir)
-    
-    print("Creating complexity evolution plot...")
-    plot_complexity_evolution(data, output_dir)
-    
-    print("Creating performance metrics plot...")
-    plot_performance_metrics(data, output_dir)
-    
-    print("Creating convergence analysis plot...")
-    plot_convergence_analysis(data, output_dir)
-    
-    print("Creating comprehensive dashboard...")
-    create_dashboard(data, output_dir)
-    
-    print(f"Plots saved successfully to {output_dir}")
-
-if __name__ == "__main__":
-    main(parse_args())
+plot_metric_group_list(trees, operand_set, "All Operands (min/avg/max)")
