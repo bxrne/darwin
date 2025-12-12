@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/bxrne/darwin/internal/cfg"
+	"github.com/bxrne/darwin/internal/individual"
 	"go.uber.org/zap"
 )
 
@@ -19,14 +20,31 @@ type benchmarkCase struct {
 }
 
 var benchmarkCases = []benchmarkCase{
+	// Existing BitString scenarios
 	{"BitString_Small", 100, 50, 10, "bitstring"},
-	{"Tree_Small", 100, 3, 10, "tree"},
 	{"BitString_Medium", 500, 200, 50, "bitstring"},
-	{"Tree_Medium", 500, 5, 50, "tree"},
 	{"BitString_Large", 1000, 500, 100, "bitstring"},
-	{"Tree_Large", 1000, 7, 100, "tree"},
 	{"BitString_Huge", 500, 5000, 10, "bitstring"},
+
+	// Existing Tree scenarios
+	{"Tree_Small", 100, 3, 10, "tree"},
+	{"Tree_Medium", 500, 5, 50, "tree"},
+	{"Tree_Large", 1000, 7, 100, "tree"},
 	{"Tree_Huge", 500, 10, 10, "tree"},
+
+	// NEW: GrammarTree scenarios
+	{"GrammarTree_Small", 100, 50, 10, "grammar_tree"},
+	{"GrammarTree_Medium", 500, 100, 50, "grammar_tree"},
+	{"GrammarTree_Large", 1000, 200, 100, "grammar_tree"},
+	{"GrammarTree_Huge", 500, 500, 10, "grammar_tree"},
+
+	// NEW: ActionTree scenario (requires game server)
+	{"ActionTree_GameServer", 200, 3, 25, "action_tree"},
+
+	// NEW: Comparative scenarios (same toy problem, different individual types)
+	{"Compare_BitString", 300, 150, 30, "bitstring"},
+	{"Compare_Tree", 300, 4, 30, "tree"},
+	{"Compare_GrammarTree", 300, 75, 30, "grammar_tree"},
 }
 
 func BenchmarkEvolution(b *testing.B) {
@@ -39,50 +57,139 @@ func BenchmarkEvolution(b *testing.B) {
 }
 
 func newBenchmarkConfig(popSize, sizeParam, generations int, individualType string) *cfg.Config {
-	var bitString cfg.BitStringIndividualConfig
-	var tree cfg.TreeIndividualConfig
-
-	if individualType == "bitstring" {
-		bitString = cfg.BitStringIndividualConfig{
-			Enabled:    true,
-			GenomeSize: sizeParam,
-		}
-		tree.Enabled = false
-	} else if individualType == "tree" {
-		tree = cfg.TreeIndividualConfig{
-			Enabled:     true,
-			MaxDepth:    sizeParam,
-			OperandSet:  []string{"+", "-", "*", "/"},
-			VariableSet: []string{"x"},
-			TerminalSet: []string{"1.0", "2.0"},
-		}
-		bitString.Enabled = false
+	// Base evolution config for all benchmarks
+	evolutionConfig := cfg.EvolutionConfig{
+		PopulationSize:      popSize,
+		CrossoverPointCount: 1,
+		MutationRate:        0.05,
+		CrossoverRate:       0.9,
+		Generations:         generations,
+		ElitismPercentage:   0.1,
+		Seed:                42,
 	}
 
-	return &cfg.Config{
-		Evolution: cfg.EvolutionConfig{
-			PopulationSize:      popSize,
-			CrossoverPointCount: 1,
-			MutationRate:        0.05,
-			CrossoverRate:       0.9,
-			Generations:         generations,
-			ElitismPercentage:   0.1,
-			Seed:                42,
-		},
-		BitString: bitString,
-		Tree:      tree,
+	switch individualType {
+	case "bitstring":
+		return &cfg.Config{
+			Evolution: evolutionConfig,
+			BitString: cfg.BitStringIndividualConfig{
+				Enabled:    true,
+				GenomeSize: sizeParam,
+			},
+			Tree:        cfg.TreeIndividualConfig{Enabled: false},
+			GrammarTree: cfg.GrammarTreeConfig{Enabled: false},
+			ActionTree:  cfg.ActionTreeConfig{Enabled: false},
+		}
+
+	case "tree":
+		return &cfg.Config{
+			Evolution: evolutionConfig,
+			Tree: cfg.TreeIndividualConfig{
+				Enabled:     true,
+				MaxDepth:    sizeParam,
+				OperandSet:  []string{"+", "-", "*", "/"},
+				VariableSet: []string{"x", "y"},
+				TerminalSet: []string{"1.0", "2.0", "3.0"},
+			},
+			BitString:   cfg.BitStringIndividualConfig{Enabled: false},
+			GrammarTree: cfg.GrammarTreeConfig{Enabled: false},
+			ActionTree:  cfg.ActionTreeConfig{Enabled: false},
+			Fitness: cfg.FitnessConfig{
+				TestCaseCount:  20,
+				TargetFunction: "x^2 + 2*y + 1",
+			},
+		}
+
+	case "grammar_tree":
+		return &cfg.Config{
+			Evolution: evolutionConfig,
+			GrammarTree: cfg.GrammarTreeConfig{
+				Enabled:    true,
+				GenomeSize: sizeParam,
+			},
+			BitString:  cfg.BitStringIndividualConfig{Enabled: false},
+			Tree:       cfg.TreeIndividualConfig{Enabled: false},
+			ActionTree: cfg.ActionTreeConfig{Enabled: false},
+			Fitness: cfg.FitnessConfig{
+				TestCaseCount:  20,
+				TargetFunction: "x^2 + 2*y + 1",
+			},
+		}
+
+	case "action_tree":
+		actions := []individual.ActionTuple{
+			{Name: "move_north", Value: 1},
+			{Name: "move_south", Value: 2},
+			{Name: "move_east", Value: 3},
+			{Name: "move_west", Value: 4},
+		}
+		return &cfg.Config{
+			Evolution: evolutionConfig,
+			ActionTree: cfg.ActionTreeConfig{
+				Enabled:            true,
+				Actions:            actions,
+				WeightsCount:       sizeParam,
+				ServerAddr:         "localhost:5000",
+				OpponentType:       "random",
+				MaxSteps:           100,
+				ConnectionPoolSize: 5,
+				ConnectionTimeout:  "5s",
+				HealthCheckTimeout: "5s",
+			},
+			BitString:   cfg.BitStringIndividualConfig{Enabled: false},
+			Tree:        cfg.TreeIndividualConfig{Enabled: false},
+			GrammarTree: cfg.GrammarTreeConfig{Enabled: false},
+		}
+
+	default:
+		// Fallback to bitstring for unknown types
+		return &cfg.Config{
+			Evolution: evolutionConfig,
+			BitString: cfg.BitStringIndividualConfig{
+				Enabled:    true,
+				GenomeSize: sizeParam,
+			},
+			Tree:        cfg.TreeIndividualConfig{Enabled: false},
+			GrammarTree: cfg.GrammarTreeConfig{Enabled: false},
+			ActionTree:  cfg.ActionTreeConfig{Enabled: false},
+		}
 	}
 }
 
 func runBenchmark(b *testing.B, config *cfg.Config) {
-	// Report config
-	sizeDesc := ""
-	if config.BitString.Enabled {
-		sizeDesc = fmt.Sprintf("GenomeSize=%d", config.BitString.GenomeSize)
-	} else if config.Tree.Enabled {
-		sizeDesc = fmt.Sprintf("MaxDepth=%d", config.Tree.MaxDepth)
+	// Check ActionTree prerequisites
+	if config.ActionTree.Enabled {
+		b.Logf("ActionTree benchmark requires game server at %s", config.ActionTree.ServerAddr)
+		b.Logf("To start game server: cd game && uv venv && uv sync && uv run main.py")
 	}
-	b.Logf("Config: Population=%d, %s, Generations=%d, Seed=%d, MutationRate=%.3f, Elitism=%.3f",
+
+	// Report config
+	var sizeDesc string
+	var individualType string
+	switch {
+	case config.BitString.Enabled:
+		sizeDesc = fmt.Sprintf("GenomeSize=%d", config.BitString.GenomeSize)
+		individualType = "BitString"
+	case config.Tree.Enabled:
+		sizeDesc = fmt.Sprintf("MaxDepth=%d", config.Tree.MaxDepth)
+		individualType = "Tree"
+	case config.GrammarTree.Enabled:
+		sizeDesc = fmt.Sprintf("GenomeSize=%d", config.GrammarTree.GenomeSize)
+		individualType = "GrammarTree"
+	case config.ActionTree.Enabled:
+		sizeDesc = fmt.Sprintf("WeightsCount=%d, Actions=%d", config.ActionTree.WeightsCount, len(config.ActionTree.Actions))
+		individualType = "ActionTree"
+	default:
+		sizeDesc = "Unknown"
+		individualType = "Unknown"
+	}
+
+	if config.Fitness.TargetFunction != "" {
+		sizeDesc += fmt.Sprintf(", TargetFunction=%s", config.Fitness.TargetFunction)
+	}
+
+	b.Logf("Config: Type=%s, Population=%d, %s, Generations=%d, Seed=%d, MutationRate=%.3f, Elitism=%.3f",
+		individualType,
 		config.Evolution.PopulationSize,
 		sizeDesc,
 		config.Evolution.Generations,

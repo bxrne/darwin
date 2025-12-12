@@ -123,18 +123,84 @@ go test ./internal/fitness
 
 ### Benchmarking
 
+Darwin includes comprehensive benchmarks for all individual types and scenarios.
+
+#### Benchmark Categories
+
+**Standard Scaling Benchmarks:**
+- **BitString**: Binary genome evolution (Small/Medium/Large/Huge)
+- **TreeIndividual**: Expression tree evolution (Small/Medium/Large/Huge)  
+- **GrammarTree**: Grammar-based evolution (Small/Medium/Large/Huge)
+- **ActionTree**: Game-based evolution (requires server)
+
+**Comparative Benchmarks:**
+- All individual types solving the same symbolic regression problem (`x^2 + 2*y + 1`)
+- Direct performance and solution quality comparisons
+
+#### Running Benchmarks
+
 ```bash
-# Run all evolution benchmarks
+# Run all benchmarks (19 total scenarios)
 go test -bench=BenchmarkEvolution ./cmd/darwin -benchmem
 
-# Run specific benchmark sizes
+# Run specific individual types
+go test -bench=BenchmarkEvolution_BitString ./cmd/darwin -benchmem
+go test -bench=BenchmarkEvolution_Tree ./cmd/darwin -benchmem  
+go test -bench=BenchmarkEvolution_GrammarTree ./cmd/darwin -benchmem
+go test -bench=BenchmarkEvolution_ActionTree ./cmd/darwin -benchmem
+
+# Run specific sizes
 go test -bench=BenchmarkEvolution_Small ./cmd/darwin -benchmem
 go test -bench=BenchmarkEvolution_Medium ./cmd/darwin -benchmem
 go test -bench=BenchmarkEvolution_Large ./cmd/darwin -benchmem
+go test -bench=BenchmarkEvolution_Huge ./cmd/darwin -benchmem
+
+# Run comparative benchmarks (same problem, different types)
+go test -bench=BenchmarkEvolution_Compare ./cmd/darwin -benchmem
 
 # Performance profiling
 go test -bench=BenchmarkEvolution ./cmd/darwin -cpuprofile=cpu.prof
+go test -bench=BenchmarkEvolution ./cmd/darwin -memprofile=mem.prof
 go tool pprof cpu.prof
+go tool pprof mem.prof
 ```
+
+#### ActionTree Benchmarks (Requires Game Server)
+
+Before running ActionTree benchmarks, start the game server:
+
+```bash
+cd game
+uv venv && uv sync  
+uv run main.py
+```
+
+Then run ActionTree benchmarks:
+```bash
+go test -bench=BenchmarkEvolution_ActionTree ./cmd/darwin -benchmem
+```
+
+#### Benchmark Descriptions
+
+| Benchmark | Population | Genome/Depth | Generations | Description |
+|-----------|------------|--------------|-------------|-------------|
+| BitString_Small | 100 | 50 bits | 10 | Quick binary evolution test |
+| BitString_Medium | 500 | 200 bits | 50 | Standard binary GA |
+| BitString_Large | 1000 | 500 bits | 100 | Large-scale binary evolution |
+| BitString_Huge | 500 | 5000 bits | 10 | Large genome stress test |
+| Tree_Small | 100 | depth 3 | 10 | Small expression trees |
+| Tree_Medium | 500 | depth 5 | 50 | Medium genetic programming |
+| Tree_Large | 1000 | depth 7 | 100 | Large GP evolution |
+| Tree_Huge | 500 | depth 10 | 10 | Deep tree evolution |
+| GrammarTree_Small | 100 | 50 genome | 10 | Small grammar evolution |
+| GrammarTree_Medium | 500 | 100 genome | 50 | Medium grammatical evolution |
+| GrammarTree_Large | 1000 | 200 genome | 100 | Large grammar-based evolution |
+| GrammarTree_Huge | 500 | 500 genome | 10 | Grammar evolution stress test |
+| ActionTree_GameServer | 200 | 3 actions | 25 | Game-playing agent evolution |
+| Compare_BitString | 300 | 150 bits | 30 | Symbolic regression with binary GA |
+| Compare_Tree | 300 | depth 4 | 30 | Symbolic regression with GP |
+| Compare_GrammarTree | 300 | 75 genome | 30 | Symbolic regression with grammar evolution |
+
+**Target Function for Comparative Benchmarks:** `x^2 + 2*y + 1` with 20 test cases
 
 
