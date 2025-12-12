@@ -68,6 +68,7 @@ func Score(value float64, alpha float64) float64 {
 func (atfc *ActionTreeFitnessCalculator) handleTestCases(wi *individual.WeightsIndividual, tree *individual.ActionTreeIndividual, index int, fitnesses []Client) {
 	sum := 0.0
 	clientId := ""
+	successCount := 0
 	for range atfc.testCaseCount {
 		fitness, currentClientId, err := atfc.SetupGameAndRun(wi, tree)
 		if err != nil {
@@ -75,13 +76,21 @@ func (atfc *ActionTreeFitnessCalculator) handleTestCases(wi *individual.WeightsI
 		} else {
 			sum += Score(fitness, 0.5)
 			clientId += currentClientId + " " + strconv.FormatFloat(fitness, 'f', -1, 64) + " : "
+			successCount++
 		}
 	}
-	fitnesses[index] = Client{
-		ID:      clientId,
-		Fitness: sum / float64(atfc.testCaseCount),
+	// Avoid division by zero - if no successful test cases, use 0.0 fitness
+	if successCount == 0 || atfc.testCaseCount == 0 {
+		fitnesses[index] = Client{
+			ID:      clientId,
+			Fitness: 0.0,
+		}
+	} else {
+		fitnesses[index] = Client{
+			ID:      clientId,
+			Fitness: sum / float64(successCount), // Average over successful test cases
+		}
 	}
-
 }
 
 // CalculateFitness evaluates the fitness of an ActionTree individual

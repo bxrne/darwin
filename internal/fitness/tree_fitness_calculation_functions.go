@@ -32,9 +32,26 @@ func CalculateTreeFitness(tree *individual.TreeNode, targetResults []float64, te
 	//r error
 	if dividedByZero {
 		// Use a large negative finite penalty to avoid -Inf in averages
-		return -1e4
+		return 0.0
 	} else {
-		return (math.Sqrt(error/float64(len(actualResults))) * -1)
+		mse := error / float64(len(actualResults))
+		rmse := math.Sqrt(mse)
+		
+		// Normalize fitness to 0-1 range
+		// Estimate max error from target range: for x,y in [-5,5], x+y in [-10,10]
+		// Max possible error would be ~20, but use a more conservative estimate
+		maxError := 50.0 // Conservative estimate for max RMSE
+		normalizedFitness := 1.0 - math.Min(rmse/maxError, 1.0)
+		
+		// Ensure fitness is in [0, 1] range
+		if normalizedFitness < 0.0 {
+			normalizedFitness = 0.0
+		}
+		if normalizedFitness > 1.0 {
+			normalizedFitness = 1.0
+		}
+		
+		return normalizedFitness
 	}
 }
 
