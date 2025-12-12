@@ -98,6 +98,24 @@ func CalculateSoftmax(scores []float64) []float64 {
 	return probabilities
 }
 
+func ArgMax(values []float64) int {
+	if len(values) == 0 {
+		return -1
+	}
+
+	maxIndex := 0
+	maxValue := values[0]
+
+	for i := 1; i < len(values); i++ {
+		if values[i] > maxValue {
+			maxValue = values[i]
+			maxIndex = i
+		}
+	}
+
+	return maxIndex
+}
+
 func SampleAction(probabilties []float64) int {
 	if len(probabilties) == 0 {
 		return -1 // or panic, depending on your use case

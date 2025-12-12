@@ -48,7 +48,7 @@ genome_size = 20
 [action_tree]
 enabled = true
 opponent_type = "expander"
-max_steps = 1200
+max_steps = 600
 weights_count = 15
 weights_column_count = 7
 server_addr = "127.0.0.1:5000"
@@ -66,11 +66,11 @@ value = 2
 
 [[action_tree.actions]]
 name = "cell_i"
-value = 10
+value = 8
 
 [[action_tree.actions]]
 name = "cell_j"
-value = 10
+value = 8
 
 
 [[action_tree.actions]]
@@ -83,7 +83,7 @@ value = 2
 
 [metrics]
 csv_enabled = true
-csv_file = "new_test.csv"
+csv_file = "test_small_argmax.csv"
 
 [logging]
 level = "info"
