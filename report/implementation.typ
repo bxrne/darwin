@@ -48,6 +48,18 @@ The bridge translates GP tree evaluation outputs into RL action format. Action t
 
 Each game session involves multiple action and observation cycles. After initialization, games proceed through multiple steps (up to `max_steps`, default: 1000). At each step, the client evaluates all action trees *multiple times* once for each row in the weight matrix. Each evaluation uses different weight values (`w0, w1, ..., wN`) as inputs to the action trees, producing multiple outputs per action tree. These outputs are then combined using softmax selection to produce a single action vector `[pass, cell_i, cell_j, direction, split]` that is submitted via TCP. The bridge processes one action vector per timestep, but the action trees are evaluated multiple times per step (across weight rows) to produce that single action. For fitness evaluation, the engine plays `test_case_count` games (default: 3) per individual, ensuring robust evaluation across diverse scenarios.
 
+=== Valid Action Mapping
+
+The system maintains synchronized mappings of owned cells and mountains on both the bridge (Python) and Go sides to ensure only valid actions are selected. This prevents evolved strategies from attempting invalid moves (e.g., moving from unowned cells or into mountains).
+
+*Bridge Side (Python)*: The bridge sends the mountains grid (from `observations[client_id]["mountains"]`) at reset and a boolean owned cells map (from `valid_start_point_map()`) at each step in the observation `info` field.
+
+*Go Side*: The client stores the mountains map and, at each step, uses the received owned cells map to mask invalid actions. `ActionValidator` ensures actions are only chosen from owned cells (with enough armies) and do not move into mountains or out-of-bounds locations.
+
+*Action Selection Process*: Action tree outputs are converted to probabilities via softmax, then masked by the valid action maps. This ensures that only valid actions (from owned cells, not into mountains) can be selected, even if action trees produce outputs for invalid coordinates. The masking process multiplies invalid action probabilities by 0, effectively removing them from consideration before sampling.
+
+This bidirectional mapping ensures that evolved strategies operate within game constraints without requiring the action trees themselves to learn these constraints, simplifying the evolutionary search space.
+
 == Engine
 
 The evolution engine (`internal/evolution/engine.go`) is implemented as a generic, type-safe system using Go's interfaces and message passing via channels, enabling evolution of any representation type implementing the `Evolvable` interface without code duplication.
