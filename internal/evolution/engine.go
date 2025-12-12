@@ -222,7 +222,7 @@ func (ee *EvolutionEngine) calculateMetrics(generation int, duration time.Durati
 
 	overallMetrics := make(map[string]float64, len(metricsMap)*3)
 
-	for key, _ := range totalMetricValues {
+	for key := range totalMetricValues {
 		avgKey := fmt.Sprintf("avg_%s", key)
 		minKey := fmt.Sprintf("min_%s", key)
 		maxKey := fmt.Sprintf("max_%s", key)
