@@ -60,12 +60,12 @@ class Game:
         grid_factory = GridFactory(
             mode="uniform",  # Either "generalsio" or "uniform"
             # Grid height and width are randomly selected
-            min_grid_dims=(10, 10),
-            max_grid_dims=(10, 10),
+            min_grid_dims=(8, 8),
+            max_grid_dims=(8, 8),
             mountain_density=0.15,  # Probability of a mountain in a cell
             city_density=0.05,  # Probability of a city in a cell
             # Positions of generals (i, j)
-            general_positions=[(2, 2), (7, 7)],
+            general_positions=[(2, 2), (6, 6)],
             seed=44
         )
         # Initialize environment with frequent asset rewards

@@ -134,7 +134,7 @@ func (av *ActionValidator) SelectValidAction(actionOutputs [][]float64, checkedC
 
 	selectedActions := make([]int, len(actionOutputs))
 	passProbabilities := CalculateSoftmax(actionOutputs[0])
-	selectedActions[0] = SampleAction(passProbabilities)
+	selectedActions[0] = ArgMax(passProbabilities)
 	if selectedActions[0] == 1 {
 		return selectedActions, nil
 	}
@@ -149,7 +149,7 @@ func (av *ActionValidator) SelectValidAction(actionOutputs [][]float64, checkedC
 		return nil, fmt.Errorf("failed to find valid X value %s", err.Error())
 	}
 	applyMask(Xprobabilities, validXActions)
-	selectedActions[1] = SampleAction(Xprobabilities)
+	selectedActions[1] = ArgMax(Xprobabilities)
 
 	Yprobabilities := CalculateSoftmax(actionOutputs[2])
 	validYActions, err := av.ValidYActionMask(selectedActions[1], owned_cells)
@@ -157,7 +157,7 @@ func (av *ActionValidator) SelectValidAction(actionOutputs [][]float64, checkedC
 		return nil, fmt.Errorf("failed to find valid Y value %s", err.Error())
 	}
 	applyMask(Yprobabilities, validYActions)
-	selectedActions[2] = SampleAction(Yprobabilities)
+	selectedActions[2] = ArgMax(Yprobabilities)
 
 	directionProbabilities := CalculateSoftmax(actionOutputs[3])
 	validDirections, err := av.DirectionActionMask(selectedActions[1], selectedActions[2])
@@ -165,9 +165,9 @@ func (av *ActionValidator) SelectValidAction(actionOutputs [][]float64, checkedC
 		return nil, fmt.Errorf("failed to find valid Direction value %s", err.Error())
 	}
 	applyMask(directionProbabilities, validDirections)
-	selectedActions[3] = SampleAction(directionProbabilities)
+	selectedActions[3] = ArgMax(directionProbabilities)
 
 	splitProbabilities := CalculateSoftmax(actionOutputs[4])
-	selectedActions[4] = SampleAction(splitProbabilities)
+	selectedActions[4] = ArgMax(splitProbabilities)
 	return selectedActions, nil
 }
