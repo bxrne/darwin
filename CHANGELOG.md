@@ -1,3 +1,10 @@
+## [1.23.4](https://github.com/bxrne/darwin/compare/v1.23.3...v1.23.4) (2025-12-12)
+
+
+### Code Refactoring
+
+* **README.md, cmd, individual, population:** updated readme, formatted bintree, moved pop creation switch to package ([a39bb95](https://github.com/bxrne/darwin/commit/a39bb952862864abecbf726d6b2b0caffd14aa96))
+
 ## [1.23.3](https://github.com/bxrne/darwin/compare/v1.23.2...v1.23.3) (2025-12-12)
 
 
