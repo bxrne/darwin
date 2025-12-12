@@ -105,17 +105,15 @@ func (ee *EvolutionEngine) generateOffspring(cmd EvolutionCommand, out chan<- in
 		// Mutate children post-crossover
 		child1.Mutate(cmd.MutationRate, &ee.mutateInformation)
 		child2.Mutate(cmd.MutationRate, &ee.mutateInformation)
-		ee.fitnessCalculator.CalculateFitness(child1)
-		ee.fitnessCalculator.CalculateFitness(child2)
-		out <- child1.Max(child2)
+		out <- child1
+		out <- child2
 		return
 	}
 
 	parentCopy1.Mutate(cmd.MutationRate, &ee.mutateInformation)
 	parentCopy2.Mutate(cmd.MutationRate, &ee.mutateInformation)
-	ee.fitnessCalculator.CalculateFitness(parentCopy1)
-	ee.fitnessCalculator.CalculateFitness(parentCopy2)
-	out <- parentCopy1.Max(parentCopy2)
+	out <- parentCopy1
+	out <- parentCopy2
 }
 
 // processGeneration performs one generation of evolution
@@ -123,6 +121,13 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 	start := time.Now()
 	ee.logger.Info("Starting generation", zap.Int("generation", cmd.Generation))
 
+	// For generation 1, calculate fitness for the initial population first
+	// (initial population doesn't have fitness calculated yet)
+	if cmd.Generation == 1 {
+		ee.logger.Info("Calculating fitness for initial population (generation 1)", zap.Int("population_size", ee.population.Count()))
+		ee.population.CalculateFitnesses(ee.fitnessCalculator)
+		ee.logger.Info("Initial population fitness calculation complete")
+	}
 	// Sort population by fitness (descending)
 	ee.sortPopulation()
 	// Create new population
@@ -133,10 +138,11 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 		newPop = append(newPop, ee.population.Get(i))
 	}
 	offspringNeeded := ee.population.Count() - len(newPop)
-	offspringChan := make(chan individual.Evolvable, ee.population.Count()-elitismCount+1)
+	offspringChanCount := (offspringNeeded + 1) / 2
+	offspringChan := make(chan individual.Evolvable)
 	var wg sync.WaitGroup
 	// Generate offspring
-	for i := 0; i < offspringNeeded; i++ {
+	for i := 0; i < offspringChanCount; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -147,11 +153,18 @@ func (ee *EvolutionEngine) processGeneration(cmd EvolutionCommand) {
 		wg.Wait()
 		close(offspringChan)
 	}()
+	count := 0
 	for ind := range offspringChan {
-		newPop = append(newPop, ind)
+		if count < offspringNeeded {
+			newPop = append(newPop, ind)
+			count++
+		} else {
+			break
+		}
 	}
 	ee.population.SetPopulation(newPop)
-	ee.population.Update(cmd.Generation, ee.fitnessCalculator)
+	ee.population.Update(cmd.Generation)
+	ee.population.CalculateFitnesses(ee.fitnessCalculator)
 	duration := time.Since(start)
 	// Calculate and send metrics
 	genMetrics := ee.calculateMetrics(cmd.Generation, duration)

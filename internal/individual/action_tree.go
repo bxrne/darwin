@@ -64,7 +64,7 @@ func (ati *ActionTreeIndividual) Mutate(rate float64, mutateInformation *MutateI
 		// If depth is 0, regenerate using NewRampedHalfAndHalfTree with depth 1
 		if tree.GetDepth() == 0 {
 			// Use NewRampedHalfAndHalfTree to regenerate with depth 1
-			regeneratedTree := NewRampedHalfAndHalfTree(1, true, mutateInformation.OperandSet, mutateInformation.VariableSet, mutateInformation.TerminalSet)
+			regeneratedTree := newGrowTree(1, mutateInformation.OperandSet, mutateInformation.VariableSet, mutateInformation.TerminalSet)
 			*tree = *regeneratedTree
 		}
 	}
