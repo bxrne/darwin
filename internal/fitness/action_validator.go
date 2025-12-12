@@ -103,14 +103,45 @@ func (av *ActionValidator) DirectionActionMask(x, y int) ([]float64, error) {
 	return validDirectionMask, nil
 }
 
-func (av *ActionValidator) SelectValidAction(actionOutputs [][]float64, owned_cells [][]bool) ([]int, error) {
+func HasAtLeastTwoDistinctFloats(arr []float64) bool {
+	if len(arr) < 2 {
+		return false
+	}
+	min, max := arr[0], arr[0]
+	for _, v := range arr[1:] {
+		if v < min {
+			min = v
+		}
+		if v > max {
+			max = v
+		}
+		if min != max {
+			return true
+		}
+	}
+	return false
+}
+
+func CheckDistinctOnce(arr []float64, flag *bool) {
+	if *flag {
+		return
+	}
+	if HasAtLeastTwoDistinctFloats(arr) {
+		*flag = true
+	}
+}
+func (av *ActionValidator) SelectValidAction(actionOutputs [][]float64, checkedConstantValues []bool, owned_cells [][]bool) ([]int, error) {
 
 	selectedActions := make([]int, len(actionOutputs))
-	probabilities := CalculateSoftmax(actionOutputs[0])
-	selectedActions[0] = SampleAction(probabilities)
+	passProbabilities := CalculateSoftmax(actionOutputs[0])
+	selectedActions[0] = SampleAction(passProbabilities)
 	if selectedActions[0] == 1 {
 		return selectedActions, nil
 	}
+
+	CheckDistinctOnce(actionOutputs[1], &checkedConstantValues[1])
+	CheckDistinctOnce(actionOutputs[2], &checkedConstantValues[2])
+	CheckDistinctOnce(actionOutputs[3], &checkedConstantValues[0])
 
 	Xprobabilities := CalculateSoftmax(actionOutputs[1])
 	validXActions, err := av.ValidXActionMask(owned_cells)

@@ -1,5 +1,7 @@
 package individual
 
+import "fmt"
+
 // ActionTreeIndividual implements an individual composed of action trees and a weights matrix for action selection
 type ActionTreeIndividual struct {
 	Trees    map[string]*Tree // action name -> action tree
@@ -133,7 +135,8 @@ func NewRandomActionTreeIndividual(actions []ActionTuple, maxDepth int, operands
 
 	// Create random tree for each action
 	for _, action := range actions {
-		tree := NewRandomTree(maxDepth, operands, variables, terminals)
+		tree := NewFullTree(maxDepth, operands, variables, terminals)
+		fmt.Println(tree.Root.CalculateMaxDepth())
 		trees[action.Name] = tree
 	}
 

@@ -1,3 +1,15 @@
+## [1.23.0](https://github.com/bxrne/darwin/compare/v1.22.0...v1.23.0) (2025-12-10)
+
+
+### Features
+
+* encourage strategy development over luck ([8195bde](https://github.com/bxrne/darwin/commit/8195bde6353b49c05f04df602cdbed5891891df5))
+
+
+### Bug Fixes
+
+* **test:** fix tests ([cf49390](https://github.com/bxrne/darwin/commit/cf49390424c425ce18504c9ddd28fffa818a9931))
+
 ## [1.22.0](https://github.com/bxrne/darwin/compare/v1.21.0...v1.22.0) (2025-12-10)
 
 

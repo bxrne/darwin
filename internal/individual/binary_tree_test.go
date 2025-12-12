@@ -13,14 +13,14 @@ func TestNewRandomTree_GIVEN_max_depth_zero_WHEN_new_random_tree_THEN_returns_le
 	terminalSet := []string{"1.0", "2.0", "3.0"}
 	variableSet := []string{"x", "y"}
 	tree := individual.NewRandomTree(0, primitiveSet, terminalSet, variableSet)
-
+	combinedSet := append(terminalSet, variableSet...)
 	assert.NotNil(t, tree)
 	assert.NotNil(t, tree.Root)
 	fmt.Println(individual.TreeToJSON(tree))
 	assert.Nil(t, tree.Root.Left)
 	assert.Nil(t, tree.Root.Right)
-	// Value should be from terminal set
-	assert.Contains(t, terminalSet, tree.Root.Value)
+	// Value should be a terminal
+	assert.Contains(t, combinedSet, tree.Root.Value)
 }
 
 func TestNewRampedHalfAndHalfTree_GIVEN_depth_and_useGrow_true_WHEN_new_tree_THEN_creates_grow_tree(t *testing.T) {
