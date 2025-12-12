@@ -535,3 +535,12 @@ func TreeToJSON(t *Tree) string {
 	b, _ := json.MarshalIndent(t, "", "  ")
 	return string(b)
 }
+
+// NewRampedHalfAndHalfTree generates a tree with specified Depth using ramped half-and-half
+// This is useful for population initialization where specific Depths are needed
+func NewRampedHalfAndHalfTree(depth int, useGrow bool, operandSet []string, variableSet []string, terminalSet []string) *Tree {
+	if useGrow {
+		return newGrowTree(depth, operandSet, variableSet, terminalSet)
+	}
+	return NewFullTree(depth, operandSet, variableSet, terminalSet)
+}
