@@ -87,7 +87,7 @@ func newFullTreeNode(depth int, terminalSet []string, functionSet []Operand) *Tr
 }
 
 // newGrowTree generates a tree where nodes can be functions or terminals at any Depth
-func newGrowTree(depth int, operandSet []string, variableSet []string, terminalSet []string) *Tree {
+func newGrowTree(maxDepth int, operandSet []string, variableSet []string, terminalSet []string) *Tree {
 	functionSet := make([]Operand, 0, len(operandSet))
 	for _, prim := range operandSet {
 		functionSet = append(functionSet, Operand(prim))
@@ -95,19 +95,19 @@ func newGrowTree(depth int, operandSet []string, variableSet []string, terminalS
 	overallTerminalSet := append(terminalSet, variableSet...)
 
 	return &Tree{
-		Root:  newGrowTreeNode(depth, overallTerminalSet, functionSet),
-		depth: depth,
+		Root: newGrowTreeNode(maxDepth, maxDepth, overallTerminalSet, functionSet),
 	}
 }
 
 // newGrowTreeNode generates a grow tree node (can choose between function and terminal)
-func newGrowTreeNode(depth int, terminalSet []string, functionSet []Operand) *TreeNode {
+func newGrowTreeNode(depth int, maxDepth int, terminalSet []string, functionSet []Operand) *TreeNode {
 	if depth == 0 {
 		return &TreeNode{Value: terminalSet[rng.Intn(len(terminalSet))]}
 	}
 
 	// At non-zero Depth, randomly choose between function and terminal
-	if rng.Float64() < 0.3 {
+	p := 1.0 - (float64(depth) / float64(maxDepth))
+	if rng.Float64() < p {
 		// Choose terminal
 		return &TreeNode{Value: terminalSet[rng.Intn(len(terminalSet))]}
 	}
@@ -116,8 +116,8 @@ func newGrowTreeNode(depth int, terminalSet []string, functionSet []Operand) *Tr
 	op := functionSet[rng.Intn(len(functionSet))]
 	return &TreeNode{
 		Value: string(op),
-		Left:  newGrowTreeNode(depth-1, terminalSet, functionSet),
-		Right: newGrowTreeNode(depth-1, terminalSet, functionSet),
+		Left:  newGrowTreeNode(depth-1, maxDepth, terminalSet, functionSet),
+		Right: newGrowTreeNode(depth-1, maxDepth, terminalSet, functionSet),
 	}
 }
 
@@ -129,7 +129,9 @@ func NewRandomTree(maxDepth int, operandSet []string, variableSet []string, term
 
 	// Randomly choose between grow (50%) and full (50%) methods
 	if rng.Float64() < 0.5 {
-		return newGrowTree(depth, operandSet, variableSet, terminalSet)
+		tree := newGrowTree(maxDepth, operandSet, variableSet, terminalSet)
+		tree.depth = tree.Root.CalculateMaxDepth()
+		return tree
 	}
 	return NewFullTree(depth, operandSet, variableSet, terminalSet)
 }
@@ -273,7 +275,7 @@ func (t *Tree) Mutate(rate float64, mutateInformation *MutateInformation) {
 		for _, prim := range mutateInformation.OperandSet {
 			functionSet = append(functionSet, Operand(prim))
 		}
-		t.Root = newGrowTreeNode(1, newSet, functionSet)
+		t.Root = newGrowTreeNode(1, 1, newSet, functionSet)
 		t.depth = 1
 	}
 }
@@ -414,8 +416,8 @@ func (tn *TreeNode) growNode(maxDepth int, currentDepth int, operandSet []string
 	tn.Value = string(op)
 
 	// Create children with remaining depth
-	tn.Left = newGrowTreeNode(remainingDepth-1, terminalSet, functionSet)
-	tn.Right = newGrowTreeNode(remainingDepth-1, terminalSet, functionSet)
+	tn.Left = newGrowTreeNode(remainingDepth-1, maxDepth, terminalSet, functionSet)
+	tn.Right = newGrowTreeNode(remainingDepth-1, maxDepth, terminalSet, functionSet)
 	return true
 }
 
@@ -478,7 +480,35 @@ func (tn *TreeNode) mutateRecursive(rate float64, primitiveSet []string, termina
 }
 
 func (t *Tree) GetMetrics() map[string]float64 {
-	return map[string]float64{}
+	return map[string]float64{
+		"fit":   t.Fitness,
+		"depth": float64(t.depth),
+	}
+}
+
+// CountNodesAndVars returns:
+// - total number of nodes
+// - map of variable frequencies
+func (t *Tree) CountNodesAndVars() (int, map[string]int) {
+	freq := make(map[string]int)
+	total := countRec(t.Root, freq)
+	return total, freq
+}
+
+// Recursive helper
+func countRec(node *TreeNode, freq map[string]int) int {
+	if node == nil {
+		return 0
+	}
+
+	// Count this node
+	freq[node.Value]++
+
+	// Recurse left and right
+	leftCount := countRec(node.Left, freq)
+	rightCount := countRec(node.Right, freq)
+
+	return 1 + leftCount + rightCount
 }
 
 // Clone creates a deep copy of the tree

@@ -4,92 +4,128 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+	"sort"
 	"sync"
 )
 
-// CSVWriter handles writing generation metrics to a CSV file
+// CSVWriter supports dynamic schema expansion and rewriting
 type CSVWriter struct {
-	file         *os.File
-	writer       *csv.Writer
-	mu           sync.Mutex
-	initialized  bool
-	isFirstWrite bool
+	file        *os.File
+	mu          sync.Mutex
+	initialized bool
+
+	header []string   // dynamic metric keys
+	rows   [][]string // stored rows
+	path   string     // path to CSV file
 }
 
-// NewCSVWriter creates a new CSV writer for the specified file
+// NewCSVWriter creates a new dynamic CSV writer
 func NewCSVWriter(filename string) (*CSVWriter, error) {
 	file, err := os.Create(filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create CSV file %s: %w", filename, err)
 	}
 
-	csvWriter := csv.NewWriter(file)
-
-	csvw := &CSVWriter{
-		file:         file,
-		writer:       csvWriter,
-		isFirstWrite: false,
-	}
-
-	csvw.initialized = true
-	return csvw, nil
+	return &CSVWriter{
+		file:        file,
+		path:        filename,
+		header:      nil,
+		rows:        make([][]string, 0),
+		initialized: true,
+	}, nil
 }
 
-// WriteMetrics writes a single generation metrics row to the CSV
+// WriteMetrics writes a generation row and updates schema if needed
 func (csvw *CSVWriter) WriteMetrics(metrics GenerationMetrics) error {
 	if !csvw.initialized {
-		return fmt.Errorf("CSV writer not properly initialized")
+		return fmt.Errorf("CSV writer not initialized")
 	}
 
 	csvw.mu.Lock()
 	defer csvw.mu.Unlock()
 
-	// --- Write header if first generation ---
-	if csvw.isFirstWrite {
-		header := []string{"generation", "duration_ns", "population_size", "timestamp"}
-
-		// Add all metric keys dynamically
-		for key := range metrics.Metrics {
-			header = append(header, key)
+	// ---- Detect new metric keys ----
+	newKeysFound := false
+	for key := range metrics.Metrics {
+		if !contains(csvw.header, key) {
+			csvw.header = append(csvw.header, key)
+			newKeysFound = true
 		}
-
-		if err := csvw.writer.Write(header); err != nil {
-			return fmt.Errorf("failed to write CSV header: %w", err)
-		}
-		csvw.writer.Flush()
-		if err := csvw.writer.Error(); err != nil {
-			return fmt.Errorf("failed to flush CSV writer: %w", err)
-		}
-		csvw.isFirstWrite = false
 	}
 
-	// --- Build CSV row ---
-	record := []string{
+	// Always sort for stable ordering
+	sort.Strings(csvw.header)
+
+	// ---- If schema expanded, rewrite whole file ----
+	if newKeysFound {
+		if err := csvw.rewriteCSV(); err != nil {
+			return err
+		}
+	}
+
+	// ---- Build new row ----
+	row := []string{
 		fmt.Sprintf("%d", metrics.Generation),
 		fmt.Sprintf("%d", metrics.Duration.Nanoseconds()),
 		fmt.Sprintf("%d", metrics.PopulationSize),
 		metrics.Timestamp.Format("2006-01-02T15:04:05.000Z"),
 	}
 
-	// Append metric values in same order as header
-	for key := range metrics.Metrics {
-		record = append(record, fmt.Sprintf("%f", metrics.Metrics[key]))
+	// Add metric values in header order
+	for _, key := range csvw.header {
+		if v, ok := metrics.Metrics[key]; ok {
+			row = append(row, fmt.Sprintf("%f", v))
+		} else {
+			row = append(row, "0") // zero-fill missing metrics
+		}
 	}
 
-	if err := csvw.writer.Write(record); err != nil {
-		return fmt.Errorf("failed to write CSV record: %w", err)
-	}
+	// Save row
+	csvw.rows = append(csvw.rows, row)
 
-	// Flush to ensure data is written to file
-	csvw.writer.Flush()
-	if err := csvw.writer.Error(); err != nil {
-		return fmt.Errorf("failed to flush CSV writer: %w", err)
-	}
-
-	return nil
+	// Rewrite CSV every time (cheap for <100k rows)
+	return csvw.rewriteCSV()
 }
 
-// Close closes the CSV file and flushes any remaining data
+// rewriteCSV rebuilds the file from header and rows
+func (csvw *CSVWriter) rewriteCSV() error {
+	// Close current file
+	csvw.file.Close()
+
+	// Recreate fresh file
+	f, err := os.Create(csvw.path)
+	if err != nil {
+		return fmt.Errorf("failed to recreate CSV file: %w", err)
+	}
+	csvw.file = f
+
+	writer := csv.NewWriter(csvw.file)
+
+	// Build full header
+	fullHeader := append([]string{
+		"generation",
+		"duration_ns",
+		"population_size",
+		"timestamp",
+	}, csvw.header...)
+
+	// Write header
+	if err := writer.Write(fullHeader); err != nil {
+		return fmt.Errorf("failed to write header: %w", err)
+	}
+
+	// Write rows
+	for _, row := range csvw.rows {
+		if err := writer.Write(row); err != nil {
+			return fmt.Errorf("failed to write row: %w", err)
+		}
+	}
+
+	writer.Flush()
+	return writer.Error()
+}
+
+// Close the file
 func (csvw *CSVWriter) Close() error {
 	csvw.mu.Lock()
 	defer csvw.mu.Unlock()
@@ -98,25 +134,18 @@ func (csvw *CSVWriter) Close() error {
 		return nil
 	}
 
-	// Flush any remaining data
-	csvw.writer.Flush()
-	if err := csvw.writer.Error(); err != nil {
-		return fmt.Errorf("failed to flush CSV writer on close: %w", err)
-	}
-
-	// Close the file
 	if err := csvw.file.Close(); err != nil {
-		return fmt.Errorf("failed to close CSV file: %w", err)
+		return err
 	}
 
 	csvw.initialized = false
 	return nil
 }
 
-// MetricsHandler represents a function that handles generation metrics
+// MetricsHandler is a callback that writes metrics
 type MetricsHandler func(GenerationMetrics)
 
-// CreateCSVHandler creates a metrics handler function that writes to CSV
+// CreateCSVHandler creates a callback using this CSV writer
 func CreateCSVHandler(filename string) (MetricsHandler, error) {
 	csvWriter, err := NewCSVWriter(filename)
 	if err != nil {
@@ -125,8 +154,19 @@ func CreateCSVHandler(filename string) (MetricsHandler, error) {
 
 	return func(metrics GenerationMetrics) {
 		if err := csvWriter.WriteMetrics(metrics); err != nil {
-			// Log error but don't crash the evolution
-			fmt.Printf("Warning: failed to write metrics to CSV: %v\n", err)
+			fmt.Printf("Warning: failed to write metrics: %v\n", err)
 		}
 	}, nil
 }
+
+// ---- Helper ----
+
+func contains(list []string, val string) bool {
+	for _, v := range list {
+		if v == val {
+			return true
+		}
+	}
+	return false
+}
+

@@ -61,12 +61,12 @@ class Game:
             mode="uniform",  # Either "generalsio" or "uniform"
             # Grid height and width are randomly selected
             min_grid_dims=(10, 10),
-            max_grid_dims=(15, 15),
-            mountain_density=0.2,  # Probability of a mountain in a cell
+            max_grid_dims=(10, 10),
+            mountain_density=0.15,  # Probability of a mountain in a cell
             city_density=0.05,  # Probability of a city in a cell
             # Positions of generals (i, j)
-            general_positions=[(0, 3), (5, 7)],
-            seed=42
+            general_positions=[(2, 2), (7, 7)],
+            seed=44
         )
         # Initialize environment with frequent asset rewards
         self.env = PettingZooGenerals(
@@ -90,7 +90,7 @@ class Game:
         """
         replay_name = "replays/replay" + self.client_id
         options = {"replay_file": replay_name}
-        observations, info = self.env.reset(seed=42, options=options)
+        observations, info = self.env.reset(seed=44, options=options)
         self.observations = observations
         self.info = self.observations[self.client_id]["mountains"].tolist()
         self.terminated = False

@@ -21,7 +21,7 @@ func NewWeightsIndividual(height int, width int) *WeightsIndividual {
 
 	minVal, maxVal := -5.0, 5.0
 	for i := range height {
-		for j := range make([]int, width) {
+		for j := range width {
 			Weights.Set(i, j, minVal+rng.Float64()*(maxVal-minVal))
 		}
 	}
@@ -69,6 +69,8 @@ func (wi WeightsIndividual) Clone() Evolvable {
 	return &WeightsIndividual{
 		Weights: clonedWeights,
 		fitness: wi.fitness,
+		minVal:  wi.minVal,
+		maxVal:  wi.maxVal,
 	}
 }
 
@@ -109,7 +111,9 @@ func (wi *WeightsIndividual) Mutate(rate float64, mutateInformation *MutateInfor
 	for i := range r {
 		for j := range c {
 			if rng.Float64() < rate {
-				wi.Weights.Set(i, j, wi.minVal+rng.Float64()*(wi.maxVal-wi.minVal))
+				// Small modulation rather than wholly new weights
+				newVal := wi.Weights.At(i, j) + (wi.minVal+rng.Float64()*(wi.maxVal-wi.minVal))*0.3
+				wi.Weights.Set(i, j, float64(newVal))
 			}
 		}
 	}
