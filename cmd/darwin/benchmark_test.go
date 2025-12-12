@@ -20,28 +20,19 @@ type benchmarkCase struct {
 }
 
 var benchmarkCases = []benchmarkCase{
-	// Existing BitString scenarios
 	{"BitString_Small", 100, 50, 10, "bitstring"},
 	{"BitString_Medium", 500, 200, 50, "bitstring"},
 	{"BitString_Large", 1000, 500, 100, "bitstring"},
 	{"BitString_Huge", 500, 5000, 10, "bitstring"},
-
-	// Existing Tree scenarios
 	{"Tree_Small", 100, 3, 10, "tree"},
 	{"Tree_Medium", 500, 5, 50, "tree"},
 	{"Tree_Large", 1000, 7, 100, "tree"},
 	{"Tree_Huge", 500, 10, 10, "tree"},
-
-	// NEW: GrammarTree scenarios
 	{"GrammarTree_Small", 100, 50, 10, "grammar_tree"},
 	{"GrammarTree_Medium", 500, 100, 50, "grammar_tree"},
 	{"GrammarTree_Large", 1000, 200, 100, "grammar_tree"},
 	{"GrammarTree_Huge", 500, 500, 10, "grammar_tree"},
-
-	// NEW: ActionTree scenarios (requires game server) - fast configuration: 5 trees, 2 weights, 2 test cases
 	{"ActionTree", 5, 2, 1, "action_tree"},
-
-	// NEW: Comparative scenarios (same toy problem, different individual types)
 	{"Compare_BitString", 300, 150, 30, "bitstring"},
 	{"Compare_Tree", 300, 4, 30, "tree"},
 	{"Compare_GrammarTree", 300, 75, 30, "grammar_tree"},
@@ -58,7 +49,6 @@ func BenchmarkEvolution(b *testing.B) {
 
 func newBenchmarkConfig(popSize, sizeParam, generations int, individualType string) *cfg.Config {
 	// Base evolution config for all benchmarks
-	// Use better parameters for Tree/GrammarTree to improve convergence
 	mutationRate := 0.05
 	crossoverRate := 0.9
 	if individualType == "tree" || individualType == "grammar_tree" {
@@ -140,12 +130,10 @@ func newBenchmarkConfig(popSize, sizeParam, generations int, individualType stri
 			{Name: "move_west", Value: 4},
 		}
 		// Ensure SwitchTrainingTargetStep is at least 1 to avoid divide by zero
-		switchStep := generations / 2
-		if switchStep < 1 {
-			switchStep = 1
-		}
+		switchStep := max(generations/2, 1)
+
 		// For ActionTree: User wants trees 5, weights 2, test cases 2
-		treePopulation := 5  // 5 trees
+		treePopulation := 5 // 5 trees
 		weightsCount := 2   // 2 weights
 		return &cfg.Config{
 			Evolution: cfg.EvolutionConfig{
