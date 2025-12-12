@@ -9,9 +9,6 @@
     (name: "Adam Byrne", email: "22338004@studentmail.ul.ie", affiliation: "University of Limerick"),
     (name: "Art O'Liathain", email: "22363092@studentmail.ul.ie", affiliation: "University of Limerick"),
   ),
-  abstract: [
-    This report presents the design, implementation, and evaluation of Darwin, an evolutionary engine written in Go that can evolve individuals against a Reinforcement Learning environment using Genetic Programming (GP) and Genetic Algorithms (GA) over TCP. The engine is designed to be generic and extensible, supporting multiple evolutionary paradigms and individual representations. The system supports multiple evolutionary paradigms including GA with bitstring genomes, GP with tree-based representations and Grammatical Evolution (GE) for symbolic regression. The system leverages Go's concurrency primitives to achieve high performance through parallel offspring generation. A key innovation is the generic GP→RL bridge that manages parallel environments for individuals and generalises the interaction between GP individuals and RL environments.  
-  ],
   keywords: ("Evolutionary Algorithms", "Genetic Programming", "Grammar Evolution", "Symbolic Regression", "Concurrent Computing"),
   date: "December 2025",
 )
@@ -30,43 +27,36 @@
 )
 #pagebreak()
 
-= Introduction
+= Introduction - The Problem
 
 Evolutionary Algorithms (EAs) represent a class of population-based metaheuristic optimization algorithms inspired by biological evolution. These algorithms have proven effective for solving complex optimization problems where traditional methods struggle, including function approximation, symbolic regression, and game strategy optimization @Goldberg1989Genetic.
 
-Darwin addresses the challenge of evolving game-playing strategies for complex environments like Generals IO, a turn-based strategy game with a very large state space. The system's innovative approach combines Genetic Algorithms (GA) and Genetic Programming (GP) in a dual population evolution scheme, achieving dynamic function creation for action selection and emulating backpropagation purely through evolutionary algorithms.
+The focus of this paper will be on the application of EA to the complex game environment generals.io. The standard EA approach to solving this could be something like NEAT @stanley_evolving_2002 which creates an artificial neural network, or decision trees @Gold2023Genetic which select predetermined actions.
+Instead of those approaches Darwin takes a novel approach leveraging the efficacy that EA have for function approximation and optimization to create an EA that co evolves functions and weights to determine optimal actions within a game.
 
-== Objectives
-- Design and implement a modular EA framework supporting multiple individual representations
-- Provide extensible architecture enabling custom problem-specific implementations
-- Achieve high performance through concurrent processing
-- Demonstrate effectiveness through comprehensive benchmarking and testing
-- Wrap Reinforcement Learning environments with a generic GP→RL bridge to enable any game to be played via evolved GP individuals
+= Rationale
+The core idea for this approach comes from both reinforcement learning. Where a function along with weights get modified and altered to best interact with the environment. Using this idea as a base Darwin evolves two distinct populations, a population of functions and weights, each with their own EA.
 
-== Key Features
+There is inspiration taken from multi-tree individual EA approaches as well, where one individual would have multiple trees per potential action allowing each tree to capture heuristics relevant to each action option. This while promising has an issue with ballooning individuals, since as the state space increases the number of trees increase increasing the amount of compute needed per individual. While this approach is impractical, the inspiration taken from this is to use the weights' interactions with the trees to emulate as if there were multiple trees and the learned values of the weights would become the meta heuristics.
 
-+ *Generic Evolution Engine*: Type-safe, performant Go implementation using generics and interfaces, enabling evolution of any representation that implements the `Evolvable` interface
+== Genetic Algorithms - The Weights
+Research by Petroski et al. @Petroski2018Deep demonstrates that Genetic Algorithms can effectively emulate backpropagation for training deep neural networks in reinforcement learning environments. Their work shows that GA-based weight optimization provides a competitive alternative to gradient-based methods, avoiding local minima while maintaining performance.
+This made it a simple choice to select GA as the EA for the weights
 
-+ *Multi-Paradigm Support*: Simultaneous support for GA (bitstring genomes) and GP (tree-based genomes)
+== Genetic Programming - The Functions
+Research by Koza et al. @Koza1992Genetic demonstrates how efficiently GP can create functions from simple operators to mimic the outputs of complex operators and functions. Their work shows that GP can be an effective tool to emulate the behaviour of unknown functions using EA. 
+This serves as the basis for the decision logic as the functions can evolve to learn the correct patterns alongside the weights. To create a strategy that can consistently win the game.
 
-+ *Generic GP→RL Bridge*: Universal game wrapper that translates Genetic Programming individuals into Reinforcement Learning environments via TCP, enabling evolution of game-playing strategies
+== How action selection works
+The method for action selection begins with one weights individual(WI) and one tree individual(TI). The TI contains a function that contains constants, variables from the environment and weights. The WI has a row of weights for every potential action allowed, with distinct values. 
+The TI function at point T is given the variables from the environment and for every row in weights the function is evaluated. As every row of the weights contain distinct values for every potential action option each action output is varied and can be interpreted as the "Score" for that action.
+Softmax is then preformed on the scores to determine the proportion of each value to the whole, from which a roulette wheel is spun to determine the action chosen with weighing based on the action "score".
 
-+ *Concurrent Evolution Engine*: Channel-based architecture for parallel offspring generation with minimal overhead
+== Fitness function and Root Squared error
+As the goal of Darwin is to use a novel approach to emulate reinforcement learning the reward function given to a RL agent was selected as the fitness function. In the generals environment @straka_strakamgenerals-bots_2025 there are multiple reward functions available to the user two of which are of note, FrequentRewardFunc, LandRewardFunc.
+Through testing a limitation of the approach was discovered. FrequentRewardFunc while well suited for reinforcement learning as every action was rewarded to some degree but some actions were rewarded more than others. This is integral to RL as it can learn on a per action basis to optimise whereas with the approach Darwin employs only the final reward was taken into consideration. This lead to suboptimal strategies being rewarded in lieu of a real strategy being developed. This lead to LandRewardFunc being better suited to EA as its final reward is the number of land tiles owned by the agent. This meant that the final state was most important and encouraged the agents to learn a more robust strategy.
 
-+ *Comprehensive Metrics*: Real-time streaming of evolution progress with CSV export
-
-+ *Configuration-Driven Design*: TOML-based configuration system for flexible parameter specification without code changes
-
-= Background Research
-
-The design of Darwin's dual population evolution approach is grounded in established research demonstrating the effectiveness of evolutionary algorithms for game-playing and neural network training.
-
-Research by Petroski et al. @Petroski2018Deep demonstrates that Genetic Algorithms can effectively emulate backpropagation for training deep neural networks in reinforcement learning environments. Their work shows that GA-based weight optimization provides a competitive alternative to gradient-based methods, avoiding local minima while maintaining performance. This validates the use of GA for evolving weight matrices that modulate action selection in game environments.
-
-Genetic Programming has been successfully applied to game-playing scenarios, as demonstrated by Gold et al. @Gold2023Genetic in their work on evolving decision trees for Bomberman using adversarial GP. However, the application of GP to complex RL environments like Generals IO remains underexplored, particularly when combined with GA for weight optimization.
-
-Darwin's approach combines these established techniques: GP creates dynamic decision-making functions that respond to game state, while GA emulates backpropagation by evolving weight matrices that guide action selection. This dual population evolution scheme leverages the strengths of both paradigms, with GP providing expressiveness for function creation and GA providing efficient weight optimization.
-
+Another issue encountered was as the agent improved it would occasionally win, and this while a desirable outcome was usually based on luck rather than skill. Due to how high the reward for winning was it lead to the EA learning from one lucky tree rather than a solid strategy. To combat this Mean Root Error was used. This is an where the sum of all roots of all attempts by the same individual are added together while preserving the sign. This meant that negative and low rewards had an impact on the final result while still rewarding agents who won. This encouraged strategies with consistent rewards rather than one off victories to be evolved and used over time.
 
 = Design and Planning
 
