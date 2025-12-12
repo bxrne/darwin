@@ -265,7 +265,7 @@ func (t *Tree) Mutate(rate float64, mutateInformation *MutateInformation) {
 	t.Root = t.Root.mutateRecursive(rate, mutateInformation.OperandSet, newSet, mutateInformation.MaxDepth, 0)
 	// Update tree depth after mutation
 	t.depth = t.Root.CalculateMaxDepth()
-	
+
 	// Safety check: if mutation resulted in depth 0, regenerate with minimum depth 1
 	if t.depth == 0 {
 		// Regenerate tree with depth 1 using grow method (more diverse than full)

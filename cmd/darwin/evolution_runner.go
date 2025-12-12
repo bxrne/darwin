@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"sync/atomic"
 	"time"
 
 	"github.com/bxrne/darwin/internal/cfg"
@@ -62,130 +61,10 @@ func RunEvolution(ctx context.Context, config *cfg.Config, handler MetricsHandle
 	popBuilder := population.NewPopulationBuilder()
 	popinfo := population.NewPopulationInfo(config, populationType)
 
-	// Atomic counter for ramped half-and-half initialization
-	var treeCounter atomic.Int64
-
-	// Helper function to create ramped half-and-half tree
-	// Depth 0 is disallowed, so we distribute from depth 1 to initialDepth
-	createRampedHalfAndHalfTree := func(initialDepth int, operandSet, variableSet, terminalSet []string) *individual.Tree {
-		popSize := config.Evolution.PopulationSize
-		index := int(treeCounter.Add(1) - 1) // Get current index (0-based)
-
-		// Calculate depth group: divide population into initialDepth groups (depths 1 to initialDepth)
-		// Depth 0 is disallowed
-		depthGroups := initialDepth
-		if depthGroups <= 0 {
-			depthGroups = 1 // Ensure at least one group
-		}
-		groupSize := popSize / depthGroups
-		remainder := popSize % depthGroups
-
-		// Determine which depth group this individual belongs to (1 to initialDepth)
-		depth := 1 // Start from depth 1
-		groupIndex := index
-		for d := 0; d < depthGroups; d++ {
-			groupCount := groupSize
-			if d < remainder {
-				groupCount++ // Distribute remainder across first groups
-			}
-			if groupIndex < groupCount {
-				depth = d + 1 // Depth is 1-indexed (1 to initialDepth)
-				break
-			}
-			groupIndex -= groupCount
-		}
-
-		// Within the depth group, determine if we use grow (first half) or full (second half)
-		// Recalculate group boundaries for this specific depth
-		groupStart := 0
-		for d := 0; d < (depth - 1); d++ { // depth - 1 because depth is 1-indexed
-			groupCount := groupSize
-			if d < remainder {
-				groupCount++
-			}
-			groupStart += groupCount
-		}
-		groupCount := groupSize
-		if (depth - 1) < remainder {
-			groupCount++
-		}
-		localIndex := index - groupStart
-		useGrow := localIndex < groupCount/2
-
-		return individual.NewRampedHalfAndHalfTree(depth, useGrow, operandSet, variableSet, terminalSet)
-	}
+	individualFactory := population.NewIndividualFactory(config)
 
 	population := popBuilder.BuildPopulation(&popinfo, func() individual.Evolvable {
-		switch populationType {
-		case individual.BitStringGenome:
-			return individual.NewBinaryIndividual(config.BitString.GenomeSize)
-		case individual.TreeGenome:
-			return createRampedHalfAndHalfTree(config.Tree.InitalDepth, config.Tree.OperandSet, config.Tree.VariableSet, config.Tree.TerminalSet)
-		case individual.GrammarTreeGenome:
-			return individual.NewGrammarTree(config.GrammarTree.GenomeSize)
-		case individual.ActionTreeGenome:
-			// Create random trees for each action using ramped half-and-half
-			// All trees in an individual use the same depth and method
-			// Depth 0 is disallowed, so we distribute from depth 1 to initialDepth
-			index := int(treeCounter.Add(1) - 1)
-			popSize := config.Evolution.PopulationSize
-			initialDepth := config.Tree.InitalDepth
-
-			// Calculate depth and method for this individual
-			// Depth 0 is disallowed, so we have initialDepth groups (depths 1 to initialDepth)
-			depthGroups := initialDepth
-			if depthGroups <= 0 {
-				depthGroups = 1 // Ensure at least one group
-			}
-			groupSize := popSize / depthGroups
-			remainder := popSize % depthGroups
-
-			depth := 1 // Start from depth 1
-			groupIndex := index
-			for d := 0; d < depthGroups; d++ {
-				groupCount := groupSize
-				if d < remainder {
-					groupCount++
-				}
-				if groupIndex < groupCount {
-					depth = d + 1 // Depth is 1-indexed (1 to initialDepth)
-					break
-				}
-				groupIndex -= groupCount
-			}
-
-			groupStart := 0
-			for d := 0; d < (depth - 1); d++ { // depth - 1 because depth is 1-indexed
-				groupCount := groupSize
-				if d < remainder {
-					groupCount++
-				}
-				groupStart += groupCount
-			}
-			groupCount := groupSize
-			if (depth - 1) < remainder {
-				groupCount++
-			}
-			localIndex := index - groupStart
-			useGrow := localIndex < groupCount/2
-
-			initialTrees := make(map[string]*individual.Tree)
-			variableSet := make([]string, config.ActionTree.WeightsColumnCount)
-			for i := range config.ActionTree.WeightsColumnCount {
-				key := fmt.Sprintf("w%d", i)
-				variableSet[i] = key
-			}
-			variableSet = append(variableSet, config.Tree.VariableSet...)
-			for _, action := range config.ActionTree.Actions {
-				tree := individual.NewRampedHalfAndHalfTree(depth, useGrow, config.Tree.OperandSet, variableSet, config.Tree.TerminalSet)
-				initialTrees[action.Name] = tree
-			}
-			result := individual.NewActionTreeIndividual(config.ActionTree.Actions, initialTrees)
-			return result
-		default:
-			fmt.Printf("Unknown genome type: %v\n", populationType)
-			return nil
-		}
+		return individualFactory.CreateIndividual(populationType)
 	})
 
 	fitnessInfo := fitness.GenerateFitnessInfoFromConfig(config, populationType, grammar, population.GetPopulations())

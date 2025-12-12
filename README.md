@@ -1,8 +1,19 @@
-# darwin
+# Darwin
 
-Darwin is a flexible evolutionary computation framework supporting both Genetic Algorithms (GA) and Genetic Programming (GP). It features an extensible architecture with the Evolvable interface, channel-based evolution engine, and async metrics streaming. 
+Darwin is a flexible evolutionary computation framework supporting Genetic Algorithms (GA), Genetic Programming (GP), and Grammar Evolution. It features an extensible architecture with the Evolvable interface, channel-based evolution engine, and async metrics streaming. It emerged out of training action trees and tuning them with genetic algorithm emulation of backpropagation to play the Generals IO game.
 
-### Clone and Build
+## Architecture
+
+- Channel-based evolution engine for concurrent processing
+- Thread-safe random number generation
+- Async metrics streaming via channels
+- Extensible `Evolvable` interface for custom individual types
+
+For detailed configuration options, see the individual config files in `config/`.
+
+## Quick Start
+
+### Build
 
 ```bash
 git clone https://github.com/bxrne/darwin.git
@@ -11,118 +22,106 @@ go mod tidy
 go build ./cmd/darwin
 ```
 
-## Usage
-
-### Basic Run
+### Run Evolution
 
 ```bash
-./darwin
+./darwin -config config/small.toml
 ```
 
-### Configuration
+### Run Tests
 
-Create a custom config file:
-
-```toml
-[evolution]
-population_size = 500
-crossover_point_count = 1
-crossover_rate = 0.9
-mutation_rate = 0.05
-generations = 50
-elitism_percentage = 0.1
-seed = 42
-
-[bitstring_individual]
-enabled = true
-genome_size = 200
-
-[tree_individual]
-enabled = false
-max_depth = 1
-min_depth = 0
-function_set = ["add"]
-terminal_set = ["x"]
+```bash
+go test ./...
 ```
 
+### Game Server (for Action Tree Evolution)
+
+```bash
+cd game
+uv venv && uv sync
+uv run main.py
+```
+
+### Plot Results
+
+```bash
+cd plot
+uv venv && uv sync  
+uv run main.py --csv path/to/metrics.csv
+```
+
+## Available Configurations
+
+All config files are located in the `config/` directory:
+
+| Config File | Purpose | Individual Type | Use Case |
+|-------------|---------|-----------------|----------|
+| `small.toml` | Quick testing | Bitstring | Fast experiments (100 pop, 10 gen) |
+| `medium.toml` | Balanced experiments | Bitstring | Standard runs (500 pop, 50 gen) |
+| `large.toml` | Comprehensive evolution | Bitstring | Full experiments (2000 pop, 200 gen) |
+| `default.toml` | Default settings | Action Tree | Basic genetic programming |
+| `test.toml` | Action tree evolution | Action Tree | Interactive game evolution |
+| `ge_problem.toml` | Grammar evolution | Grammar Tree | Symbolic regression problems |
 
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `population_size` | Number of individuals in population | 500 |
-| `crossover_point_count` | Number of crossover points | 1 |
-| `crossover_rate` | Probability of crossover (0.0-1.0) | 0.9 |
-| `mutation_rate` | Probability of mutation (0.0-1.0) | 0.05 |
-| `generations` | Number of evolution generations | 50 |
-| `elitism_percentage` | Percentage of best individuals preserved | 0.1 |
-| `seed` | Random seed for reproducibility | 42 |
+The `default.toml` is what is used for evolving to Generals IO.
 
-#### Individual Types
+## Project Components
 
-Darwin supports different individual representations:
+### Main Darwin Binary
+- Core evolution engine with configurable individual types
+- Supports bitstring, tree, grammar, and action-based genomes
+- Async metrics streaming to CSV files
+
+### Game Server (`game/`)
+- TCP server for interactive action tree evolution
+- Used when `action_tree` individual type is enabled
+- Config: `server_addr = "127.0.0.1:5000"` (default)
+
+### Plotter (`plot/`)
+- Visualizes evolution metrics from CSV output
+- Generates fitness progression plots
+- Usage: `uv run main.py --csv path/to/metrics.csv`
+
+## Individual Types
+
+Darwin supports different genome representations:
 
 **Bitstring Individuals** (`[bitstring_individual]`)
-- `enabled`: Enable bitstring genome evolution
-- `genome_size`: Length of binary genome
+- Binary genomes for classic GA problems
+- Fixed-length bit strings with configurable size
 
-**Tree Individuals** (`[tree_individual]`)
-- `enabled`: Enable tree-based genetic programming
-- `max_depth`: Maximum tree depth
-- `min_depth`: Minimum tree depth
-- `function_set`: Available functions (e.g., ["add", "subtract", "multiply", "divide"])
-- `terminal_set`: Terminal values/variables
+**Tree Individuals** (`[tree_individual]`)  
+- Expression trees for genetic programming
+- Variable depth with customizable function/terminal sets
 
-### Predefined Configurations
+**Grammar Tree Individuals** (`[grammar_tree]`)
+- Grammar-based evolution for structured problems
+- Useful for symbolic regression and language generation
 
-The project includes several predefined configurations for different use cases:
+**Action Tree Individuals** (`[action_tree]`)
+- Interactive evolution via game server
+- Evolves action sequences for game-playing agents
 
-- `config/small.toml`: Quick testing with bitstring individuals (100 pop, 10 gen)
-- `config/medium.toml`: Balanced performance with bitstring individuals (500 pop, 50 gen)
-- `config/large.toml`: Comprehensive evolution with bitstring individuals (2000 pop, 200 gen)
-- `config/default.toml`: Genetic programming with tree individuals
+## Development
 
-## Features
+### Testing
 
-### Genetic Programming Support
+```bash
+# Run all tests
+go test ./...
 
-Darwin includes support for Genetic Programming (GP) with tree-based individuals. Configure `[tree_individual]` section to enable GP for problems like symbolic regression:
+# Run with coverage
+go test -cover ./...
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
 
-```toml
-[tree_individual]
-enabled = true
-max_depth = 3
-function_set = ["add", "subtract", "multiply", "divide"]
-terminal_set = ["x", "y", "1.0", "2.0"]
+# Run specific package tests
+go test ./internal/evolution
+go test ./internal/fitness
 ```
 
-### Selection Methods
-
-- **Roulette Selection**: Fitness-proportional selection (default)
-- **Tournament Selection**: Tournament-based selection available
-
-### Extensible Architecture
-
-Implement the `Evolvable` interface to create custom individual types:
-
-```go
-type Evolvable interface {
-    CalculateFitness()
-    Mutate(rate float64)
-    GetFitness() float64
-    Max(i2 Evolvable) Evolvable
-    MultiPointCrossover(i2 Evolvable, crossoverPointCount int) (Evolvable, Evolvable)
-}
-```
-
-### Async Metrics Streaming
-
-Evolution runs with channel-based communication and provides real-time metrics streaming for monitoring progress.
-
-## Benchmarking
-
-Darwin includes comprehensive benchmarking capabilities for performance analysis.
-
-### Running Benchmarks
+### Benchmarking
 
 ```bash
 # Run all evolution benchmarks
@@ -132,48 +131,10 @@ go test -bench=BenchmarkEvolution ./cmd/darwin -benchmem
 go test -bench=BenchmarkEvolution_Small ./cmd/darwin -benchmem
 go test -bench=BenchmarkEvolution_Medium ./cmd/darwin -benchmem
 go test -bench=BenchmarkEvolution_Large ./cmd/darwin -benchmem
-```
 
-### Benchmark Results
-
-Example output:
-
-```
-BenchmarkEvolution_Small-16    477    2484647 ns/op    1086608 B/op    5698 allocs/op
-Config: Population=100, GenomeSize=64, Generations=10, Seed=42
-Run 1: Best=0.900, Avg=0.837
-Memory: Used=1085744 bytes, TotalAlloc=1085744 bytes
-```
-
-### Performance Profiling
-
-```bash
-# CPU profiling
+# Performance profiling
 go test -bench=BenchmarkEvolution ./cmd/darwin -cpuprofile=cpu.prof
 go tool pprof cpu.prof
-
-# Memory profiling
-go test -bench=BenchmarkEvolution ./cmd/darwin -memprofile=mem.prof
-go tool pprof mem.prof
 ```
 
-## Architecture
-
-Darwin uses a channel-based evolution engine for concurrent processing and thread-safe random number generation. The async metrics streaming allows real-time monitoring of evolution progress.
-
-## Testing
-
-### Run All Tests
-
-```bash
-go test ./...
-```
-
-### Test Coverage
-
-```bash
-go test -cover ./...
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out
-```
 
