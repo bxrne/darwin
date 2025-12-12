@@ -1,3 +1,22 @@
+## [1.24.1](https://github.com/bxrne/darwin/compare/v1.24.0...v1.24.1) (2025-12-12)
+
+
+### Bug Fixes
+
+* **benchmark_test.go:** fixed failing benches ([567a912](https://github.com/bxrne/darwin/commit/567a912c0e29ebd5a72bf2c30f450beaf81bbc53))
+* **cmd, README.md:** Update benchmarks to include all individuals and seperate action tree into game server dependent benchmark ([3345467](https://github.com/bxrne/darwin/commit/3345467fc5939ca7c256d76eab8a4efa6938bf40))
+* **population:** dont acess action tree actions if disabled in cfg ([c07ab7b](https://github.com/bxrne/darwin/commit/c07ab7bc30b579f1e7b08f25af130144188d48cc))
+
+
+### Code Refactoring
+
+* **benchmark_test.go, fitness:** Enhance benchmarks and fitness calculations for ActionTree and Tree individuals; update parameters for better convergence and performance metrics. ([6fb59f3](https://github.com/bxrne/darwin/commit/6fb59f37759d5f075eab0b55669ccf604cd6321c))
+
+
+### Miscellaneous Chores
+
+* **cmd:** Remove bad comments and fix lint complaint ([a24d0b5](https://github.com/bxrne/darwin/commit/a24d0b569d09088b8f5e13e1bf6e3d6d6e11c9bd))
+
 ## [1.24.0](https://github.com/bxrne/darwin/compare/v1.23.4...v1.24.0) (2025-12-12)
 
 
