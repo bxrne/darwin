@@ -30,18 +30,37 @@ type PopulationInfo struct {
 }
 
 func NewPopulationInfo(config *cfg.Config, genomeType individual.GenomeType) PopulationInfo {
-	maxValue := config.ActionTree.Actions[0].Value // start with first value
-	for _, a := range config.ActionTree.Actions[1:] {
-		if a.Value > maxValue {
-			maxValue = a.Value
+	var maxValue int
+	var weightsCount, numColumns int
+	var trainWeightsFirst bool
+	var switchStep int
+
+	if config.ActionTree.Enabled {
+		maxValue = config.ActionTree.Actions[0].Value // start with first value
+		for _, a := range config.ActionTree.Actions[1:] {
+			if a.Value > maxValue {
+				maxValue = a.Value
+			}
 		}
+		weightsCount = config.ActionTree.WeightsCount
+		numColumns = config.ActionTree.WeightsColumnCount
+		trainWeightsFirst = config.ActionTree.TrainWeightsFirst
+		switchStep = config.ActionTree.SwitchTrainingTargetStep
+	} else {
+		// Default values for non-ActionTree individual types
+		maxValue = 0
+		weightsCount = 0
+		numColumns = 0
+		trainWeightsFirst = false
+		switchStep = 0
 	}
+
 	return PopulationInfo{
 		Size:                 config.Evolution.PopulationSize,
-		weightsCount:         config.ActionTree.WeightsCount,
-		numColumns:           config.ActionTree.WeightsColumnCount,
-		trainWeightsFirst:    config.ActionTree.TrainWeightsFirst,
-		SwitchPopulationStep: config.ActionTree.SwitchTrainingTargetStep,
+		weightsCount:         weightsCount,
+		numColumns:           numColumns,
+		trainWeightsFirst:    trainWeightsFirst,
+		SwitchPopulationStep: switchStep,
 		maxNumInputs:         maxValue,
 		GenomeType:           genomeType,
 	}
