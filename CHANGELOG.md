@@ -1,3 +1,15 @@
+## [1.24.0](https://github.com/bxrne/darwin/compare/v1.23.4...v1.24.0) (2025-12-12)
+
+
+### Features
+
+* Change fitness logic and remove dead code ([ae46af3](https://github.com/bxrne/darwin/commit/ae46af31fdde177057ef68ffb75bad49953876f5))
+
+
+### Bug Fixes
+
+* testing argmax over softmax ([8f4aa58](https://github.com/bxrne/darwin/commit/8f4aa580e1d4c757358fb08711c79973e8521d87))
+
 ## [1.23.4](https://github.com/bxrne/darwin/compare/v1.23.3...v1.23.4) (2025-12-12)
 
 
