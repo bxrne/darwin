@@ -4,7 +4,7 @@
 #import "@preview/dashy-todo:0.1.3": todo
 
 #show: arkheion.with(
-  title: "Darwin: Towards game playing via Genetic Programming and Backpropagation emulation",
+  title: "Towards game playing via Genetic Programming and Backpropagation emulation",
   authors: (
     (name: "Adam Byrne", email: "22338004@studentmail.ul.ie", affiliation: "University of Limerick"),
     (name: "Art O'Liathain", email: "22363092@studentmail.ul.ie", affiliation: "University of Limerick"),
