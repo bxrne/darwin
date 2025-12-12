@@ -65,6 +65,8 @@ func newBenchmarkConfig(popSize, sizeParam, generations int, individualType stri
 		CrossoverRate:       0.9,
 		Generations:         generations,
 		ElitismPercentage:   0.1,
+		SelectionSize:       5,
+		SelectionType:       "tournament",
 		Seed:                42,
 	}
 
@@ -107,8 +109,14 @@ func newBenchmarkConfig(popSize, sizeParam, generations int, individualType stri
 				Enabled:    true,
 				GenomeSize: sizeParam,
 			},
+			Tree: cfg.TreeIndividualConfig{
+				Enabled:     false, // Keep disabled but provide grammar config
+				MaxDepth:    8,
+				OperandSet:  []string{"+", "-", "*", "/"},
+				VariableSet: []string{"x", "y"},
+				TerminalSet: []string{"1.0", "2.0", "3.0", "4.0", "5.0"},
+			},
 			BitString:  cfg.BitStringIndividualConfig{Enabled: false},
-			Tree:       cfg.TreeIndividualConfig{Enabled: false},
 			ActionTree: cfg.ActionTreeConfig{Enabled: false},
 			Fitness: cfg.FitnessConfig{
 				TestCaseCount:  20,
