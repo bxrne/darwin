@@ -1,3 +1,16 @@
+## [1.23.3](https://github.com/bxrne/darwin/compare/v1.23.2...v1.23.3) (2025-12-12)
+
+
+### Documentation
+
+* **report:** Add start of design doc ([1bfe236](https://github.com/bxrne/darwin/commit/1bfe2365f35427df5f37fedbefa40773ba6f7175))
+
+
+### Miscellaneous Chores
+
+* Added rationale and problem to report ([f710817](https://github.com/bxrne/darwin/commit/f710817711eff2dadd0aa96a2b020e4643dc7b0e))
+* Images for benchamrking added ([5578673](https://github.com/bxrne/darwin/commit/5578673bbea58d39ad5ba6a46c1bdd4f1f6bb7f8))
+
 ## [1.23.2](https://github.com/bxrne/darwin/compare/v1.23.1...v1.23.2) (2025-12-12)
 
 
