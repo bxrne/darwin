@@ -1,3 +1,10 @@
+## [1.23.1](https://github.com/bxrne/darwin/compare/v1.23.0...v1.23.1) (2025-12-12)
+
+
+### Documentation
+
+* **report:** Add start of design doc ([f8af498](https://github.com/bxrne/darwin/commit/f8af4987db1bdb0098f59cf82f7984451b7c88bd))
+
 ## [1.23.0](https://github.com/bxrne/darwin/compare/v1.22.0...v1.23.0) (2025-12-10)
 
 
