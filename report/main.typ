@@ -4,7 +4,7 @@
 #import "@preview/dashy-todo:0.1.3": todo
 
 #show: arkheion.with(
-  title: "Towards game playing via Genetic Programming and Backpropagation emulation",
+  title: "Darwin: Towards game playing via Genetic Programming and Backpropagation emulation",
   authors: (
     (name: "Adam Byrne", email: "22338004@studentmail.ul.ie", affiliation: "University of Limerick"),
     (name: "Art O'Liathain", email: "22363092@studentmail.ul.ie", affiliation: "University of Limerick"),
@@ -124,21 +124,10 @@ The architecture consists of the following primary components:
 ==== Metrics Collection
 (`internal/metrics/`): Asynchronous metrics streaming with CSV export capabilities.
 
+= Implementation 
 #include("./implementation.typ")
 
-== Configuration System
-
-Darwin uses TOML (Tom's Obvious Minimal Language) configuration files for flexible parameter specification. This approach separates configuration from code, enabling experimentation without recompilation. The configuration system supports:
-
-- Evolution parameters (population size, generations, rates)
-- Individual-specific settings (genome size, tree depth, function sets)
-- Fitness function configuration (target functions, test cases)
-- Metrics and logging settings
-- Bridge connection parameters (host, port, timeouts)
-
-This design follows the 12-Factor App methodology's configuration principle @Wiggins2012Twelve, storing configuration in the environment (files) rather than hardcoding values.
-
-
+== Design
 ==== Rationale for GA
 Genetic Algorithms emulate backpropagation by evolving weight matrices that modulate action selection. Research supports using GA to emulate backpropagation for game environments @Petroski2018Deep, providing a performant solution that avoids local minima common in gradient-based methods.
 

@@ -1,6 +1,6 @@
 #import "@preview/dashy-todo:0.1.3": todo
 
-=== Design Principles
+== Design Principles
 
 The architecture adheres to several key design principles:
 
@@ -10,200 +10,168 @@ The architecture adheres to several key design principles:
 
 + *Single Responsibility*: Each package has a clearly defined responsibility, promoting maintainability and testability.
 
-+ *Concurrency Safety*: The channel-based architecture ensures thread-safe operation while enabling parallel offspring generation.
++ *Concurrency Safety*: The channel based architecture ensures thread safe operation while enabling parallel offspring generation.
 
 == Language Choice Rationale
 
 === Evolution engine
 
-Go was selected as the implementation language for several reasons:
-
-*Generic Type System*: Go's interface-based generics enable a truly generic evolution engine. The `Evolvable` interface allows the evolution engine to operate on any type that implements genetic operations, providing type safety at compile time while maintaining runtime flexibility. This eliminates the need for code generation or runtime type assertions, resulting in both safety and performance.
-
-*Concurrency Support*: Go's goroutines and channels provide elegant primitives for concurrent evolutionary operations, enabling efficient parallel offspring generation without complex thread management. The channel-based architecture ensures thread-safe operation with minimal synchronization overhead.
-
-*Performance*: Go compiles to native code, providing performance comparable to C/C++ while maintaining higher-level abstractions. This is crucial for EA systems where fitness evaluation may be computationally expensive. The zero-cost abstractions of interfaces and goroutines ensure minimal runtime overhead.
-
-*Type Safety*: Go's interface system enables compile-time type checking while maintaining flexibility through structural typing. The generic evolution engine benefits from this, ensuring that all operations are type-safe without sacrificing extensibility.
-
-*Tooling*: Excellent tooling including `go test` for benchmarking, `go vet` for static analysis, and built-in profiling support.
+Go was selected for its interface based generics enabling type-safe generic evolution, goroutines and channels for efficient concurrency, native code performance, and excellent tooling. The generic type system eliminates code duplication while maintaining compile-time type safety.
 
 === Bridge 
 
-The GP→RL bridge is implemented in Python due to the following reasons:
+The GP→RL bridge is implemented in Python due to the mature RL ecosystem (PettingZoo), direct environment integration without language bindings, multiprocessing for true parallelism (bypassing GIL).
 
-*RL Ecosystem*: The target game environment (Generals IO) uses PettingZoo, a Python-based multi-agent RL library. Python has the most mature ecosystem for reinforcement learning environments, with extensive support for game environments and RL frameworks.
+== Overview 
 
-*Environment Integration*: The bridge needs to interface directly with PettingZoo environments, which are Python-native. Implementing the bridge in Python eliminates the need for language bindings or complex inter-process communication layers, simplifying the integration.
+=== Bridge
 
-*Multiprocessing*: Python's multiprocessing module enables true parallelism for concurrent game simulations, bypassing the Global Interpreter Lock (GIL) that limits threading. This allows the bridge to run multiple game instances in parallel, essential for efficient fitness evaluation.
+The GP→RL bridge (`game/bridge.py`) provides a universal translation layer between Genetic Programming systems and Reinforcement Learning environments, addressing the paradigm mismatch where GP produces functions while RL requires interactive agents.
 
-*Scope*: The bridge is a means to proving the concept of evolving game-playing strategies via GP. Python's ease of use and rapid development capabilities make it suitable for this purpose. Future iterations could consider re-implementing the bridge in Go if scale or performance demands increase.
+=== Architecture and Design
 
+The bridge follows a multi-process server architecture where each client connection spawns an independent worker process, enabling true parallelism and bypassing Python's GIL (Global Interpreter Lock) which ensures only one bytecode set executes at a time, so it cannot utilize multiple CPU cores with threads. 
 
-= Implementation Details
+The bridge exposes a standard RL API via TCP using JSON encoded messages supporting connection establishment, observation requests, action submission, health checks, and game termination.
 
-== Generic Evolution Engine
+Worker processes receive socket file descriptors, manage complete game session lifecycles, handle JSON serialization, and communicate game state back to clients. This isolation prevents interference between concurrent evaluations.
 
-The evolution engine is implemented as a *generic*, type-safe system using Go's interface-based generics. This design enables the engine to evolve any representation type that implements the `Evolvable` interface, without requiring code duplication or runtime type assertions. The engine receives commands through a command channel and processes generations asynchronously, leveraging Go's concurrency primitives for optimal performance.
+=== Connection Pooling and Health Checking
 
-The `Evolvable` interface serves as the foundation for the generic evolution engine:
+The Go side implements a TCP connection pool that maintains configurable connections (default: 100), performs health checks before reuse, creates connections on demand, and handles failures gracefully. Health checks use a lightweight `HEALTH` message that the bridge responds to. 
 
-```go
-type Evolvable interface {
-    Mutate(rate float64, mutateInformation *MutateInformation)
-    Max(i2 Evolvable) Evolvable
-    MultiPointCrossover(i2 Evolvable, crossoverInformation *CrossoverInformation) (Evolvable, Evolvable)
-    GetFitness() float64
-    SetFitness(fitness float64)
-    Clone() Evolvable
-    Describe() string
-}
-```
+=== Protocol Abstraction
 
-This generic interface enables:
-- *Zero Code Duplication*: The same evolution engine code evolves bitstrings, trees, grammar trees, and action trees without modification
-- *Compile-Time Type Safety*: Go's interface system ensures all operations are type-safe at compile time, eliminating runtime type assertions
-- *Extensibility*: Adding new individual types requires only implementing the `Evolvable` interface—no changes to core evolution logic
+The bridge translates GP tree evaluation outputs into RL action format. Action trees evaluate game state to produce numeric outputs that are combined with weight matrices, mapped to discrete action spaces, serialized as JSON, and converted to PettingZoo action format. This abstraction keeps the evolution engine game agnostic.
 
+=== Action Evaluation 
+
+Each game session involves multiple action and observation cycles. After initialization, games proceed through multiple steps (up to `max_steps`, default: 1000). At each step, the client evaluates all action trees *multiple times* once for each row in the weight matrix. Each evaluation uses different weight values (`w0, w1, ..., wN`) as inputs to the action trees, producing multiple outputs per action tree. These outputs are then combined using softmax selection to produce a single action vector `[pass, cell_i, cell_j, direction, split]` that is submitted via TCP. The bridge processes one action vector per timestep, but the action trees are evaluated multiple times per step (across weight rows) to produce that single action. For fitness evaluation, the engine plays `test_case_count` games (default: 3) per individual, ensuring robust evaluation across diverse scenarios.
+
+== Engine
+
+The evolution engine (`internal/evolution/engine.go`) is implemented as a generic, type-safe system using Go's interfaces and message passing via channels, enabling evolution of any representation type implementing the `Evolvable` interface without code duplication.
+
+=== Extensible Architecture
+
+The `Evolvable` interface provides `Mutate()`, `Max()`, `MultiPointCrossover()`, `GetFitness()`, `SetFitness()`, `Clone()`, and `Describe()` methods. This enables zero code duplication (same engine evolves bitstrings, trees, grammar trees, and action trees), compile-time type safety, and extensibility (new types only need to implement the interface).
+
+The engine receives commands through a command channel and processes generations asynchronously, enabling clean separation, graceful shutdown, and non-blocking submission.
+
+=== CPU Utilization and Concurrent Offspring Generation
+
+The engine maximizes CPU utilization by spawning one goroutine per offspring needed, utilizing all available CPU cores. This scales linearly with CPU count through channel-based communication without mutex contention. The engine doesn't limit goroutine count to `runtime.NumCPU()` because Go's scheduler efficiently manages mapping, offspring generation is I/O-bound with the bridge, and channel buffering prevents blocking. Fitness calculation for dual populations uses `runtime.NumCPU()` to chunk work across cores.
+
+=== Coevolution Support
+
+The engine supports coevolution through the `Population` interface, which can represent single or dual populations. For dual population evolution, `ActionTreeAndWeightsPopulation` manages two separate populations that alternate evolution. The generic design enables coevolution without modification, the `Population` interface abstracts management, and `Population.Update()` enables population specific logic.
+
+=== Fitness Calculation Integration
+
+Fitness calculation is integrated through the `FitnessCalculator` interface. The engine calls `CalculateFitness()` on new individuals during offspring generation and initial population fitness calculation. The interface enables pluggable fitness functions: symbolic regression (MSE based), binary fitness (OneMax, trap functions), and action tree game playing fitness (via GP→RL bridge).
+
+*Multi Game Evaluation for Action Trees*: ActionTreeIndividuals are evaluated across `test_case_count` games (default: 3), not a single game. For each individual, `SetupGameAndRun()` is called multiple times, fitness scores are averaged, and within each game the individual makes multiple action decisions (up to `max_steps`, default: 1000). At each step, all action trees are evaluated *multiple times* (once per weight matrix row), with each evaluation using different weight values as tree inputs. These multiple evaluations produce outputs that are combined using softmax to select a single action vector, which is then submitted to the bridge. This multi level evaluation (multiple games, multiple steps per game, multiple action tree evaluations per step across weight rows) ensures robust fitness assessment.
 
 === Generation Processing
 
-Each generation follows this sequence:
+Each generation: (1) calculates fitness for initial population (generation 1) or inherits from parents, (2) sorts population by fitness, (3) preserves elite individuals ($k = ceil("population_size" * "elitism_percentage")$), (4) generates remaining offspring through selection, crossover ($p_c = 0.7$), mutation ($p_m = 0.3$), and fitness evaluation, (5) calls `Population.Update()` for population specific logic, (6) calculates and streams metrics.
 
-1. *Fitness Calculation*: For generation 1, calculate fitness for the initial population. Subsequent generations inherit fitness from parent selection.
+== Library
 
-2. *Population Sorting*: Sort population by fitness (descending) to identify elite individuals.
+The library provides foundational interfaces, operators, individual representations, and configuration system enabling the generic evolution engine.
 
-3. *Elitism*: Preserve the top $"k"$ individuals, where $"k" = ceil("population_size" times "elitism_percentage")$.
+=== Interface Design
 
-4. *Offspring Generation*: Generate remaining individuals through:
-   - Parent selection (roulette or tournament)
-   - Crossover with probability $"p"_c$ (default 0.7)
-   - Mutation with probability $"p"_m$ (default 0.3)
-   - Fitness evaluation
+The `Evolvable` interface defines the contract for all individual types with minimal, composable, type-safe methods: `Mutate()`, `MultiPointCrossover()`, `Max()`, `GetFitness()`/`SetFitness()`, `Clone()`, and `Describe()`.
 
-5. *Metrics Collection*: Calculate and stream generation metrics including best/average/min fitness, population statistics, and execution time.
+=== Genetic Operators
 
-=== Generic Concurrent Offspring Generation
+*Crossover*: Multipoint crossover, configurable through `crossover_point_count`. For bitstrings, divides genome into segments; for trees, exchanges subtrees. Crossover rate $p_c = 0.7$ (default).
 
-The evolution engine's generic design enables concurrent offspring generation for any `Evolvable` type:
+*Mutation*: Introduces diversity. For bitstrings, flips bits with probability $p_m$. For trees, can replace subtrees, modify node values, or swap subtrees. Mutation rate $p_m = 0.3$ (default).
 
-```go
-for i := 0; i < offspringNeeded; i++ {
-    wg.Add(1)
-    go func() {
-        defer wg.Done()
-        ee.generateOffspring(cmd, offspringChan)
-    }()
-}
-```
+*Selection*: Two mechanisms—Roulette Wheel (fitness proportional) and Tournament (selects $k$ individuals, returns fittest). Tournament provides better control over selection pressure.
 
-This design maximizes CPU utilization across all available cores, with the generic interface ensuring type-safe operations regardless of the underlying representation. The channel-based communication provides efficient synchronization without mutex contention, resulting in near-linear scaling with CPU count. 
+=== Individual Representations
 
-The generic evolution engine's innovation lies in achieving both type safety and performance through Go's interface-based generics, enabling a single codebase to evolve diverse representations without code duplication or runtime overhead. The generic design eliminates the traditional trade-off between flexibility and performance. By leveraging Go's interface-based generics, the engine achieves compile-time type safety while maintaining runtime efficiency comparable to specialized implementations. The concurrent architecture scales linearly with CPU count, demonstrating that generic design need not sacrifice performance. This validates that interface-based generics in Go provide both type safety and performance, enabling a single evolution engine to handle bitstrings, trees, grammar trees, and action trees. 
+While the system supports bitstring individuals, standard tree individuals, and grammar evolution, the primary focus was on `ActionTreeIndividual`, the core representation for game playing strategy evolution.
 
-== Genetic Operators
+==== Action Tree Individual
 
-=== Crossover
+The `ActionTreeIndividual` contains a collection of expression trees, one for each action type (pass, move direction, split, cell coordinates). These trees evaluate game state variables to produce numeric outputs combined with weight matrices to select actions.
 
-Darwin implements multi-point crossover, configurable through `crossover_point_count`. For bitstring individuals, crossover points divide the genome into segments that are alternately inherited from parents. For tree individuals, crossover exchanges subtrees between parents.
+*Structure*: Contains `Trees` (map from action names to `Tree` structures), `fitness`, and `clientId` for tracking.
 
-The crossover rate $"p"_c$ determines the probability of performing crossover versus direct mutation. Default: $"p"_c = 0.7$.
+*Initialization with Ramped Half-and-Half*: Population is divided into `initialDepth` depth groups (depths 1 to `initialDepth`). Within each depth group, individuals are split: first half uses *grow* method (variable depth), second half uses *full* method (complete binary trees). All trees within a single individual use the same depth and method.
 
-=== Mutation
+*Grow vs Full Methods*: Grow creates trees by randomly selecting from function and terminal sets at each level, producing variable shapes. Full creates complete binary trees with all nodes at depth < target as functions, all at target depth as terminals.
 
-Mutation introduces diversity into the population. For bitstring individuals, mutation flips bits with probability $p_m$. For tree individuals, mutation can:
-- Replace a subtree with a randomly generated one
-- Modify node values within depth constraints
-- Swap subtrees
+*Variable Set Construction*: Combines weight variables (`w0, w1, ..., wN`) and game state variables (e.g., `army_diff`, `land_diff`, `distance_to_enemy_general`), enabling trees to access both during evaluation.
 
-The mutation rate $p_m$ controls the probability of mutation per individual. Default: $p_m = 0.3$.
+*Genetic Operations*:
 
-=== Selection
+*Mutation*: Applied to each tree independently using recursive traversal with three mutation types: Value Mutation (60%) replaces terminal/function values, Shrink Mutation (20%) replaces non-terminal subtrees with terminals (reducing depth), Grow Mutation (20%) replaces terminals with function nodes and children (increasing depth). Shrink only occurs if resulting tree depth ≥ 1; grow only if current depth < `maxDepth`. Safety check regenerates trees that reach depth 0.
 
-Two selection mechanisms are implemented:
+*Crossover*: Multipoint crossover performed independently for each action tree. Exchanges subtrees between corresponding trees from two parents, ensuring combined depth doesn't exceed `maxDepth`, then recalculates tree depths.
 
-+ *Roulette Wheel Selection*: Fitness-proportional selection where each individual's selection probability is proportional to its fitness relative to total population fitness.
+*Clone*: Creates deep copy of all trees ensuring independent operations.
 
-+ *Tournament Selection*: Randomly selects $k$ individuals (tournament size) and returns the fittest. Tournament size is configurable (default: 3-7).
+*Max*: Returns ActionTreeIndividual with higher fitness for offspring selection.
 
-Tournament selection provides better control over selection pressure and is less sensitive to fitness scaling issues.
+==== Other Individual Types
 
-== Individual Representations
+*Bitstring Individuals*: Traditional GA with fixed length binary genomes.
 
-=== Bitstring Individuals
+*Tree Individuals*: Standard GP expression trees for symbolic regression.
 
-Traditional GA representation using binary genomes. Suitable for problems where solutions can be encoded as fixed-length bitstrings (e.g., knapsack, subset selection).
+*Grammar Evolution*: Maps integer genomes to expression trees via context free grammar rules.
 
-Key parameters:
-- `genome_size`: Length of binary genome
+== Configuration System
 
-=== Tree Individuals (GP)
+Darwin uses TOML (Tom's Obvious Minimal Language) configuration files for flexible parameter specification. This approach separates configuration from code, enabling experimentation without recompilation. The configuration system supports:
 
-Standard Genetic Programming representation using expression trees. Nodes represent functions (operators) or terminals (variables/constants).
+- Evolution parameters (population size, generations, rates)
+- Individual-specific settings (genome size, tree depth, function sets)
+- Fitness function configuration (target functions, test cases)
+- Metrics and logging settings
+- Bridge connection parameters (host, port, timeouts)
 
-Key parameters:
-- `max_depth`: Maximum tree depth (default: 8)
-- `initial_depth`: Minimum initial tree depth (default: 4)
-- `operand_set`: Available operators (e.g., `["+", "-", "*", "/", "^"]`)
-- `terminal_set`: Terminal values (constants)
-- `variable_set`: Variable names (e.g., game state variables for action trees)
+This design follows the 12-Factor App methodology's configuration principle @Wiggins2012Twelve, storing configuration in the environment (files) rather than hardcoding values.
 
-=== Grammar Evolution
+== Metrics
 
-Grammar Evolution (GE) maps integer genomes to expression trees via a context-free grammar. This approach combines the search efficiency of integer genomes with the expressiveness of tree structures.
+The metrics system provides realtime streaming of evolution progress with CSV export capabilities.
 
-The GE implementation:
-1. Defines a grammar mapping non-terminals to production rules
-2. Uses integer codons (genome values) to select production rules
-3. Expands the grammar starting from the start symbol to generate trees
-4. Handles depth limits by forcing terminal selection at maximum depth
+=== Metrics Handler
 
-This enables evolution of programs that conform to specific syntactic constraints, useful for symbolic regression where certain function combinations may be invalid.
+Uses channel based streaming architecture. The `MetricsStreamer` broadcasts metrics to all subscribers asynchronously, supports multiple concurrent handlers, and uses non-blocking broadcast to prevent backpressure.
 
-Darwin's Grammar Evolution implementation represents an innovation in constraint-guided program evolution. Unlike standard GP which may generate syntactically invalid programs, GE ensures all evolved programs conform to domain-specific constraints through grammar rules. This approach enables:
+=== CSV Export
 
-- *Constraint satisfaction*: Evolved programs automatically satisfy syntactic constraints, eliminating invalid solutions from the search space
-- *Domain knowledge encoding*: Grammar rules can encode domain expertise, focusing evolution on meaningful solutions
-- *Reduced search space*: Grammar constraints dramatically reduce the search space, accelerating convergence
+The CSV writer provides structured export with header rows, one row per generation, flush-after-write for persistence, and mutex-protected concurrent access. Columns include generation, duration, fitness statistics, best description, tree depth statistics, population size, and timestamp.
 
-This approach is particularly valuable for symbolic regression where certain function combinations are mathematically invalid, demonstrating how grammar-guided evolution can outperform standard GP for constrained problems.
+=== Metrics Collection
 
-=== Action Tree Individuals and Dual Population Evolution
+The engine calculates metrics after each generation: fitness statistics, population size, tree depth statistics, generation execution time, and best individual description. Metrics are calculated synchronously and sent asynchronously through channels.
 
-#todo(position: right)[Add gameplay GIF/video demonstrating evolved strategies in action against Generals IO opponents.]
+== Dual Population Evolution
 
-Action Tree individuals represent a novel approach to evolving game-playing strategies for complex game environments like Generals IO. The system employs a *dual population evolution* scheme that combines Genetic Algorithms and Genetic Programming:
+The dual population evolution scheme combines GA and GP in a coevolutionary framework, maintaining two parallel populations that alternate evolution.
 
- This modulation mechanism creates distinct evolutionary phases:
+=== Architecture
 
-- *Action Tree Evolution Phase*: During this phase, the action tree population (GP) evolves while the weights population remains static. This allows action trees to explore new decision-making functions and adapt to the current weight configuration, discovering novel strategies that leverage the existing weight structure.
+The system maintains an Action Tree Population (GP) that evolves decision making functions, and a Weights Population (GA) that evolves weight matrices. `ActionTreeAndWeightsPopulation` manages both populations and implements the `Population` interface, enabling transparent operation by the generic engine.
 
-- *Weight Evolution Phase*: During this phase, the weights population (GA) evolves while the action trees remain static. This allows weights to optimize action selection policies for the current set of action trees, fine-tuning how different action types are prioritized and combined.
+=== Modulation Mechanism
 
-- *Modulation Effect*: By alternating between these phases, the system modulates the evolutionary pressure on each component. When action trees evolve, they must work with the current weights, preventing them from overfitting to a specific weight configuration. When weights evolve, they must optimize for the current action trees, preventing them from exploiting weaknesses in a single tree structure. This modulation creates a stabilizing effect that prevents premature convergence and encourages robust co-adaptation.
+Populations alternate evolution every `switch_training_target_step` generations (default: 10) using an evolutionary islands approach. During Action Tree Evolution Phase, action trees evolve while weights remain static. During Weight Evolution Phase, weights evolve while action trees remain static. When populations switch, fitness is recalculated for both to reflect the new coevolutionary context.
 
-- *Co-Adaptation*: Over multiple alternation cycles, both populations co-evolve toward complementary solutions. Action trees evolve to produce outputs that work well with the evolving weight matrices, while weights evolve to effectively combine the evolving tree outputs. This co-adaptation enables the discovery of sophisticated strategies that neither component could achieve independently.
+=== Modulation Effect
 
-This evolutionary islands approach enables the system to evolve complex game strategies that adapt to opponent behavior, demonstrating that evolutionary algorithms can effectively combine different paradigms for superior performance. The modulation mechanism ensures that both components evolve in harmony rather than competing or diverging, resulting in robust, generalizable strategies. The approach avoids local minima that plague pure GP approaches while maintaining the expressiveness of evolved programs.
+Alternating phases modulate evolutionary pressure: action trees must work with current weights (preventing overfitting), weights must optimize for current trees (preventing exploitation). This creates stabilizing effects preventing premature convergence and encouraging robust coadaptation. Over multiple cycles, both populations coevolve toward complementary solutions.
 
-== Generic GP→RL Bridge
+=== Test Case Count and Robust Evaluation
 
-The fitness evaluation leverages a *generic GP→RL bridge* (`game/bridge.py`), a universal wrapper that translates GP individuals into Reinforcement Learning environments. This bridge provides:
+Each Action Tree individual plays `test_case_count` games (default: 3) rather than one. The fitness calculator evaluates each individual across multiple games, averaging results. This prevents convergence on tactics exploiting specific game states. The `test_case_count` parameter controls the robustness vs. computational cost tradeoff.
 
-=== Standard RL Interface
-The bridge exposes a standard RL-like API via TCP, accepting observations and returning actions, rewards, and termination signals. This enables any GP system to interact with RL environments without modification.
-
-=== Protocol Abstraction
-The bridge handles the translation between GP tree evaluation (which produces action vectors) and RL environment requirements (which expect structured actions). This abstraction allows the evolution engine to remain agnostic to the specific game being played.
-
-=== Concurrent Game Execution
-The bridge supports multiple concurrent game simulations through multiprocessing, enabling parallel fitness evaluation of multiple individuals simultaneously. This maximizes throughput when evaluating game-playing strategies.
-
-=== Environment Agnostic
-The bridge design is game-agnostic—it can wrap any PettingZoo-style environment, making it a truly generic GP→RL translation layer. The current implementation uses the Generals game environment, but the bridge can be adapted to any game following the standard interface.
-
-The *generic GP→RL bridge* represents a novel solution to the fundamental challenge of connecting Genetic Programming systems with Reinforcement Learning environments. While GP traditionally operates on static fitness functions, the bridge enables GP to evolve strategies for interactive, dynamic environments—a largely underexplored application area. The bridge solves the paradigm mismatch between GP (which produces functions) and RL (which requires interactive agents). By providing a universal translation layer, the bridge enables any GP system to evolve game-playing strategies without modification. This generic design means the bridge can wrap any PettingZoo-style environment, making it a truly universal GP→RL translation layer.
-
-
+For weights evaluation, each weight individual is tested against all action trees, with each combination evaluated across `test_case_count` games. Weight fitness is the maximum across all tree combinations. Similarly, for action tree evaluation, each tree is tested against all weights, with each combination evaluated across `test_case_count` games. Tree fitness is the maximum across all weight combinations. This dual evaluation strategy ensures both components evolve toward complementary solutions performing robustly across diverse game scenarios.
