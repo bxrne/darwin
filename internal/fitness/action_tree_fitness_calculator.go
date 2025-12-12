@@ -64,6 +64,26 @@ func Score(value float64, alpha float64) float64 {
 	}
 }
 
+// handleTestCase scenario more cleanly and share code
+func (atfc *ActionTreeFitnessCalculator) handleTestCases(wi *individual.WeightsIndividual, tree *individual.ActionTreeIndividual, index int, fitnesses []Client) {
+	sum := 0.0
+	clientId := ""
+	for range atfc.testCaseCount {
+		fitness, currentClientId, err := atfc.SetupGameAndRun(wi, tree)
+		if err != nil {
+			zap.L().Error("Failed to setup game and run", zap.Error(err))
+		} else {
+			sum += Score(fitness, 0.5)
+			clientId += currentClientId + " " + strconv.FormatFloat(fitness, 'f', -1, 64) + " : "
+		}
+	}
+	fitnesses[index] = Client{
+		ID:      clientId,
+		Fitness: sum / float64(atfc.testCaseCount),
+	}
+
+}
+
 // CalculateFitness evaluates the fitness of an ActionTree individual
 func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.Evolvable) {
 
@@ -75,71 +95,43 @@ func (atfc *ActionTreeFitnessCalculator) CalculateFitness(evolvable individual.E
 		return
 	}
 
+	fitnesses := make([]Client, max(len(*atfc.weightsPopulation), len(*atfc.actionTreePopulation)))
 	if wiok {
-		weightsFitnesses := make([]Client, len(*atfc.weightsPopulation))
-		for _, evolvable := range *atfc.actionTreePopulation {
+		for index, evolvable := range *atfc.actionTreePopulation {
 			tree, ok := (evolvable).(*individual.ActionTreeIndividual)
 			if !ok {
 				panic("Not action tree in action tree population")
 			}
-
-			sum := 0.0
-			clientId := ""
-			for range atfc.testCaseCount {
-				fitness, currentClientId, err := atfc.SetupGameAndRun(wi, tree)
-				if err != nil {
-					zap.L().Error("Failed to setup game and run", zap.Error(err))
-				} else {
-					sum += Score(fitness, 0.5)
-					clientId += currentClientId + " " + strconv.FormatFloat(fitness, 'f', -1, 64) + " : "
-
-				}
-			}
-			weightsFitnesses = append(weightsFitnesses, Client{
-				ID:      clientId,
-				Fitness: sum / float64(atfc.testCaseCount),
-			})
+			atfc.handleTestCases(wi, tree, index, fitnesses)
 		}
-		sort.Slice(weightsFitnesses, func(i, j int) bool {
-			return (weightsFitnesses[i].Fitness > weightsFitnesses[j].Fitness)
-		})
-		wi.SetFitness(weightsFitnesses[0].Fitness)
-		wi.SetClient(weightsFitnesses[0].ID)
-
 		return
 	}
 
 	if atok {
 		actionTreeFitnesses := make([]Client, len(*atfc.actionTreePopulation))
-		for _, evolvable := range *atfc.weightsPopulation {
+		for index, evolvable := range *atfc.weightsPopulation {
 			weights, ok := (evolvable).(*individual.WeightsIndividual)
 			if !ok {
 				panic("Not action tree in action tree population")
 			}
 
-			sum := 0.0
-			clientId := ""
-			for range atfc.testCaseCount {
-				fitness, currentClientId, err := atfc.SetupGameAndRun(weights, at)
-				if err != nil {
-					zap.L().Error("Failed to setup game and run", zap.Error(err))
-				} else {
-					sum += Score(fitness, 0.5)
-					clientId += currentClientId + " " + strconv.FormatFloat(fitness, 'f', -1, 64) + " : "
-				}
-			}
-			actionTreeFitnesses = append(actionTreeFitnesses, Client{
-				ID:      clientId,
-				Fitness: sum / float64(atfc.testCaseCount),
-			})
+			atfc.handleTestCases(weights, at, index, fitnesses)
 		}
-		sort.Slice(actionTreeFitnesses, func(i, j int) bool {
-			return actionTreeFitnesses[i].Fitness > actionTreeFitnesses[j].Fitness
-		})
 		at.SetFitness(actionTreeFitnesses[0].Fitness)
 		at.SetClient(actionTreeFitnesses[0].ID)
+	}
+
+	sort.Slice(fitnesses, func(i, j int) bool {
+		return (fitnesses[i].Fitness > fitnesses[j].Fitness)
+	})
+	if wiok {
+		wi.SetFitness(fitnesses[0].Fitness)
+		wi.SetClient(fitnesses[0].ID)
 		return
 	}
+
+	at.SetFitness(fitnesses[0].Fitness)
+	at.SetClient(fitnesses[0].ID)
 }
 
 func (atfc *ActionTreeFitnessCalculator) SetupGameAndRun(weightsInd *individual.WeightsIndividual, actionTreeInd *individual.ActionTreeIndividual) (float64, string, error) {

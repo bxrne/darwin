@@ -107,7 +107,7 @@ func newGrowTreeNode(depth int, maxDepth int, terminalSet []string, functionSet 
 
 	// At non-zero Depth, randomly choose between function and terminal
 	p := 1.0 - (float64(depth) / float64(maxDepth))
-	if rng.Float64() < p {
+	if rng.Float64() < p && depth != maxDepth {
 		// Choose terminal
 		return &TreeNode{Value: terminalSet[rng.Intn(len(terminalSet))]}
 	}
@@ -132,15 +132,6 @@ func NewRandomTree(maxDepth int, operandSet []string, variableSet []string, term
 		tree := newGrowTree(maxDepth, operandSet, variableSet, terminalSet)
 		tree.depth = tree.Root.CalculateMaxDepth()
 		return tree
-	}
-	return NewFullTree(depth, operandSet, variableSet, terminalSet)
-}
-
-// NewRampedHalfAndHalfTree generates a tree with specified Depth using ramped half-and-half
-// This is useful for population initialization where specific Depths are needed
-func NewRampedHalfAndHalfTree(depth int, useGrow bool, operandSet []string, variableSet []string, terminalSet []string) *Tree {
-	if useGrow {
-		return newGrowTree(depth, operandSet, variableSet, terminalSet)
 	}
 	return NewFullTree(depth, operandSet, variableSet, terminalSet)
 }

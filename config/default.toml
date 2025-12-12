@@ -1,5 +1,5 @@
 [evolution]
-population_size = 30
+population_size = 20
 crossover_point_count = 2
 crossover_rate = 0.7
 mutation_rate = 0.3
@@ -20,7 +20,7 @@ genome_size = 200
 
 [tree_individual]
 enabled = false
-max_depth = 12
+max_depth = 10
 initial_depth = 5
 operand_set = ["+", "-", "*", "/", "^",]
 variable_set = [
@@ -54,7 +54,7 @@ weights_column_count = 7
 server_addr = "127.0.0.1:5000"
 train_weights_first = false
 fitness_selection_percentage = 0.1
-switch_training_target_step = 2
+switch_training_target_step = 5
 connection_pool_size = 100
 connection_timeout = "30s"
 health_check_timeout = "30s"

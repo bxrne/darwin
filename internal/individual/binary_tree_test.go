@@ -23,30 +23,6 @@ func TestNewRandomTree_GIVEN_max_depth_zero_WHEN_new_random_tree_THEN_returns_le
 	assert.Contains(t, combinedSet, tree.Root.Value)
 }
 
-func TestNewRampedHalfAndHalfTree_GIVEN_depth_and_useGrow_true_WHEN_new_tree_THEN_creates_grow_tree(t *testing.T) {
-	operandSet := []string{"+", "-", "*", "/"}
-	variableSet := []string{"x", "y"}
-	terminalSet := []string{"1.0", "2.0", "3.0"}
-	tree := individual.NewRampedHalfAndHalfTree(3, true, operandSet, variableSet, terminalSet)
-
-	assert.NotNil(t, tree)
-	assert.NotNil(t, tree.Root)
-	assert.Equal(t, 3, tree.GetDepth())
-}
-
-func TestNewRampedHalfAndHalfTree_GIVEN_depth_and_useGrow_false_WHEN_new_tree_THEN_creates_full_tree(t *testing.T) {
-	operandSet := []string{"+", "-", "*", "/"}
-	variableSet := []string{"x", "y"}
-	terminalSet := []string{"1.0", "2.0", "3.0"}
-	tree := individual.NewRampedHalfAndHalfTree(2, false, operandSet, variableSet, terminalSet)
-
-	assert.NotNil(t, tree)
-	assert.NotNil(t, tree.Root)
-	assert.Equal(t, 2, tree.GetDepth())
-	// Full tree should have all leaves at max depth
-	assert.True(t, tree.Root.CalculateMaxDepth() == 2)
-}
-
 func TestTreeNode_IsLeaf_GIVEN_leaf_node_WHEN_check_THEN_returns_true(t *testing.T) {
 	node := &individual.TreeNode{Value: "x"}
 	assert.True(t, node.IsLeaf())

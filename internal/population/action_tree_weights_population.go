@@ -37,10 +37,9 @@ func (at *ActionTreeAndWeightsPopulation) Get(index int) individual.Evolvable {
 	return at.actionTrees[index]
 }
 
-func (at *ActionTreeAndWeightsPopulation) Update(generation int, fitnessCalc fitness.FitnessCalculator) {
+func (at *ActionTreeAndWeightsPopulation) Update(generation int) {
 	if generation%at.switchPopulationStep == 0 {
 		at.isTrainingWeights = !at.isTrainingWeights
-		at.CalculateFitnesses(fitnessCalc)
 	}
 
 }
