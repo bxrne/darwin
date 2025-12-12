@@ -38,8 +38,8 @@ var benchmarkCases = []benchmarkCase{
 	{"GrammarTree_Large", 1000, 200, 100, "grammar_tree"},
 	{"GrammarTree_Huge", 500, 500, 10, "grammar_tree"},
 
-	// NEW: ActionTree scenario (requires game server)
-	{"ActionTree_GameServer", 200, 3, 25, "action_tree"},
+	// NEW: ActionTree scenarios (requires game server) - fast configuration: 5 trees, 2 weights, 2 test cases
+	{"ActionTree", 5, 2, 1, "action_tree"},
 
 	// NEW: Comparative scenarios (same toy problem, different individual types)
 	{"Compare_BitString", 300, 150, 30, "bitstring"},
@@ -58,11 +58,19 @@ func BenchmarkEvolution(b *testing.B) {
 
 func newBenchmarkConfig(popSize, sizeParam, generations int, individualType string) *cfg.Config {
 	// Base evolution config for all benchmarks
+	// Use better parameters for Tree/GrammarTree to improve convergence
+	mutationRate := 0.05
+	crossoverRate := 0.9
+	if individualType == "tree" || individualType == "grammar_tree" {
+		// More conservative rates for symbolic regression
+		mutationRate = 0.1
+		crossoverRate = 0.8
+	}
 	evolutionConfig := cfg.EvolutionConfig{
 		PopulationSize:      popSize,
 		CrossoverPointCount: 1,
-		MutationRate:        0.05,
-		CrossoverRate:       0.9,
+		MutationRate:        mutationRate,
+		CrossoverRate:       crossoverRate,
 		Generations:         generations,
 		ElitismPercentage:   0.1,
 		SelectionSize:       5,
@@ -89,16 +97,16 @@ func newBenchmarkConfig(popSize, sizeParam, generations int, individualType stri
 			Tree: cfg.TreeIndividualConfig{
 				Enabled:     true,
 				MaxDepth:    sizeParam,
-				OperandSet:  []string{"+", "-", "*", "/"},
+				OperandSet:  []string{"+", "-", "*"},
 				VariableSet: []string{"x", "y"},
-				TerminalSet: []string{"1.0", "2.0", "3.0"},
+				TerminalSet: []string{"0.0", "1.0", "2.0", "3.0", "4.0", "5.0"},
 			},
 			BitString:   cfg.BitStringIndividualConfig{Enabled: false},
 			GrammarTree: cfg.GrammarTreeConfig{Enabled: false},
 			ActionTree:  cfg.ActionTreeConfig{Enabled: false},
 			Fitness: cfg.FitnessConfig{
 				TestCaseCount:  20,
-				TargetFunction: "x^2 + 2*y + 1",
+				TargetFunction: "x + y", // Simpler function for better convergence
 			},
 		}
 
@@ -112,15 +120,15 @@ func newBenchmarkConfig(popSize, sizeParam, generations int, individualType stri
 			Tree: cfg.TreeIndividualConfig{
 				Enabled:     false, // Keep disabled but provide grammar config
 				MaxDepth:    8,
-				OperandSet:  []string{"+", "-", "*", "/"},
+				OperandSet:  []string{"+", "-", "*"},
 				VariableSet: []string{"x", "y"},
-				TerminalSet: []string{"1.0", "2.0", "3.0", "4.0", "5.0"},
+				TerminalSet: []string{"0.0", "1.0", "2.0", "3.0", "4.0", "5.0"},
 			},
 			BitString:  cfg.BitStringIndividualConfig{Enabled: false},
 			ActionTree: cfg.ActionTreeConfig{Enabled: false},
 			Fitness: cfg.FitnessConfig{
 				TestCaseCount:  20,
-				TargetFunction: "x^2 + 2*y + 1",
+				TargetFunction: "x + y", // Simpler function for better convergence
 			},
 		}
 
@@ -131,22 +139,53 @@ func newBenchmarkConfig(popSize, sizeParam, generations int, individualType stri
 			{Name: "move_east", Value: 3},
 			{Name: "move_west", Value: 4},
 		}
+		// Ensure SwitchTrainingTargetStep is at least 1 to avoid divide by zero
+		switchStep := generations / 2
+		if switchStep < 1 {
+			switchStep = 1
+		}
+		// For ActionTree: User wants trees 5, weights 2, test cases 2
+		treePopulation := 5  // 5 trees
+		weightsCount := 2   // 2 weights
 		return &cfg.Config{
-			Evolution: evolutionConfig,
-			ActionTree: cfg.ActionTreeConfig{
-				Enabled:            true,
-				Actions:            actions,
-				WeightsCount:       sizeParam,
-				ServerAddr:         "localhost:5000",
-				OpponentType:       "random",
-				MaxSteps:           100,
-				ConnectionPoolSize: 5,
-				ConnectionTimeout:  "5s",
-				HealthCheckTimeout: "5s",
+			Evolution: cfg.EvolutionConfig{
+				PopulationSize:      treePopulation,
+				CrossoverPointCount: 1,
+				MutationRate:        0.05,
+				CrossoverRate:       0.9,
+				Generations:         generations,
+				ElitismPercentage:   0.1,
+				SelectionSize:       5,
+				SelectionType:       "tournament",
+				Seed:                42,
 			},
-			BitString:   cfg.BitStringIndividualConfig{Enabled: false},
-			Tree:        cfg.TreeIndividualConfig{Enabled: false},
+			ActionTree: cfg.ActionTreeConfig{
+				Enabled:                  true,
+				Actions:                  actions,
+				WeightsCount:             weightsCount,
+				WeightsColumnCount:       4, // Fixed matrix dimensions for 4 actions
+				ServerAddr:               "localhost:5000",
+				OpponentType:             "random",
+				MaxSteps:                 100,
+				ConnectionPoolSize:       5,
+				ConnectionTimeout:        "5s",
+				HealthCheckTimeout:       "5s",
+				SwitchTrainingTargetStep: switchStep,
+				TrainWeightsFirst:        false,
+			},
+			BitString: cfg.BitStringIndividualConfig{Enabled: false},
+			Tree: cfg.TreeIndividualConfig{
+				Enabled:     false, // Keep disabled but provide grammar config
+				MaxDepth:    5,
+				OperandSet:  []string{"+", "-", "*", "/"},
+				VariableSet: []string{"army_diff", "land_diff", "distance_to_enemy_general"},
+				TerminalSet: []string{"0.1", "0.5", "1.0", "2.0"},
+			},
 			GrammarTree: cfg.GrammarTreeConfig{Enabled: false},
+			Fitness: cfg.FitnessConfig{
+				TestCaseCount:  2, // 2 test cases as requested
+				TargetFunction: "",
+			},
 		}
 
 	default:

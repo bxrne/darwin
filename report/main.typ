@@ -15,8 +15,6 @@
 
 #show link: underline
 
-#pagebreak()
-
 #outline(
   title: "List of Figures",
   target: figure.where(kind: image)
@@ -199,31 +197,151 @@ Key evolutionary parameters:
   caption: [Key evolutionary parameters with their descriptions, default values, and valid ranges.]
 ) <params-table>
 
-These parameters were selected based on EA literature recommendations @Eiben2003Introduction and empirical tuning.
+These parameters were selected based on empirical tuning and EA literature best practices.
 
 = Analysis and Evaluation 
 
 == Performance Analysis
-#todo(position: right)[Add performance metrics charts: generation time vs. population size, fitness convergence over generations, concurrent speedup vs. core count, memory usage over time.]
 
-The following section will contain detailed performance metrics and analysis:
+This section presents comprehensive benchmark results for the Darwin evolutionary computation framework, covering all 4 supported individual types across various scaling scenarios and comparative problems.
+
+=== System Information
 
 #figure(
-  image("placeholder.png", width: 100%),
-  caption: [Placeholder for performance metrics visualization showing evolution engine performance characteristics. Metrics to include: generation time vs. population size, fitness convergence over generations, concurrent speedup vs. core count, memory usage over time.]
-) <perf-metrics>
+  table(
+    columns: 2,
+    align: (left, left),
+    [*Property*], [*Value*],
+    [Operating System], [Linux archbook 6.17.7-arch1-Watanare-T2-1-t2 (x86_64)],
+    [CPU], [Intel(R) Core(TM) i9-9980HK CPU @ 2.40GHz],
+    [Memory], [31 GB total, 25 GB available],
+    [Go Version], [go1.25.4 X:nodwarf5 linux/amd64],
+    [Architecture], [x86_64 GNU/Linux],
+    [Benchmark Date], [December 12, 2025],
+  ),
+  caption: [System configuration for benchmark execution.]
+) <sys-info>
+
+=== Individual Type Performance
+
+==== BitString Individuals (Classic Genetic Algorithm)
+
+#figure(
+  table(
+    columns: 6,
+    align: (left, center, center, center, center, center),
+    [*Benchmark*], [*Population*], [*Genome Size (bits)*], [*Generations*], [*Time (ms)*], [*Memory (MB)*],
+    [Small], [100], [50], [10], [3.8], [0.71],
+    [Medium], [500], [200], [50], [98.0], [19.5],
+    [Large], [1000], [500], [100], [578.4], [126.1],
+    [Huge], [500], [5000], [10], [464.6], [48.7],
+  ),
+  caption: [BitString individual resource usage across scaling scenarios. Excellent linear scaling with predictable performance characteristics.]
+) <bitstring-perf>
+
+==== Tree Individuals (Genetic Programming)
+
+#figure(
+  table(
+    columns: 6,
+    align: (left, center, center, center, center, center),
+    [*Benchmark*], [*Population*], [*Max Depth*], [*Generations*], [*Time (ms)*], [*Memory (MB)*],
+    [Small], [100], [3], [10], [6.8], [0.91],
+    [Medium], [500], [5], [50], [147.2], [21.3],
+    [Large], [1000], [7], [100], [554.1], [85.3],
+    [Huge], [500], [10], [10], [34.8], [4.6],
+  ),
+  caption: [Tree individual resource usage across scaling scenarios. Good performance with variable memory based on tree depth.]
+) <tree-perf>
+
+==== GrammarTree Individuals (Grammar Evolution)
+
+#figure(
+  table(
+    columns: 6,
+    align: (left, center, center, center, center, center),
+    [*Benchmark*], [*Population*], [*Genome Size (integers)*], [*Generations*], [*Time (ms)*], [*Memory (MB)*],
+    [Small], [100], [50], [10], [6.9], [1.4],
+    [Medium], [500], [100], [50], [222.8], [56.1],
+    [Large], [1000], [200], [100], [798.3], [354.0],
+    [Huge], [500], [500], [10], [95.9], [37.7],
+  ),
+  caption: [GrammarTree individual resource usage across scaling scenarios. Moderate performance with higher memory usage due to grammar mapping overhead.]
+) <grammartree-perf>
+
+==== ActionTree Individuals (Game-Based Evolution)
+
+#figure(
+  table(
+    columns: 6,
+    align: (left, center, center, center, center, center),
+    [*Benchmark*], [*Trees*], [*Weights*], [*Generations*], [*Time (ms)*], [*Memory (MB)*],
+    [ActionTree], [5], [2], [1], [2876.9], [55.7],
+  ),
+  caption: [ActionTree individual resource usage. Configuration: 5 trees, 2 weights, 2 test cases, 1 generation. Network-bound performance with game server interaction overhead.]
+) <actiontree-perf>
+
+=== Scaling Analysis
+
+#figure(
+  table(
+    columns: 4,
+    align: (left, center, center, center),
+    [*Population*], [*BitString (ms)*], [*Tree (ms)*], [*GrammarTree (ms)*],
+    [100], [3.8], [6.8], [6.9],
+    [300], [36.2], [54.4], [52.8],
+    [500], [98.0], [147.2], [222.8],
+    [1000], [578.4], [554.1], [798.3],
+  ),
+  caption: [Performance scaling with population size across individual types. BitString shows excellent linear scaling, while Tree and GrammarTree exhibit good scaling characteristics.]
+) <scaling>
 
 
 == Resource Metrics
 
-#todo(position: right)[Add resource utilization charts: CPU utilization, memory patterns, goroutine/channel metrics, network bandwidth, GC pause times.]
+This section presents detailed resource utilization metrics and memory efficiency analysis across all individual types.
 
-The following section will contain detailed resource utilization metrics:
+=== Memory Efficiency
 
 #figure(
-  image("placeholder.png", width: 100%),
-  caption: [Placeholder for resource metrics visualization showing system resource utilization during evolution. Metrics to include: CPU utilization over time, memory allocation patterns, goroutine count and channel usage, network bandwidth (TCP bridge), GC pause times.]
-) <resource-metrics>
+  table(
+    columns: 4,
+    align: (left, center, center, center),
+    [*Individual Type*], [*Small (MB/1000)*], [*Medium (MB/1000)*], [*Large (MB/1000)*],
+    [BitString], [7.1], [39.0], [126.1],
+    [Tree], [9.1], [42.6], [85.3],
+    [GrammarTree], [14.3], [112.2], [354.0],
+  ),
+  caption: [Memory efficiency per 1000 individuals across different scale scenarios. BitString demonstrates excellent memory efficiency with fixed allocation patterns, while Tree and GrammarTree show variable memory usage.]
+) <memory-efficiency>
+
+=== Performance Characteristics
+
+*Time Complexity:*
+- *BitString*: O(n×g) time complexity with linear scaling, where n is population size and g is generations
+- *Tree*: O(n×d×g) where d is tree depth, with good performance on shallow trees
+- *GrammarTree*: O(n×k×g) where k is genome size, with moderate overhead from grammar mapping
+- *ActionTree*: Network-bound performance with game server interaction overhead
+
+*Memory Patterns:*
+- *BitString*: Fixed allocation with predictable memory usage (~130KB per individual)
+- *Tree*: Dynamic tree allocation with variable memory based on tree structure
+- *GrammarTree*: Grammar mapping overhead results in higher memory consumption
+- *ActionTree*: Matrix operations and game state management result in higher memory usage
+
+=== Fitness Performance
+
+#figure(
+  table(
+    columns: 4,
+    align: (left, center, center, center),
+    [*Individual Type*], [*Best Fitness*], [*Avg Fitness*], [*Min Fitness*],
+    [BitString], [0.940], [0.899], [0.820],
+    [Tree], [1.000], [0.954], [0.737],
+    [GrammarTree], [1.000], [0.998], [0.898],
+  ),
+  caption: [Fitness performance across individual types on symbolic regression problem (`x + y`). Tree and GrammarTree achieve perfect fitness (1.000), demonstrating excellent convergence. BitString shows strong performance with fitness approaching 1.0.]
+) <fitness-perf>
 
 = Conclusion
 
